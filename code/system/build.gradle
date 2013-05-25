@@ -1,3 +1,12 @@
 apply plugin: 'java'
 
 defaultTasks 'jar'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile 'junit:junit:4.11'
+    compile 'org.apache.ivy:ivy:2.3.0'
+}
