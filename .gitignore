@@ -36,7 +36,12 @@ Icon?
 ehthumbs.db
 Thumbs.db
 
+# build dirs #
+build
+.gradle
+
 # Editor chaff #
 ################
 *~
 .~lock.*
+
