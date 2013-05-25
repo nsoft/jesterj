@@ -1,0 +1,5 @@
+This component is responsible for startup, shutdown and deployment of new
+portions of the system. It will start tomcat, fetch new components from maven
+central. There will be two running modes, master and slave. Slaves will 
+listen for commands from a master. Those commands must be encrypted by a 
+private key and the slave will require a copy of the matching public key. 
