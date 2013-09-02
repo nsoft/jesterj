@@ -44,4 +44,4 @@ build
 ################
 *~
 .~lock.*
-.idea/workspace.xml
+workspace.xml
