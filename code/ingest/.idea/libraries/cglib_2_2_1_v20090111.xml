@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="cglib-2.2.1-v20090111">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/artifacts-26/filestore/org.sonatype.sisu.inject/cglib/2.2.1-v20090111/jar/7ce5e983fd0e6c78346f4c9cbfa39d83049dda2/cglib-2.2.1-v20090111.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/artifacts-26/filestore/org.sonatype.sisu.inject/cglib/2.2.1-v20090111/source/65030c30094de36e3fddbc22442d47cbf547741f/cglib-2.2.1-v20090111-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

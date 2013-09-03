@@ -1,5 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="JAVA_MODULE" version="4">
+  <component name="FacetManager">
+    <facet type="web" name="injest">
+      <configuration>
+        <descriptors>
+          <deploymentDescriptor name="web.xml" url="file://$MODULE_DIR$/src/main/webapp/WEB-INF/web.xml" />
+        </descriptors>
+        <webroots>
+          <root url="file://$MODULE_DIR$/src/main/webapp" relative="/" />
+        </webroots>
+        <sourceRoots>
+          <root url="file://$MODULE_DIR$/src/main/resources" />
+          <root url="file://$MODULE_DIR$/src/main/java" />
+        </sourceRoots>
+      </configuration>
+    </facet>
+  </component>
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$">
@@ -12,6 +28,31 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" exported="" name="guice-3.0.0" level="project" />
+    <orderEntry type="library" exported="" name="shiro-web-1.2.2" level="project" />
+    <orderEntry type="library" exported="" name="asm-3.1" level="project" />
+    <orderEntry type="library" exported="" name="cglib-2.2" level="project" />
+    <orderEntry type="library" exported="" name="javax.inject-1" level="project" />
+    <orderEntry type="library" exported="" name="slf4j-api-1.6.4" level="project" />
+    <orderEntry type="library" exported="" name="commons-beanutils-1.8.3" level="project" />
+    <orderEntry type="library" exported="" name="shiro-core-1.2.2" level="project" />
+    <orderEntry type="library" exported="" name="aopalliance-1.0" level="project" />
+    <orderEntry type="library" exported="" name="vaadin-theme-compiler-7.1.3" level="project" />
+    <orderEntry type="library" exported="" name="commons-cli-1.2" level="project" />
+    <orderEntry type="library" exported="" name="commons-jexl-2.1.1" level="project" />
+    <orderEntry type="library" exported="" name="vaadin-client-compiled-7.1.3" level="project" />
+    <orderEntry type="library" exported="" name="cssparser-0.9.5" level="project" />
+    <orderEntry type="library" exported="" name="jsoup-1.6.3" level="project" />
+    <orderEntry type="library" exported="" name="sac-1.3" level="project" />
+    <orderEntry type="library" exported="" name="commons-logging-1.1.1" level="project" />
+    <orderEntry type="library" exported="" name="vaadin-shared-deps-1.0.2" level="project" />
+    <orderEntry type="library" exported="" name="vaadin-shared-7.1.3" level="project" />
+    <orderEntry type="library" exported="" name="vaadin-server-7.1.3" level="project" />
+    <orderEntry type="library" exported="" scope="RUNTIME" name="vaadin-themes-7.1.3" level="project" />
+    <orderEntry type="library" exported="" name="guice-servlet-3.0" level="project" />
+    <orderEntry type="library" exported="" name="guice-3.0" level="project" />
+    <orderEntry type="library" exported="" name="cglib-2.2.1-v20090111" level="project" />
+    <orderEntry type="library" exported="" name="javax.servlet-api-3.0.1" level="project" />
   </component>
 </module>
 

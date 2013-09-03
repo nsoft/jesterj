@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="guice-3.0.0">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/artifacts-26/filestore/com.jolira/guice/3.0.0/jar/72ba005f99c787c1f2a199a84c4e5bccc8a6f600/guice-3.0.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/artifacts-26/filestore/com.jolira/guice/3.0.0/source/a08c8733085a5df98d0e1cb9d461fe98bea99a5c/guice-3.0.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

@@ -1,0 +1,10 @@
+Fundamental Objects:
+
+Scanner - thing that finds stuff that we might want to index.
+
+Item - thing that a scanner found that might end up in solr
+
+Step - Something that needs to be done to an item before it can be sent to solr
+
+Plan - a list of steps which when complete should either drop the item, or send it to solr
+
