@@ -53,6 +53,9 @@
     <orderEntry type="library" exported="" name="guice-3.0" level="project" />
     <orderEntry type="library" exported="" name="cglib-2.2.1-v20090111" level="project" />
     <orderEntry type="library" exported="" name="javax.servlet-api-3.0.1" level="project" />
+    <orderEntry type="library" exported="" name="guice-multibindings-3.0" level="project" />
+    <orderEntry type="library" exported="" name="guava-r09" level="project" />
+    <orderEntry type="library" exported="" name="shiro-guice-1.2.2" level="project" />
   </component>
 </module>
 
