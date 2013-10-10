@@ -9,17 +9,27 @@ package org.solrsystem.ingest.shiro;
 
 
 import com.google.inject.Provides;
+import org.apache.shiro.authc.credential.HashedCredentialsMatcher;
+import org.apache.shiro.authc.credential.Sha512CredentialsMatcher;
 import org.apache.shiro.config.Ini;
-import org.apache.shiro.guice.ShiroModule;
+import org.apache.shiro.guice.web.ShiroWebModule;
 import org.apache.shiro.realm.text.IniRealm;
 
-public class IngestShiroModule extends ShiroModule {
-  protected void configureShiro() {
+import javax.servlet.ServletContext;
+
+public class IngestShiroModule extends ShiroWebModule {
+
+  public IngestShiroModule(ServletContext servletContext) {
+    super(servletContext);
+  }
+
+  protected void configureShiroWeb() {
     try {
       bindRealm().toConstructor(IniRealm.class.getConstructor(Ini.class));
     } catch (NoSuchMethodException e) {
       addError(e);
     }
+    HashedCredentialsMatcher foo;
   }
 
   @Provides
