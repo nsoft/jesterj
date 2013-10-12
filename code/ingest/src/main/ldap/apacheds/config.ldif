@@ -1221,7 +1221,7 @@ entryuuid: 09407970-c4d9-4e4a-a209-0a017c6bcb33
 ads-maxsizelimit: 1000
 entrycsn: 20130902225345.141000Z#000000#000#000000
 ads-maxtimelimit: 15000
-ads-saslhost: ldap.example.com
+ads-saslhost: localhost
 
 dn: ou=extendedOpHandlers,ads-serverId=ldapServer,ou=servers,ads-directoryServic
  eId=default,ou=config
