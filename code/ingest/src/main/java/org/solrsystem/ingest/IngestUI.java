@@ -36,6 +36,9 @@ public class IngestUI extends UI {
         try {
           Subject currentUser = SecurityUtils.getSubject();
           currentUser.login(authToken);
+          if (currentUser.isAuthenticated()) {
+            loginLabel.setValue("Hello " + currentUser.getPrincipal().toString());
+          }
         } catch (UnknownAccountException uae) {
           userName.setComponentError(new UserError("Unknown User"));
           loginLabel.setValue("That user does not exist");

@@ -12,7 +12,9 @@ import org.apache.shiro.util.Factory;
 
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
+import javax.servlet.annotation.WebListener;
 
+@WebListener
 public class ShiroSingletonContextListener implements ServletContextListener {
   @Override
   public void contextInitialized(ServletContextEvent sce) {
@@ -29,6 +31,6 @@ public class ShiroSingletonContextListener implements ServletContextListener {
 
   @Override
   public void contextDestroyed(ServletContextEvent sce) {
-    //To change body of implemented methods use File | Settings | File Templates.
+    //nothing
   }
 }
