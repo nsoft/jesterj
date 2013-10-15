@@ -1,16 +1,16 @@
-package org.solrsystem.ingest.guice;
+package org.solrsystem.ingest.vaadin;
 
 /*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 9/2/13
- * Time: 9:49 PM
  */
 
 import com.vaadin.server.UIClassSelectionEvent;
 import com.vaadin.server.UICreateEvent;
 import com.vaadin.server.UIProvider;
 import com.vaadin.ui.UI;
+import org.solrsystem.ingest.guice.IngestServletConfig;
 
 import javax.inject.Inject;
 

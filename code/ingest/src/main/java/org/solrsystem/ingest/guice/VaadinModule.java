@@ -1,4 +1,4 @@
-package org.solrsystem.ingest.vaadin;/*
+package org.solrsystem.ingest.guice;/*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 9/2/13
@@ -10,6 +10,7 @@ import com.google.inject.servlet.ServletModule;
 import com.vaadin.ui.UI;
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.solrsystem.ingest.IngestUI;
+import org.solrsystem.ingest.vaadin.IngestServlet;
 
 import java.util.HashMap;
 import java.util.Map;

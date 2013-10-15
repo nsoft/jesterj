@@ -8,7 +8,6 @@ package org.solrsystem.ingest.guice;/*
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.servlet.GuiceServletContextListener;
-import org.solrsystem.ingest.vaadin.VaadinModule;
 
 import javax.servlet.ServletContextEvent;
 

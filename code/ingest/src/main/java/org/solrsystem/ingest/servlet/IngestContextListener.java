@@ -1,4 +1,4 @@
-package org.solrsystem.ingest;/*
+package org.solrsystem.ingest.servlet;/*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 10/10/13
@@ -15,7 +15,7 @@ import javax.servlet.ServletContextListener;
 import javax.servlet.annotation.WebListener;
 
 @WebListener
-public class ShiroSingletonContextListener implements ServletContextListener {
+public class IngestContextListener implements ServletContextListener {
   @Override
   public void contextInitialized(ServletContextEvent sce) {
     // Use the shiro.ini file at the root of the classpath

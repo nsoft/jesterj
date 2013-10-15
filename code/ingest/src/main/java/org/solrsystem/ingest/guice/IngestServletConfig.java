@@ -8,7 +8,6 @@ package org.solrsystem.ingest.guice;/*
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.servlet.GuiceServletContextListener;
-import org.solrsystem.ingest.vaadin.VaadinModule;
 
 import javax.servlet.annotation.WebListener;
 
@@ -22,7 +21,7 @@ public class IngestServletConfig extends GuiceServletContextListener{
   }
 
 
-  static Injector injector() {
+  public static Injector injector() {
     return INJECTOR;
   }
 }

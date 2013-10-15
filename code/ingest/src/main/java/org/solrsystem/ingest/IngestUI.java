@@ -6,6 +6,7 @@ import com.vaadin.ui.*;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.subject.Subject;
+import org.solrsystem.ingest.model.User;
 
 import javax.inject.Inject;
 
@@ -37,7 +38,8 @@ public class IngestUI extends UI {
           Subject currentUser = SecurityUtils.getSubject();
           currentUser.login(authToken);
           if (currentUser.isAuthenticated()) {
-            loginLabel.setValue("Hello " + currentUser.getPrincipal().toString());
+            User user = currentUser.getPrincipals().oneByType(User.class);
+            loginLabel.setValue("Hello " +user.getDisplayName());
           }
         } catch (UnknownAccountException uae) {
           userName.setComponentError(new UserError("Unknown User"));
