@@ -1,4 +1,6 @@
-package org.solrsystem.ingest.servlet;/*
+package org.solrsystem.ingest.servlet;
+
+/*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 10/10/13

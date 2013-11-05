@@ -1,4 +1,6 @@
-package org.solrsystem.ingest.guice;/*
+package org.solrsystem.ingest.guice;
+
+/*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 9/2/13

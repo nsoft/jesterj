@@ -1,4 +1,6 @@
-package org.solrsystem.ingest.vaadin.views;/*
+package org.solrsystem.ingest.vaadin.views;
+
+/*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 11/4/13
