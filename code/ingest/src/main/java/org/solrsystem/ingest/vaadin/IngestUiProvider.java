@@ -10,7 +10,7 @@ import com.vaadin.server.UIClassSelectionEvent;
 import com.vaadin.server.UICreateEvent;
 import com.vaadin.server.UIProvider;
 import com.vaadin.ui.UI;
-import org.solrsystem.ingest.guice.IngestServletConfig;
+import org.solrsystem.ingest.guice.IngestServletContextListener;
 
 import javax.inject.Inject;
 
@@ -20,7 +20,7 @@ public class IngestUiProvider extends UIProvider {
 
   @Override
   public UI createInstance(UICreateEvent event) {
-    return IngestServletConfig.injector().getProvider(uiClass).get();
+    return IngestServletContextListener.injector().getProvider(uiClass).get();
   }
 
   @Override

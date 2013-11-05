@@ -11,6 +11,7 @@ import com.vaadin.ui.UI;
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.solrsystem.ingest.IngestUI;
 import org.solrsystem.ingest.vaadin.IngestServlet;
+import org.solrsystem.ingest.vaadin.views.LogIn;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +28,11 @@ public class VaadinModule extends ServletModule {
   @Provides
   UsernamePasswordToken provideToken() {
     return new UsernamePasswordToken();
+  }
+
+  @Provides
+  LogIn provideLogIn() {
+    return new LogIn();
   }
 
   @Provides

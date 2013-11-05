@@ -18,8 +18,16 @@ public class IngestServletContextListener extends GuiceServletContextListener {
     super.contextInitialized(servletContextEvent);
   }
 
+  private static Injector INJECTOR = Guice.createInjector(new VaadinModule());
+
   @Override
-  protected Injector getInjector() {
-    return Guice.createInjector( new VaadinModule());
+  protected  Injector getInjector() {
+    return INJECTOR;
   }
+
+
+  public static Injector injector() {
+    return INJECTOR;
+  }
+
 }
