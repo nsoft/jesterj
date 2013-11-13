@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="org.eclipse.jgit-3.1.0.201310021548-r">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/artifacts-26/filestore/org.eclipse.jgit/org.eclipse.jgit/3.1.0.201310021548-r/jar/df1410e5d1deaacfb70a2441b4766b61f2795bc3/org.eclipse.jgit-3.1.0.201310021548-r.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/artifacts-26/filestore/org.eclipse.jgit/org.eclipse.jgit/3.1.0.201310021548-r/source/b4e3d9c9c3da39b72acf72bd913ce9dbee88a9d4/org.eclipse.jgit-3.1.0.201310021548-r-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
