@@ -1,0 +1,25 @@
+So why don't we use...
+
+CASCADING (http://www.cascading.org/)
+
+Cascading seems to very much have the right idea in terms of Pipe Assemblies, 
+fork,join and the ability to run on a "cluster". It's this last bit that 
+doesn't quite go where I want. SolrSystem must support multi-tennant systems. 
+One tennant may have a huge OCR burden. We can't just throw the entire 
+execution plan at the cluster, because we then have to size the cluster such
+that speed is maintained for ALL customers. Worse yet this burden may be a 
+one time setup burden, and cluster size must be adjusted. 
+
+The ideal case is for only tennants who have OCR to be effected, and then to
+be able to scale out the portion of the system that handles OCR, potentially
+even segmenting off a chunk of the workload to new temporary machines
+or throttling the OCR burden for the client undegoing initial setup to 
+keep the system responsive for all others. If we build our solution on
+cascading, we must either trickle in the heavy customer's data, or scale the 
+whole system instead of just the rate limiting step.
+
+Note that this analysis is based on reading their overview Section 3.2, and 
+Section 4. This scaling issue probably is a problem with most hadoop based 
+solutions. If we used hadoop, we would need to be able to segment the cluster, 
+or coordinate multiple clusters.
+
