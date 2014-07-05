@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013. Needham Software LLC
+ * Copyright (c) 2014. Needham Software LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,63 @@
  */
 
 package org.solrsystem;
+/*
+ * Created with IntelliJ IDEA.
+ * User: gus
+ * Date: 3/12/14
+ */
 
+import com.copyright.easiertest.Mock;
+import com.copyright.easiertest.ObjectUnderTest;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+
+import static com.copyright.easiertest.EasierMocks.*;
+import static org.easymock.EasyMock.expect;
+
 public class MainTest {
+  @ObjectUnderTest private Main main;
+  @Mock private File mainDirFileMock;
+  @Mock private File toolsDirFileMock;
 
-    @Test
-    public void testFoo () {
+  public MainTest() {
+    prepareMocks(this);
+  }
 
-    }
+  @Before
+  public void setUp() {
+    reset();
+  }
+
+  @After
+  public void tearDown() {
+    verify();
+  }
+
+  @Test
+  public void testInstall() {
+    main.selectUI();
+
+    expect(main.userSaysOkToInstall()).andReturn(true);
+    expect(main.createSolrSystemHome()).andReturn(mainDirFileMock);
+    main.downloadGradle(mainDirFileMock);
+    expect(main.createToolsDir(mainDirFileMock)).andReturn(toolsDirFileMock);
+    main.unpackGradleInto(toolsDirFileMock);
+
+    replay();
+    main.install();
+  }
+
+  @Test
+  public void testInstallDeclined() {
+    main.selectUI();
+
+    expect(main.userSaysOkToInstall()).andReturn(false);
+    replay();
+    main.install();
+  }
+
 }
