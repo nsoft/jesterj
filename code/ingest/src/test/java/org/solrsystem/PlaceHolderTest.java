@@ -14,19 +14,11 @@
  * limitations under the License.
  */
 
-package org.solrsystem.ingest.model;
+package org.solrsystem;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 10/14/13
- */
+public class PlaceHolderTest {
 
-@SuppressWarnings("UnusedDeclaration")
-public interface User {
-
-  public String getUserId();
-
-  public String getDisplayName();
-
+    public static void main(String[] args) {
+	System.out.println("foo");
+    }
 }
