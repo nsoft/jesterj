@@ -15,6 +15,17 @@
  */
 
 apply plugin: 'java'
+apply plugin: 'application'
+apply plugin: 'gradle-one-jar'
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.github.rholder:gradle-one-jar:1.0.4'
+    }
+}
 
 repositories {
     mavenCentral()
@@ -24,4 +35,9 @@ dependencies {
     compile 'com.google.guava:guava:15.0'
     compile 'com.google.code.findbugs:jsr305:2.0.2'
     testCompile 'junit:junit:4.11'
+}
+
+task oneJar(type: OneJar) {
+    mainClass = 'org.solrsystem.ingest.Main'
+    archiveName = 'ingest-node.jar'
 }
