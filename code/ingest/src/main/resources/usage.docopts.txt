@@ -1,4 +1,4 @@
 Start an injester process supplying a password required to configure it.
 
 Usage:
-  java -jar ingest <secret>
+  java -jar ingest-node.jar <id> <secret>

@@ -17,6 +17,13 @@
 package org.solrsystem.ingest;
 
 import com.google.common.io.Resources;
+import net.jini.core.lookup.ServiceItem;
+import net.jini.core.lookup.ServiceRegistrar;
+import net.jini.core.lookup.ServiceTemplate;
+import net.jini.discovery.DiscoveryManagement;
+import net.jini.discovery.LookupDiscovery;
+import net.jini.lease.LeaseRenewalManager;
+import net.jini.lookup.ServiceDiscoveryManager;
 
 import java.io.IOException;
 import java.net.URL;
@@ -31,7 +38,7 @@ public class Main {
 
   static String password;
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws IOException, InterruptedException {
     URL usage = Resources.getResource("usage.docopts.txt");
     String usageStr = Resources.toString(usage, Charset.forName("UTF-8"));
     if (args.length != 1) {
@@ -40,5 +47,27 @@ public class Main {
     }
     password = args[0];
     System.out.println("Starting injester node...");
+
+    DiscoveryManagement dlm = new LookupDiscovery(LookupDiscovery.ALL_GROUPS);
+
+    LeaseRenewalManager lrm = new LeaseRenewalManager();
+    ServiceDiscoveryManager sdm = new ServiceDiscoveryManager(dlm, lrm);
+
+    Thread.sleep(500); //need to wait a little bit for the Lookup Service to generate the events to the sdm
+
+    ServiceTemplate srTemplate = new ServiceTemplate(null, new Class[]{ServiceRegistrar.class}, null);
+
+    ServiceItem[] sis = sdm.lookup(srTemplate, 10, null);
+    for (ServiceItem si : sis) {
+      System.out.println("Service Registrar: " + si.serviceID);
+    }
+    if (sis.length == 0) {
+      System.out.println("No Service Registries found");
+    }
+
+    dlm.terminate();
+
   }
 }
+
+

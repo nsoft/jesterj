@@ -1,0 +1,18 @@
+I hate the fact that we need more than java -jar, but for now, the following may be useful
+
+To run the jar output by this build, you need to specify a java policy file as per
+http://river.apache.org/user-guide-basic-river-services.html. I use the following alias
+to do this on MacOSX
+
+alias j7a='/Library/Java/JavaVirtualMachines/jdk1.7.0_60.jdk/Contents/Home/jre/bin/java \
+ -D/Users/gus/tools/jpolicy/all.policy -Djava.rmi.server.RMIClassLoaderSpi=net.jini.loader.pref.PreferredClassProvider'
+
+You also probably want to turn off onejar's logging, so using that alias and turning off logging
+looks like this:
+
+j7a -Done-jar.silent=true -jar build/libs/ingest-node.jar
+
+If you don't like doing all that typing for the one-jar property, I suggest you complain to
+one-jar's author here:
+
+https://sourceforge.net/p/one-jar/bugs/69/

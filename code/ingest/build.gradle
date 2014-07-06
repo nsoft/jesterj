@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Needham Software LLC
+ * Copyright 2013,20014 Needham Software LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,17 @@
  * limitations under the License.
  */
 
+apply plugin: 'idea'
 apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'gradle-one-jar'
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
 
 buildscript {
     repositories {
@@ -34,10 +42,13 @@ repositories {
 dependencies {
     compile 'com.google.guava:guava:15.0'
     compile 'com.google.code.findbugs:jsr305:2.0.2'
+    compile 'org.apache.river:reggie:2.2.2'
     testCompile 'junit:junit:4.11'
 }
 
 task oneJar(type: OneJar) {
     mainClass = 'org.solrsystem.ingest.Main'
     archiveName = 'ingest-node.jar'
+    mergeManifestFromJar = true
+    useStable = false
 }
