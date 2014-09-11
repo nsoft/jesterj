@@ -1,35 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<module external.linked.project.path="$MODULE_DIR$" external.root.project.path="$MODULE_DIR$" external.system.id="GRADLE" external.system.module.group="" external.system.module.version="unspecified" type="JAVA_MODULE" version="4">
-  <component name="FacetManager">
-    <facet type="web" name="injest">
-      <configuration>
-        <descriptors>
-          <deploymentDescriptor name="web.xml" url="file://$MODULE_DIR$/src/main/webapp/WEB-INF/web.xml" />
-        </descriptors>
-        <webroots>
-          <root url="file://$MODULE_DIR$/src/main/webapp" relative="/" />
-        </webroots>
-        <sourceRoots>
-          <root url="file://$MODULE_DIR$/src/main/resources" />
-          <root url="file://$MODULE_DIR$/src/main/java" />
-        </sourceRoots>
-      </configuration>
-    </facet>
-    <facet type="web" name="Web Gradle : ingest.war">
-      <configuration>
-        <descriptors>
-          <deploymentDescriptor name="web.xml" url="file://$MODULE_DIR$/src/main/webapp/WEB-INF/web.xml" />
-        </descriptors>
-        <webroots>
-          <root url="file://$MODULE_DIR$/src/main/webapp" relative="/" />
-        </webroots>
-        <sourceRoots>
-          <root url="file://$MODULE_DIR$/src/main/resources" />
-          <root url="file://$MODULE_DIR$/src/main/java" />
-        </sourceRoots>
-      </configuration>
-    </facet>
-  </component>
+<module external.linked.project.path="$MODULE_DIR$" external.root.project.path="$MODULE_DIR$" external.system.id="GRADLE" external.system.module.group="" external.system.module.version="unspecified" relativePaths="true" type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$">
@@ -43,13 +13,17 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" exported="" name="Gradle: guava-15.0" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: jsr305-2.0.2" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: jsr305-2.0.3" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: jini-core-2.1" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: reggie-2.2.2" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: jsk-platform-2.2.2" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: log4j-core-2.0-rc2" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: jsk-resources-2.2.2" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: jsk-lib-2.2.2" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: log4j-api-2.0-rc2" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: junit-4.11" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: hamcrest-core-1.3" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: reggie-2.2.2" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: jsk-resources-2.2.2" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: jsk-platform-2.2.2" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: jsk-lib-2.2.2" level="project" />
+    <orderEntry type="library" name="one-jar-boot-0.98" level="application" />
   </component>
 </module>
 
