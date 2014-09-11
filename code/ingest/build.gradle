@@ -41,6 +41,9 @@ buildscript {
 
 repositories {
     mavenCentral()
+    maven {
+        url 'https://clojars.org/repo'
+    }
 }
 
 dependencies {
@@ -50,6 +53,7 @@ dependencies {
     compile 'org.apache.river:reggie:2.2.2'
     compile 'net.jini:jsk-platform:2.2.2'
     compile 'org.apache.logging.log4j:log4j-core:2.0-rc2'
+    compile 'docopt:docopt:0.6.1'
     testCompile 'junit:junit:4.11'
 
 }
@@ -57,7 +61,6 @@ dependencies {
 task oneJar(type: OneJar, dependsOn: clean) {
     mainClass = 'org.solrsystem.ingest.Main'
     archiveName = 'ingest-node.jar'
-    mergeManifestFromJar = true
     useStable = false
     manifest {
         attributes 'One-Jar-URL-Factory': 'com.simontuffs.onejar.JarClassLoader$OneJarURLFactory'

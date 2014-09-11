@@ -26,6 +26,7 @@ import net.jini.lease.LeaseRenewalManager;
 import net.jini.lookup.ServiceDiscoveryManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.docopt.clj;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -38,8 +39,8 @@ import java.security.PermissionCollection;
 import java.security.Permissions;
 import java.security.Policy;
 import java.security.ProtectionDomain;
-import java.util.Arrays;
-import java.util.List;
+import java.util.AbstractMap;
+import java.util.Map;
 import java.util.Properties;
 
 /*
@@ -57,62 +58,49 @@ import java.util.Properties;
 public class Main {
 
   private static String id;
-
   private static String password;
 
-  private static final Logger log =  LogManager.getLogger();
+  private static final Logger log = LogManager.getLogger();
 
   public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
     initRMI();
+
+    Map<String, Object> parsedArgs = usage(args);
 
     Properties sysprops = System.getProperties();
     for (Object prop : sysprops.keySet()) {
       log.debug(prop + "=" + sysprops.get(prop));
     }
 
-    if (args.length < 2) {
-      usage();
+    // This  does nothing useful yet, just for testing right now.
+
+    password = args[0];
+    System.out.println("Starting injester node...");
+
+    System.setSecurityManager(new RMISecurityManager());
+    DiscoveryManagement dlm = new LookupDiscovery(LookupDiscovery.ALL_GROUPS);
+
+    LeaseRenewalManager lrm = new LeaseRenewalManager();
+    ServiceDiscoveryManager sdm = new ServiceDiscoveryManager(dlm, lrm);
+
+    Thread.sleep(500); //need to wait a little bit for the Lookup Service to generate the events to the sdm
+
+    ServiceTemplate srTemplate = new ServiceTemplate(null, new Class[]{ServiceRegistrar.class}, null);
+
+    ServiceItem[] sis = sdm.lookup(srTemplate, 10, null);
+    for (ServiceItem si : sis) {
+      System.out.println("Service Registrar: " + si.serviceID);
+    }
+    if (sis.length == 0) {
+      System.out.println("No Service Registries found");
     }
 
-    List<String> argList = Arrays.asList(args);
-
-    if (argList.get(0).equals("--server")) {
-      argList.remove(0);
-      if (argList.size() < 2) {
-        usage();
-      }
-    } else {
-
-      // This block does nothing useful, just for testing right now.
-
-      password = args[0];
-      System.out.println("Starting injester node...");
-
-      System.setSecurityManager(new RMISecurityManager());
-      DiscoveryManagement dlm = new LookupDiscovery(LookupDiscovery.ALL_GROUPS);
-
-      LeaseRenewalManager lrm = new LeaseRenewalManager();
-      ServiceDiscoveryManager sdm = new ServiceDiscoveryManager(dlm, lrm);
-
-      Thread.sleep(500); //need to wait a little bit for the Lookup Service to generate the events to the sdm
-
-      ServiceTemplate srTemplate = new ServiceTemplate(null, new Class[]{ServiceRegistrar.class}, null);
-
-      ServiceItem[] sis = sdm.lookup(srTemplate, 10, null);
-      for (ServiceItem si : sis) {
-        System.out.println("Service Registrar: " + si.serviceID);
-      }
-      if (sis.length == 0) {
-        System.out.println("No Service Registries found");
-      }
-
-      dlm.terminate();
-    }
+    dlm.terminate();
   }
 
   private static void initRMI() throws NoSuchFieldException, IllegalAccessException {
     // for river
-    System.setProperty("java.rmi.server.RMIClassLoaderSpi","net.jini.loader.pref.PreferredClassProvider");
+    System.setProperty("java.rmi.server.RMIClassLoaderSpi", "net.jini.loader.pref.PreferredClassProvider");
 
     // fix bug in One-Jar with and ugly hack
     ClassLoader myClassLoader = Main.class.getClassLoader();
@@ -143,12 +131,21 @@ public class Main {
     }
   }
 
-  private static void usage() throws IOException {
+  private static AbstractMap<String, Object> usage(String[] args) throws IOException {
     URL usage = Resources.getResource("usage.docopts.txt");
     String usageStr = Resources.toString(usage, Charset.forName("UTF-8"));
-    System.out.println(usageStr);
-    System.exit(1);
-
+    @SuppressWarnings("unchecked")
+    AbstractMap<String, Object> result = clj.docopt(usageStr, args);
+    if (result != null) {
+      for (String s : result.keySet()) {
+        log.debug("{}:{}", s, result.get(s));
+      }
+    }
+    if (result == null || result.get("--help") != null) {
+      System.out.println(usageStr);
+      System.exit(1);
+    }
+    return result;
   }
 }
 

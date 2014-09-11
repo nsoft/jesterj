@@ -1,7 +1,9 @@
-Start an injester process supplying a password required to configure it.
+
+Start an injester process supplying a password required to configure it. A prefix of
+java -jar is presumed for all usage below.
 
 Usage:
-  java -jar ingest-node.jar <id> <secret>
+  ingest-node.jar <id> <secret>
 
 Options:
-  --server
+  --help
