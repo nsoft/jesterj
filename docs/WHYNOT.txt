@@ -23,3 +23,30 @@ Section 4. This scaling issue probably is a problem with most hadoop based
 solutions. If we used hadoop, we would need to be able to segment the cluster, 
 or coordinate multiple clusters.
 
+HYDRA (http://findwise.github.io/Hydra/)
+
+Hydra's front page is extremely promising. Most of their goals are our
+goals too. However, the documentation is extremely lacking and I see signs
+that the project is trying to distributed computing without leveraging 
+the already vetted tools in the JINI world. Case in point the most recent
+post on their Google Group discussing what to do about documents that
+are locked by jvm's that die... A problem solved by JINI's lease concept
+years ago. Another sign of this possible tendency to re-invent the wheel is 
+the fact that they appear to have been writing their own thread management
+code up until recently (when they moved to use Guava).
+
+So Hydra is very interesting, but I'd like to make sure that we keep a good
+focus on always providing up to date and helpful documentation. Besides 
+enabling the technical side, I want to enable the setup and administration
+equally. Both are critical. I don't ever want any release not to have a
+clear set of instructions on how to set up the system. Part of our release
+process will be to run through our own instructions from a (set of) blank 
+machine(s), index documents and search them in Solr's built in query interface.
+If the instructions aren't good enough the release is NOT ready.
+
+Hydra may get where I want to go eventually, and maybe they will provide good
+docs some day, so they are definately worth keeping an eye on. I will need
+some sort of persistence, and I plan to look carefully at what they've done
+with mongodb, but I suspect much of it will be obviated by proper use of
+distributed processing libraries.
+
