@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-package org.solrsystem.ingest.model;/*
+package org.jesterj.ingest.model;/*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 9/28/14
  */
 
-public interface ItemProcessor {
+public interface Active {
+  /**
+   * Begin processing this plan. Most implementations will simply call activate on the first executable
+   * step in the plan.
+   */
+  void activate();
 
-  public boolean processItem(Item item);
-
+  void deactivate();
 }

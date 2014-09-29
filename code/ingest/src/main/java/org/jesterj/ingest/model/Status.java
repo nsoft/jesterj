@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-package org.solrsystem.ingest.model;/*
+package org.jesterj.ingest.model;/*
  * Created with IntelliJ IDEA.
  * User: gus
- * Date: 9/28/14
+ * Date: 9/29/14
  */
 
-public interface Active {
-  /**
-   * Begin processing this plan. Most implementations will simply call activate on the first executable
-   * step in the plan.
-   */
-  void activate();
-
-  void deactivate();
+public enum Status {
+  DIRTY,       // resource requires re-indexing
+  PROCESSING,  // scanner has picked up resource, and item is in-flight
+  ERROR,       // Something went wrong human being must intervene
+  INDEXED,     // Added to the index, but not visible in search results
+  SEARCHABLE,  // Added to index, index has committed, users can see it
+  DEAD         // Human has declared this item unrecoverable or obsolete
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.solrsystem.ingest;
+package org.jesterj.ingest;
 
 /*
  * Created with IntelliJ IDEA.

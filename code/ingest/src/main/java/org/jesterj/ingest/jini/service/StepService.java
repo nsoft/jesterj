@@ -14,17 +14,19 @@
  * limitations under the License.
  */
 
-package org.solrsystem.ingest.model;/*
+package org.jesterj.ingest.jini.service;/*
  * Created with IntelliJ IDEA.
  * User: gus
- * Date: 9/29/14
+ * Date: 9/28/14
  */
 
-public enum Status {
-  DIRTY,       // resource requires re-indexing
-  PROCESSING,  // scanner has picked up resource, and item is in-flight
-  ERROR,       // Something went wrong human being must intervene
-  INDEXED,     // Added to the index, but not visible in search results
-  SEARCHABLE,  // Added to index, index has committed, users can see it
-  DEAD         // Human has declared this item unrecoverable or obsolete
+public interface StepService {
+
+  /**
+   * Tells the step to begin poling the JavaSpace for items relating to this plan and relating to
+   */
+  void drawInputFrom( /*JavaSpace Descriptor Foo*/ );
+
+  void sendOutputTo( /*Javaspace Descriptor Foo*/ );
+
 }

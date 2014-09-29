@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package org.solrsystem.ingest.model.impl;
+package org.jesterj.ingest.model.impl;
 
 import net.jini.space.JavaSpace;
-import org.solrsystem.ingest.model.Item;
-import org.solrsystem.ingest.model.ItemProcessor;
-import org.solrsystem.ingest.model.Step;
+import org.jesterj.ingest.model.Item;
+import org.jesterj.ingest.model.ItemProcessor;
+import org.jesterj.ingest.model.Step;
 
 import java.util.Collection;
 import java.util.Iterator;

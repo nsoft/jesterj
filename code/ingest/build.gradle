@@ -59,7 +59,7 @@ dependencies {
 }
 
 task oneJar(type: OneJar, dependsOn: clean) {
-    mainClass = 'org.solrsystem.ingest.Main'
+    mainClass = 'org.jesterj.ingest.Main'
     archiveName = 'ingest-node.jar'
     useStable = false
     manifest {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.solrsystem;
+package org.jesterj;
 
 public class PlaceHolderTest {
 

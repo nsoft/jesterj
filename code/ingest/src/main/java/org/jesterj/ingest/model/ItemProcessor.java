@@ -14,19 +14,14 @@
  * limitations under the License.
  */
 
-package org.solrsystem.ingest.jini.service;/*
+package org.jesterj.ingest.model;/*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 9/28/14
  */
 
-public interface StepService {
+public interface ItemProcessor {
 
-  /**
-   * Tells the step to begin poling the JavaSpace for items relating to this plan and relating to
-   */
-  void drawInputFrom( /*JavaSpace Descriptor Foo*/ );
-
-  void sendOutputTo( /*Javaspace Descriptor Foo*/ );
+  public boolean processItem(Item item);
 
 }

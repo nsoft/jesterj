@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.solrsystem.ingest.model;/*
+package org.jesterj.ingest.model;/*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 9/28/14
@@ -26,7 +26,7 @@ import java.util.concurrent.BlockingQueue;
 
 /**
  * A <code>Step</code> is a {@link BlockingQueue} with a capacity equal to it's concurrency level.
- * When the step is full, attempts to add an {@link org.solrsystem.ingest.model.Item} will
+ * When the step is full, attempts to add an {@link org.jesterj.ingest.model.Item} will
  * throw IllegalStateException, and the calling code MUST check for and handle this condition
  * gracefully. If this is a primary node with no helpers steps should typically use
  * {@link #offer(Object)} or {@link #offer(Object, long, java.util.concurrent.TimeUnit)} instead of

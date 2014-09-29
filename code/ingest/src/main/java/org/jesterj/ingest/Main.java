@@ -14,19 +14,9 @@
  * limitations under the License.
  */
 
-package org.solrsystem.ingest;
+package org.jesterj.ingest;
 
 import com.google.common.io.Resources;
-import net.jini.core.entry.Entry;
-import net.jini.core.lookup.ServiceItem;
-import net.jini.core.lookup.ServiceMatches;
-import net.jini.core.lookup.ServiceRegistrar;
-import net.jini.core.lookup.ServiceTemplate;
-import net.jini.discovery.DiscoveryManagement;
-import net.jini.discovery.LookupDiscovery;
-import net.jini.lease.LeaseRenewalManager;
-import net.jini.lookup.ServiceDiscoveryManager;
-import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.docopt.clj;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.solrsystem.ingest.jini.service;/*
+package org.jesterj.ingest.jini.service;/*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 9/28/14

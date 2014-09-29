@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.solrsystem.ingest.model;/*
+package org.jesterj.ingest.model;/*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 9/28/14

@@ -1,9 +1,9 @@
-package org.solrsystem.ingest.model.impl;
+package org.jesterj.ingest.model.impl;
 
 import com.google.common.collect.*;
-import org.solrsystem.ingest.model.Item;
-import org.solrsystem.ingest.model.Scanner;
-import org.solrsystem.ingest.model.Status;
+import org.jesterj.ingest.model.Item;
+import org.jesterj.ingest.model.Scanner;
+import org.jesterj.ingest.model.Status;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -19,9 +19,9 @@ import java.util.Set;
 
 /**
  * A container for the file data and associated metadata. MetaData for which the key and the value
- * are of type @link(java.lang.String} should be submitted as a field & value to solr. Multiple
+ * are of type @link(java.lang.String} should be submitted as a field & value to the index. Multiple
  * values for the same field are supported and addition order is maintained. The file data
- * will be discarded by default, and if it is to be indexed by solr it should be processed
+ * will be discarded by default, and if it is to be indexed, it should be processed
  * and the text result added as a string value by a step in a plan that processes this item.
  *
  * @see ForwardingListMultimap
