@@ -1,7 +1,11 @@
 package org.solrsystem.ingest.model.impl;
 
 import com.google.common.collect.*;
+import org.solrsystem.ingest.model.Item;
+import org.solrsystem.ingest.model.Scanner;
+import org.solrsystem.ingest.model.Status;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -22,97 +26,141 @@ import java.util.Set;
  *
  * @see ForwardingListMultimap
  */
-public class Item extends ForwardingListMultimap<String,String> {
+public class ItemImpl implements Item {
 
   private ArrayListMultimap<String, String> delegate = ArrayListMultimap.create();
   private byte[] rawData;
+  private volatile int queueEntryNumber;
+  private Scanner source;
+  private Status status = Status.PROCESSING;
 
+  public ItemImpl(Scanner src)  {
+    this.source = src;
+  }
+
+
+  @Override
   public Multiset<String> keys() {
     return delegate.keys();
   }
 
-  public boolean putAll(@javax.annotation.Nullable java.lang.String key, Iterable<? extends String> values) {
+  @Override
+  public boolean putAll(@Nullable java.lang.String key, Iterable<? extends String> values) {
     return delegate.putAll(key, values);
   }
 
-  public boolean put(@javax.annotation.Nullable java.lang.String key, @javax.annotation.Nullable java.lang.String value) {
+  @Override
+  public boolean put(@Nullable java.lang.String key, @Nullable java.lang.String value) {
     return delegate.put(key, value);
   }
 
+  @Override
   public boolean putAll(Multimap<? extends String, ? extends String> multimap) {
     return delegate.putAll(multimap);
   }
 
+  @Override
   public Set<String> keySet() {
     return delegate.keySet();
   }
 
-  public boolean containsEntry(@javax.annotation.Nullable java.lang.Object key, @javax.annotation.Nullable java.lang.Object value) {
+  @Override
+  public boolean containsEntry(@Nullable java.lang.Object key, @Nullable java.lang.Object value) {
     return delegate.containsEntry(key, value);
   }
 
-  public boolean remove(@javax.annotation.Nullable java.lang.Object key, @javax.annotation.Nullable java.lang.Object value) {
+  @Override
+  public boolean remove(@Nullable java.lang.Object key, @Nullable java.lang.Object value) {
     return delegate.remove(key, value);
   }
 
-  public boolean containsValue(@javax.annotation.Nullable java.lang.Object value) {
+  @Override
+  public boolean containsValue(@Nullable java.lang.Object value) {
     return delegate.containsValue(value);
   }
 
+  @Override
   public Collection<Map.Entry<String,String>> entries() {
     return delegate.entries();
   }
 
+  @Override
   public boolean isEmpty() {
     return delegate.isEmpty();
   }
 
+  @Override
   public void clear() {
     delegate.clear();
   }
 
+  @Override
   public Map<String,Collection<String>> asMap() {
     return delegate.asMap();
   }
 
-  public List<String> replaceValues(@javax.annotation.Nullable java.lang.String key, Iterable<? extends String> values) {
+  @Override
+  public List<String> replaceValues(@Nullable java.lang.String key, Iterable<? extends String> values) {
     return delegate.replaceValues(key, values);
   }
 
+  @Override
   public Collection<String> values() {
     return delegate.values();
   }
 
-  public void trimToSize() {
-    delegate.trimToSize();
-  }
-
-  public boolean containsKey(@javax.annotation.Nullable java.lang.Object key) {
+  @Override
+  public boolean containsKey(@Nullable java.lang.Object key) {
     return delegate.containsKey(key);
   }
 
   @Override
-  protected ListMultimap<String, String> delegate() {
-    return delegate;
-  }
-
-  public List<String> get(@javax.annotation.Nullable java.lang.String key) {
+  public List<String> get(@Nullable java.lang.String key) {
     return delegate.get(key);
   }
 
+  @Override
   public int size() {
     return delegate.size();
   }
 
-  public List<String> removeAll(@javax.annotation.Nullable java.lang.Object key) {
+  @Override
+  public List<String> removeAll(@Nullable java.lang.Object key) {
     return delegate.removeAll(key);
   }
 
+  @Override
   public byte[] getRawData() {
     return rawData;
   }
 
+  @Override
   public void setRawData(byte[] rawData) {
     this.rawData = rawData;
+  }
+
+  @Override
+  public synchronized int getQueueEntryNumber() {
+    return this.queueEntryNumber;
+  }
+
+  @Override
+  public synchronized void setQueueEntryNumber(int number) {
+
+  }
+
+  @Override
+  public Scanner getSource() {
+    return this.source;
+  }
+
+  @Override
+  public Status getStatus() {
+    return this.status;
+  }
+
+  @Override
+  public void setStatus(Status status) {
+    this.status = status;
   }
 }

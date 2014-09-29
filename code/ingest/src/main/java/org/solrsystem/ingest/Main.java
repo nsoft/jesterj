@@ -17,13 +17,16 @@
 package org.solrsystem.ingest;
 
 import com.google.common.io.Resources;
+import net.jini.core.entry.Entry;
 import net.jini.core.lookup.ServiceItem;
+import net.jini.core.lookup.ServiceMatches;
 import net.jini.core.lookup.ServiceRegistrar;
 import net.jini.core.lookup.ServiceTemplate;
 import net.jini.discovery.DiscoveryManagement;
 import net.jini.discovery.LookupDiscovery;
 import net.jini.lease.LeaseRenewalManager;
 import net.jini.lookup.ServiceDiscoveryManager;
+import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.docopt.clj;
@@ -77,32 +80,35 @@ public class Main {
     password = args[0];
     System.out.println("Starting injester node...");
 
-    System.setSecurityManager(new RMISecurityManager());
-    DiscoveryManagement dlm = new LookupDiscovery(LookupDiscovery.ALL_GROUPS);
+//
+//    ServiceTemplate template = new ServiceTemplate(null, new Class[] { JavaSpace.class }, new Entry[0]);
+//
+//    ServiceMatches sms = sr.lookup(template, 10);
+//    if(0 < sms.items.length) {
+//      JavaSpace space = (JavaSpace) sms.items[0].service;
+//      System.out.println(space);
+//      // do something with the space
+//    } else {
+//      System.out.println("No Java Space found.");
+//    }
 
-    LeaseRenewalManager lrm = new LeaseRenewalManager();
-    ServiceDiscoveryManager sdm = new ServiceDiscoveryManager(dlm, lrm);
 
-    Thread.sleep(500); //need to wait a little bit for the Lookup Service to generate the events to the sdm
+//    ServiceItem si = sdm.lookup(template, null);
+//    if(null != si) {
+//      JavaSpace space = (JavaSpace) sms.service;
+//      // do something with the space
+//    } else {
+//      System.out.println("No Java Space found.");
+//    }
 
-    ServiceTemplate srTemplate = new ServiceTemplate(null, new Class[]{ServiceRegistrar.class}, null);
 
-    ServiceItem[] sis = sdm.lookup(srTemplate, 10, null);
-    for (ServiceItem si : sis) {
-      System.out.println("Service Registrar: " + si.serviceID);
-    }
-    if (sis.length == 0) {
-      System.out.println("No Service Registries found");
-    }
-
-    dlm.terminate();
   }
 
   private static void initRMI() throws NoSuchFieldException, IllegalAccessException {
     // for river
     System.setProperty("java.rmi.server.RMIClassLoaderSpi", "net.jini.loader.pref.PreferredClassProvider");
 
-    // fix bug in One-Jar with and ugly hack
+    // fix bug in One-Jar with an ugly hack
     ClassLoader myClassLoader = Main.class.getClassLoader();
     String name = myClassLoader.getClass().getName();
     if ("com.simontuffs.onejar.JarClassLoader".equals(name)) {
@@ -127,7 +133,7 @@ public class Main {
           return pc;
         }
       });
-      System.setSecurityManager(new SecurityManager());
+      System.setSecurityManager(new RMISecurityManager());
     }
   }
 

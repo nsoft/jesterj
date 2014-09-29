@@ -10,7 +10,7 @@ package org.solrsystem.ingest.model;
  * Monitors a document source for changes on a regular basis. When new files are found, they are submitted
  * to the supplied queue.
  */
-public interface Scanner {
+public interface Scanner extends Step {
 
   /**
    * Set the interval for the scanner to fire in milliseconds.
@@ -49,5 +49,6 @@ public interface Scanner {
   public long getPause();
 
 
+  public void updateStatus(Item item, ItemProcessor processor);
 
 }
