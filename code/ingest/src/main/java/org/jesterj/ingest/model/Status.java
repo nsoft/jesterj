@@ -20,11 +20,45 @@ package org.jesterj.ingest.model;/*
  * Date: 9/29/14
  */
 
+/**
+ * The conceptual states available for indexed resources.
+ */
 public enum Status {
-  DIRTY,       // resource requires re-indexing
-  PROCESSING,  // scanner has picked up resource, and item is in-flight
-  ERROR,       // Something went wrong human being must intervene
-  INDEXED,     // Added to the index, but not visible in search results
-  SEARCHABLE,  // Added to index, index has committed, users can see it
-  DEAD         // Human has declared this item unrecoverable or obsolete
+  /**
+   * Resource requires re-indexing. Scanners will look for this state when deciding whether to create
+   * an item for processing.
+   */
+  DIRTY,
+
+  /**
+   *  A scanner has picked up resource, and item is in-flight and processing should continue.
+   */
+  PROCESSING,
+
+  /**
+   * This item was intentionally skipped by the pipeline. Further processing should be avoided.
+   */
+  DROPPED,
+
+  /**
+   * Something went wrong, human being must intervene and evaluate. Further processing should be avoided, and stateful
+   * Scanners should avoid creating new items for the resource.
+   */
+  ERROR,
+
+  /**
+   * The item has been accepted by the destination index, but may not be searchable until the next commit.
+   */
+  INDEXED,
+
+  /**
+   * The resource is visible to users in the search index. This state is optional, and requires an index that
+   * can report the status of committed items. Most indexes don't do this without customization code.
+   */
+  SEARCHABLE,
+
+  /**
+   * Terminal state for resources that generate items that will never succeed and cannot be processed.
+   */
+  DEAD
 }

@@ -38,23 +38,66 @@ import java.util.concurrent.BlockingQueue;
  */
 public interface Step extends Active, JiniServiceProvider, BlockingQueue<Item> {
 
+  /**
+   * Set the number of items to process concurrently.
+   *
+   * @return the batch size.
+   */
   public int getBatchSize();
 
+  /**
+   * Get the next step in the plan
+   *
+   * @return the next step
+   */
   public Step next();
 
   /**
    * Provide a JavaSpace that should be polled for items suitable for processing.
    *
-   * @param space
+   * @param space a space to poll for new items.
    */
   public void setInputJavaSpace(JavaSpace space);
 
   /**
-   * Provide a JavaSpace to which resulting Items should be serialized. Note that
+   * Provide a {@link net.jini.space.JavaSpace} to which resulting Items should be serialized.
+   * Generally items will only be placed in the output space if the next step is full, and they
+   * cannot be processed locally. The exception to this is when the step is part of a plan that
+   * returns true for {@link Plan#isHelping()} and this step is the last step returned by
+   * {@link Plan#getExecutableSteps()}. In that case, the item will always be added to the output
+   * JavaSpace
    *
-   * @param space
+   * @param space a space into which items may be placed for processing by other nodes.
    */
   public void setOutputJavaSpace(JavaSpace space);
 
+  /**
+   * Get the plan instance to which this step belongs.
+   *
+   * @return the plan (not a man, not a canal, not panama)
+   */
+  public Plan getPlan();
 
+  /**
+   * Determine if this step is the last step in a helper node. Implementations that need to overide the
+   * default behavior are almost inconceivable.
+   *
+   * @return true if this is the last step in a helper node, false otherwise.
+   */
+  default public boolean isFinalHelper() {
+    Plan plan = getPlan();
+    if (plan == null) {
+      return false; // if we aren't part of a plan yet, we aren't part of a helper node either.
+    }
+    Step[] executableSteps = plan.getExecutableSteps();
+    return plan.isHelping() && executableSteps[executableSteps.length -1] == this;
+  }
+
+  /**
+   * A name for this step to distinguish it from other steps in the UI. This value is generally supplied
+   * by the plan author.
+   *
+   * @return The user supplied name for this step
+   */
+  public String getName();
 }

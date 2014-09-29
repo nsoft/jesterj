@@ -33,6 +33,7 @@ public class ItemImpl implements Item {
   private volatile int queueEntryNumber;
   private Scanner source;
   private Status status = Status.PROCESSING;
+  private String statusMessage;
 
   public ItemImpl(Scanner src)  {
     this.source = src;
@@ -139,15 +140,6 @@ public class ItemImpl implements Item {
     this.rawData = rawData;
   }
 
-  @Override
-  public synchronized int getQueueEntryNumber() {
-    return this.queueEntryNumber;
-  }
-
-  @Override
-  public synchronized void setQueueEntryNumber(int number) {
-
-  }
 
   @Override
   public Scanner getSource() {
@@ -162,5 +154,15 @@ public class ItemImpl implements Item {
   @Override
   public void setStatus(Status status) {
     this.status = status;
+  }
+
+  @Override
+  public String getStatusMessage() {
+    return statusMessage;
+  }
+
+  @Override
+  public void setStatusMessage(String message) {
+    this.statusMessage = message;
   }
 }

@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest.model;/*
+package org.jesterj.ingest.model;
+
+/*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 9/28/14
@@ -22,6 +24,16 @@ package org.jesterj.ingest.model;/*
 
 public interface ItemProcessor {
 
+  /**
+   * Mutate, validate or transmit an item (to a search index). Implementations must not throw any
+   * {@link java.lang.Throwable} that is not a JVM {@link java.lang.Error} All item processors are responsible
+   * for setting a reasonable status and status message via {@link Item#setStatus(Status)} and
+   * {@link Item#setStatusMessage(String)}. The item processor has no need to add the item to the next
+   * step in the plan as this will be handled by the Step's infrastructure based on the status of the plan.
+   *
+   * @param item the item to process
+   * @return true if processing succeeded, false otherwise.
+   */
   public boolean processItem(Item item);
 
 }

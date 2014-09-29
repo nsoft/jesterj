@@ -23,12 +23,48 @@ package org.jesterj.ingest.model;
  */
 public interface Plan extends JiniServiceProvider, Active {
 
+  /**
+   * Return every {@link Step} in the plan regardless of whether or not it will be executing when the plan is activated
+   *
+   * @return All steps
+   */
   public Step[] getAllSteps();
 
+  /**
+   * Get the subset of steps that will execute when the plan is activated. This should be a continuous set of steps
+   * that can be traversed in total via {@link org.jesterj.ingest.model.Step#next()}.
+   *
+   * @return
+   */
   public Step[] getExecutableSteps();
 
+  /**
+   * Denote the start point for this node's execution of the plan. Calling this method on anything other
+   * than the first step in the plan makes this a "helper" node.
+   *
+   * @param step
+   */
   public void setFirstExecutableStep(Step step);
 
+
+  /**
+   * Denote the last step for this node's execution of the plan.
+   *
+   * @param step
+   */
   public void setLastExecutableStep(Step step);
+
+  /**
+   * Is this plan installed as a helper, or as a primary. Implementations that need something other than
+   * the default logic are almost inconceivable.
+   *
+   * @return true if the first step is not the first executible step, or the last step is not the
+   *         last executable step.
+   */
+  default public boolean isHelping() {
+    Step[] all = getAllSteps();
+    Step[] exec = getExecutableSteps();
+    return (all[0] != exec[0] || all[all.length - 1] != exec[exec.length - 1]);
+  }
 
 }

@@ -19,6 +19,8 @@ package org.jesterj.ingest.model.impl;
 import net.jini.space.JavaSpace;
 import org.jesterj.ingest.model.Item;
 import org.jesterj.ingest.model.ItemProcessor;
+import org.jesterj.ingest.model.Plan;
+import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.Step;
 
 import java.util.Collection;
@@ -43,6 +45,8 @@ public class StepImpl extends Thread implements Step {
   private int batchSize; // no concurrency by default
   private Step nextStep;
   private volatile boolean active;
+  private JavaSpace outputSpace;
+  private JavaSpace inputSpace;
 
   StepImpl(int batchSize, Step nextStep) {
     this.batchSize = batchSize;
@@ -149,12 +153,7 @@ public class StepImpl extends Thread implements Step {
   }
 
   public boolean add(Item item) {
-
-    synchronized (item) {
-      boolean add = queue.add(item);
-      item.setQueueEntryNumber(itemCount.incrementAndGet());
-      return add;
-    }
+      return queue.add(item);
   }
 
   public void forEach(Consumer<? super Item> action) {
@@ -195,7 +194,12 @@ public class StepImpl extends Thread implements Step {
 
   @Override
   public void setOutputJavaSpace(JavaSpace space) {
+    this.outputSpace = space;
+  }
 
+  @Override
+  public Plan getPlan() {
+    return null;
   }
 
   @Override
@@ -225,12 +229,48 @@ public class StepImpl extends Thread implements Step {
 
   @Override
   public void activate() {
-
+    this.active = true;
   }
 
   @Override
   public void deactivate() {
+    this.active = false;
+  }
 
+  @Override
+  public boolean isActive() {
+    return this.active;
+  }
+
+  private void pushToNextIfOk(Item item) {
+    item.getSource().updateStatus(item);
+    if (item.getStatus() == Status.PROCESSING) {
+      if (this.outputSpace == null) {
+        // local processing is our only option, do blocking put.
+        try {
+          next().put(item);
+        } catch (InterruptedException e) {
+          item.setStatusMessage(e.getMessage() + " while offering to " + next().getName());
+          item.setStatus(Status.ERROR);
+          item.getSource().updateStatus(item);
+        }
+      } else {
+        if (this.isFinalHelper()) {
+          // remote processing is our only option.
+          System.out.println("todo: send to javaspace");
+          // todo: put in javaspace
+        } else {
+          // Try to process this item locally first with a non-blocking add, and
+          // if the next step is bogged down send it out for processing by helpers.
+          try {
+            next().add(item);
+          } catch (IllegalStateException e) {
+            System.out.println("todo: send to javaspace");
+            // todo: put in javaspace
+          }
+        }
+      }
+    }
   }
 
   @Override
@@ -249,7 +289,7 @@ public class StepImpl extends Thread implements Step {
     }
   }
 
-  private static class ItemConsumer implements Consumer<Item> {
+  private class ItemConsumer implements Consumer<Item> {
     public ItemProcessor processor;
 
     @Override
@@ -265,8 +305,5 @@ public class StepImpl extends Thread implements Step {
       }
     }
 
-    private void pushToNextIfOk(Item item) {
-      item.getSource().updateStatus(item, this.processor);
-    }
   }
 }

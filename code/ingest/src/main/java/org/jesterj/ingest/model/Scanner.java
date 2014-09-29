@@ -49,6 +49,13 @@ public interface Scanner extends Step {
   public long getPause();
 
 
-  public void updateStatus(Item item, ItemProcessor processor);
+  /**
+   * Record the status of the Item. This is meant to be used for logging and fault tolerant indexing.
+   * Each scanner will have it's own means of maintaining information about items that have been seen,
+   * when they are dirty and need to be re-indexed and means for recording or reporting error conditions.
+   *
+   * @param item The item for which new status information is avaiable.
+   */
+  public void updateStatus(Item item);
 
 }

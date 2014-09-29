@@ -20,6 +20,11 @@ package org.jesterj.ingest.model;/*
  * Date: 9/28/14
  */
 
+/**
+ * Interface for coordinating Jini services. {@link org.jesterj.ingest.model.Plan} objects will must
+ * iterate their items when advertising and jini services are being turned on and off so that all
+ * steps in the plan are enabled and disabled as a unit when the plan is enabled or disabled.
+ */
 public interface JiniServiceProvider {
   /**
    * Instructs the step to start advertising it's JINI services. Many implementations of this
@@ -32,12 +37,22 @@ public interface JiniServiceProvider {
   void advertise();
 
   /**
-   * Instructs the object to stop advertising it's JINI services
+   * Instructs the object to stop advertising it's JINI services.
    */
   void stopAdvertising();
 
+  /**
+   * Start up the Jini unicast discovery server, and respond to service requests.
+   */
   void acceptJiniRequests();
 
+  /**
+   * Shut down the Jini unicast discovery server, and stop responding to service requests.
+   * {@link #stopAdvertising()} must be called before this method, otherwise an exception
+   * will be thrown.
+   *
+   * @throws java.lang.IllegalStateException if services are still being advertised.
+   */
   void denyJiniRequests();
 
   /**

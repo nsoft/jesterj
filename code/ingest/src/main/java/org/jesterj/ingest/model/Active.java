@@ -22,10 +22,21 @@ package org.jesterj.ingest.model;/*
 
 public interface Active {
   /**
-   * Begin processing this plan. Most implementations will simply call activate on the first executable
-   * step in the plan.
+   * Begin processing. This is the on switch.
    */
   void activate();
 
+
+  /**
+   * Stop processing. This is the stop switch.
+   */
   void deactivate();
+
+
+  /**
+   * Test to see if the object is active
+   *
+   * @return true if actively processing false otherwise.
+   */
+  boolean isActive();
 }
