@@ -1,5 +1,3 @@
 <component name="CopyrightManager">
-  <settings default="SolrSystem">
-    <module2copyright />
-  </settings>
+  <settings default="SolrSystem" />
 </component>

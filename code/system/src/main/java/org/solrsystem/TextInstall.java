@@ -38,8 +38,24 @@ public class TextInstall implements InstallUserInterface, DownloadStatusListener
   }
 
   @Override
-  public void downLoad(String title) {
+  public void downloadDisplayFor(String title) {
     System.out.println("Preparing to download " + title);
+  }
+
+  @Override
+  public void infoMessage(String message) {
+    System.out.println("INFO: " + message);
+  }
+
+  @Override
+  public void errorMessage(String message) {
+    System.out.println("ERROR: " + message);
+  }
+
+  @Override
+  public void errorMessage(String s, Throwable t) {
+    errorMessage(s);
+    t.printStackTrace();
   }
 
   private char readChar() {

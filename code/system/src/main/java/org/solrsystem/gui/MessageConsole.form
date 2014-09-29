@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="org.solrsystem.gui.MessageConsole">
+  <grid id="27dc6" binding="messagePanel" layout-manager="BorderLayout" hgap="0" vgap="0">
+    <constraints>
+      <xy x="20" y="20" width="500" height="400"/>
+    </constraints>
+    <properties/>
+    <border type="none"/>
+    <children>
+      <scrollpane id="51b54" binding="messageScrollPanel">
+        <constraints border-constraint="Center"/>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="5a8fa" class="javax.swing.JTextArea" binding="messageDisplay">
+            <constraints/>
+            <properties>
+              <columns value="80"/>
+              <editable value="false"/>
+              <rows value="20"/>
+            </properties>
+          </component>
+        </children>
+      </scrollpane>
+      <grid id="c775a" binding="titlePanel" layout-manager="BorderLayout" hgap="0" vgap="0">
+        <constraints border-constraint="North"/>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="a6048" class="javax.swing.JLabel" binding="title">
+            <constraints border-constraint="Center"/>
+            <properties>
+              <horizontalAlignment value="0"/>
+              <labelFor value="5a8fa"/>
+              <text value="Install Messages"/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+    </children>
+  </grid>
+</form>

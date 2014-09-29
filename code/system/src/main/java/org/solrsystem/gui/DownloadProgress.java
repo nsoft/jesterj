@@ -37,7 +37,7 @@ public class DownloadProgress extends JDialog implements DownloadStatusListener 
 
   @Override
   public int progressInterval() {
-    return 1024*10;
+    return 1024 * 10;
   }
 
   @Override
@@ -62,7 +62,7 @@ public class DownloadProgress extends JDialog implements DownloadStatusListener 
     } else {
       if (!this.isVisible()) {
         this.pack();
-        this.setLocationRelativeTo( null );
+        this.setLocationRelativeTo(null);
         this.setVisible(true);
       }
     }

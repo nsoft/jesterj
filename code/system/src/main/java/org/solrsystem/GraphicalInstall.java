@@ -18,6 +18,7 @@ package org.solrsystem;
 
 
 import org.solrsystem.gui.DownloadProgress;
+import org.solrsystem.gui.MessageConsole;
 
 import javax.swing.JOptionPane;
 
@@ -28,7 +29,8 @@ import javax.swing.JOptionPane;
  */
 public class GraphicalInstall implements InstallUserInterface, DownloadStatusListener {
 
-  DownloadStatusListener currentDownload;
+  private DownloadStatusListener currentDownload;
+  private MessageConsole console;
 
   @Override
   public boolean confirm(String message) {
@@ -37,8 +39,35 @@ public class GraphicalInstall implements InstallUserInterface, DownloadStatusLis
   }
 
   @Override
-  public void downLoad(String title) {
+  public void downloadDisplayFor(String title) {
     this.currentDownload = new DownloadProgress(title);
+  }
+
+  @Override
+  public void infoMessage(String message) {
+    getConsole().appendLine("INFO: " + message);
+  }
+
+
+  @Override
+  public void errorMessage(String message) {
+    getConsole().appendLine("ERROR: " + message);
+  }
+
+  @Override
+  public void errorMessage(String s, Throwable t) {
+    errorMessage(s);
+    StackTraceElement[] trace = t.getStackTrace();
+    for (StackTraceElement stackTraceElement : trace) {
+      getConsole().appendLine(stackTraceElement.toString());
+    }
+  }
+
+  void consoleDisplayIfNeeded() {
+    if (console == null) {
+      console = new MessageConsole();
+    }
+    console.setVisible(true);
   }
 
   @Override
@@ -47,7 +76,13 @@ public class GraphicalInstall implements InstallUserInterface, DownloadStatusLis
   }
 
   @Override
-  public void onProgress(long bytesRead, long totalnum) {
-    currentDownload.onProgress(bytesRead,totalnum);
+  public void onProgress(long bytesRead, long totalNum) {
+    currentDownload.onProgress(bytesRead,totalNum);
   }
+
+  private MessageConsole getConsole() {
+    consoleDisplayIfNeeded();
+    return console;
+  }
+
 }

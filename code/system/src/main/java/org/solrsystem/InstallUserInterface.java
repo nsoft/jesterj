@@ -22,7 +22,10 @@ package org.solrsystem;
  * Date: 2/16/14
  */
 
-public interface InstallUserInterface extends DownloadStatusListener{
+interface InstallUserInterface extends DownloadStatusListener{
   public boolean confirm(String message);
-  public void downLoad(String title);
+  public void downloadDisplayFor(String title);
+  public void infoMessage(String message);
+  public void errorMessage(String s);
+  public void errorMessage(String s, Throwable t);
 }
