@@ -28,6 +28,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" scope="PROVIDED" name="Gradle: javax.servlet-api-3.0.1" level="project" />
     <orderEntry type="library" exported="" name="Gradle: shiro-core-1.2.2" level="project" />
     <orderEntry type="library" exported="" name="Gradle: shiro-web-1.2.2" level="project" />
     <orderEntry type="library" exported="" name="Gradle: shiro-guice-1.2.2" level="project" />
@@ -38,27 +39,26 @@
     <orderEntry type="library" exported="" name="Gradle: vaadin-server-7.1.3" level="project" />
     <orderEntry type="library" exported="" name="Gradle: vaadin-client-compiled-7.1.3" level="project" />
     <orderEntry type="library" exported="" name="Gradle: org.eclipse.jgit-3.1.0.201310021548-r" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: javax.servlet-api-3.0.1" level="project" />
     <orderEntry type="library" exported="" name="Gradle: slf4j-api-1.6.4" level="project" />
     <orderEntry type="library" exported="" name="Gradle: commons-beanutils-1.8.3" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: javax.inject-1" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: aopalliance-1.0" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: asm-3.1" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: cglib-2.2.1-v20090111" level="project" />
     <orderEntry type="library" exported="" name="Gradle: guice-3.0" level="project" />
     <orderEntry type="library" exported="" name="Gradle: guice-multibindings-3.0" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: javax.inject-1" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: aopalliance-1.0" level="project" />
     <orderEntry type="library" exported="" name="Gradle: cglib-2.2" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: vaadin-shared-deps-1.0.2" level="project" />
     <orderEntry type="library" exported="" name="Gradle: vaadin-shared-7.1.3" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: commons-logging-1.1.1" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: commons-jexl-2.1.1" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: sac-1.3" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: cssparser-0.9.5" level="project" />
-    <orderEntry type="library" exported="" name="Gradle: commons-cli-1.2" level="project" />
     <orderEntry type="library" exported="" name="Gradle: vaadin-theme-compiler-7.1.3" level="project" />
     <orderEntry type="library" exported="" name="Gradle: jsoup-1.6.3" level="project" />
     <orderEntry type="library" exported="" name="Gradle: jsch-0.1.46" level="project" />
     <orderEntry type="library" exported="" name="Gradle: JavaEWAH-0.5.6" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: cglib-2.2.1-v20090111" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: asm-3.1" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: vaadin-shared-deps-1.0.2" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: commons-jexl-2.1.1" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: sac-1.3" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: cssparser-0.9.5" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: commons-cli-1.2" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: commons-logging-1.1.1" level="project" />
     <orderEntry type="library" exported="" scope="RUNTIME" name="Gradle: vaadin-themes-7.1.3" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: junit-4.11" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: hamcrest-core-1.3" level="project" />
