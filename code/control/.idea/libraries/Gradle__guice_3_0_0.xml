@@ -3,7 +3,9 @@
     <CLASSES>
       <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.jolira/guice/3.0.0/72ba005f99c787c1f2a199a84c4e5bccc8a6f600/guice-3.0.0.jar!/" />
     </CLASSES>
-    <JAVADOC />
+    <JAVADOC>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.jolira/guice/3.0.0/3c70d5f8292636350cf30d54ec17f0a473933ddc/guice-3.0.0-javadoc.jar!/" />
+    </JAVADOC>
     <SOURCES>
       <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.jolira/guice/3.0.0/a08c8733085a5df98d0e1cb9d461fe98bea99a5c/guice-3.0.0-sources.jar!/" />
     </SOURCES>
