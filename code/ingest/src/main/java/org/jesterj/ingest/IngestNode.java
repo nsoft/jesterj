@@ -30,6 +30,8 @@ import net.jini.discovery.DiscoveryManagement;
 import net.jini.discovery.LookupDiscovery;
 import net.jini.lease.LeaseRenewalManager;
 import net.jini.lookup.ServiceDiscoveryManager;
+import org.jesterj.ingest.jini.service.IngestService;
+import org.jesterj.ingest.model.Plan;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -38,9 +40,17 @@ import java.util.Map;
 /**
  * Don't take this serious... I was just messing around.
  */
-public class IngestNode implements Runnable {
+public class IngestNode implements Runnable, IngestService {
 
+  private final String id;
+  private final String password;
   private Map<ServiceID, ServiceRegistrar> ingestNodes = new LinkedHashMap<>();
+
+  public IngestNode(String id, String password) {
+
+    this.id = id;
+    this.password = password;
+  }
 
 
   @Override
@@ -82,4 +92,23 @@ public class IngestNode implements Runnable {
     }
   }
 
+  @Override
+  public void supplySpace() {
+    // Todo
+  }
+
+  @Override
+  public void installPlan(Plan plan) {
+
+  }
+
+  @Override
+  public void activate(Plan plan) {
+
+  }
+
+  @Override
+  public void deactivate(Plan plan) {
+
+  }
 }

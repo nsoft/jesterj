@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest.model;/*
+package org.jesterj.ingest.model;
+
+/*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 9/28/14
@@ -95,7 +97,7 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Item> {
 
   /**
    * A name for this step to distinguish it from other steps in the UI. This value is generally supplied
-   * by the plan author.
+   * by the plan author. Every step in a plan must have a unique name.
    *
    * @return The user supplied name for this step
    */

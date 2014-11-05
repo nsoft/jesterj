@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.rmi.RMISecurityManager;
 import java.security.AllPermission;
 import java.security.CodeSource;
 import java.security.PermissionCollection;
@@ -50,15 +49,15 @@ import java.util.Properties;
  */
 public class Main {
 
-  private static String id;
-  private static String password;
-
   private static final Logger log = LogManager.getLogger();
 
   public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
     initRMI();
 
     Map<String, Object> parsedArgs = usage(args);
+    String id = String.valueOf(parsedArgs.get("id"));
+    String password = String.valueOf(parsedArgs.get("password"));
+
 
     Properties sysprops = System.getProperties();
     for (Object prop : sysprops.keySet()) {
@@ -67,29 +66,9 @@ public class Main {
 
     // This  does nothing useful yet, just for testing right now.
 
-    password = args[0];
     System.out.println("Starting injester node...");
+    Runnable node = new IngestNode(id, password);
 
-//
-//    ServiceTemplate template = new ServiceTemplate(null, new Class[] { JavaSpace.class }, new Entry[0]);
-//
-//    ServiceMatches sms = sr.lookup(template, 10);
-//    if(0 < sms.items.length) {
-//      JavaSpace space = (JavaSpace) sms.items[0].service;
-//      System.out.println(space);
-//      // do something with the space
-//    } else {
-//      System.out.println("No Java Space found.");
-//    }
-
-
-//    ServiceItem si = sdm.lookup(template, null);
-//    if(null != si) {
-//      JavaSpace space = (JavaSpace) sms.service;
-//      // do something with the space
-//    } else {
-//      System.out.println("No Java Space found.");
-//    }
 
 
   }
@@ -107,6 +86,7 @@ public class Main {
       scl.set(null, myClassLoader); // Update it to your class loader
     }
 
+    // must do this before any jini code
     String policyFile = System.getProperty("java.security.policy");
     if (policyFile == null) {
       // for river/jni
@@ -123,7 +103,7 @@ public class Main {
           return pc;
         }
       });
-      System.setSecurityManager(new RMISecurityManager());
+      System.setSecurityManager(new SecurityManager());
     }
   }
 

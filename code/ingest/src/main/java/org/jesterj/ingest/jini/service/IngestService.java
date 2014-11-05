@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest.jini.service;/*
+package org.jesterj.ingest.jini.service;
+
+/*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 9/28/14
  */
+
+import org.jesterj.ingest.model.Plan;
 
 public interface IngestService {
   /**
@@ -36,11 +40,11 @@ public interface IngestService {
    * from the node. The installed plan will be in the deactivated state until {@link #activate()} is
    * called.
    */
-  void installPlan( /*Plan Foo*/ );
+  void installPlan( Plan plan );
 
 
 
-  void activate();
+  void activate(Plan plan );
 
-  void deactivate();
+  void deactivate( Plan plan );
 }

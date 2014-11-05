@@ -67,4 +67,21 @@ public interface Plan extends JiniServiceProvider, Active {
     return (all[0] != exec[0] || all[all.length - 1] != exec[exec.length - 1]);
   }
 
+  /**
+   * This is the field that is to be used as a docId
+   *
+   * @return usually "id" but some legacy indexes may need to use something else
+   */
+  public String getDocIdField();
+
+
+  /**
+   * Locate the step in the plan that has the given name. All steps in the plan must have a
+   * unique name.
+   *
+   * @param stepName the name of the step to find
+   * @return the step if found or null if the name does not match any steps.
+   */
+  public Step findStep(String stepName);
+
 }

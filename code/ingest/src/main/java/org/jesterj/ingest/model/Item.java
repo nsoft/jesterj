@@ -22,7 +22,9 @@ package org.jesterj.ingest.model;
  * Date: 9/28/14
  */
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
+import net.jini.core.entry.Entry;
 
 public interface Item extends ListMultimap<String, String> {
 
@@ -55,14 +57,15 @@ public interface Item extends ListMultimap<String, String> {
    * is responsible for releasing the item with a correct status.
    *
    * @return An enumeration value indicating whether the item is processing, errored out or complete.
+   * @throws java.lang.IllegalStateException if the plan has not been set.
    */
   public Status getStatus();
 
   /**
    * Set the status
    *
-   * @see #getStatus()
    * @param status The new status.
+   * @see #getStatus()
    */
   public void setStatus(Status status);
 
@@ -77,9 +80,21 @@ public interface Item extends ListMultimap<String, String> {
   /**
    * Set the status message.
    *
-   * @see #getStatus()
    * @param message the status message.
+   * @see #getStatus()
    */
   public void setStatusMessage(String message);
+
+  /**
+   * The plan that is processing this item. This method must be called before get source is called or an
+   * illegal state exception will occur
+   *
+   * @param plan The plan processing this item
+   */
+  public void setPlan(Plan plan);
+
+  public Entry toEntry(Step next);
+
+  ArrayListMultimap<String,String> getDelegate();
 
 }

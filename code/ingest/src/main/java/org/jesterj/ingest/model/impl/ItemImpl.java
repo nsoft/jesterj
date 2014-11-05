@@ -1,11 +1,17 @@
 package org.jesterj.ingest.model.impl;
 
 import com.google.common.collect.*;
+import com.sun.xml.internal.bind.v2.model.core.ID;
+import net.jini.core.entry.Entry;
 import org.jesterj.ingest.model.Item;
+import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Status;
+import org.jesterj.ingest.model.Step;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -28,15 +34,23 @@ import java.util.Set;
  */
 public class ItemImpl implements Item {
 
+  // document id feild.
+  private final String ID;
+
   private ArrayListMultimap<String, String> delegate = ArrayListMultimap.create();
   private byte[] rawData;
-  private volatile int queueEntryNumber;
-  private Scanner source;
   private Status status = Status.PROCESSING;
-  private String statusMessage;
+  private String statusMessage = "";
+  private final String scannerName;
 
-  public ItemImpl(Scanner src)  {
-    this.source = src;
+  private Scanner source;
+  private Plan plan;
+
+  public ItemImpl(String scannerName, byte[] rawData, String id, Plan plan, Step source) {
+    this.scannerName = scannerName;
+    this.rawData = rawData;
+    ID = plan.getDocIdField();
+    this.delegate.put(ID, id);
   }
 
 
@@ -51,8 +65,15 @@ public class ItemImpl implements Item {
   }
 
   @Override
-  public boolean put(@Nullable java.lang.String key, @Nullable java.lang.String value) {
-    return delegate.put(key, value);
+  public boolean put(@Nonnull java.lang.String key, @Nonnull java.lang.String value) {
+    if (plan.getDocIdField().equals(key)) {
+      ArrayList<String> values = new ArrayList<>();
+      values.add(value);
+      List<String> prev = replaceValues(this.ID, values);
+      return prev == null || prev.size() != 1 || !prev.get(0).equals(value);
+    } else {
+      return delegate.put(key, value);
+    }
   }
 
   @Override
@@ -81,7 +102,7 @@ public class ItemImpl implements Item {
   }
 
   @Override
-  public Collection<Map.Entry<String,String>> entries() {
+  public Collection<Map.Entry<String, String>> entries() {
     return delegate.entries();
   }
 
@@ -96,7 +117,7 @@ public class ItemImpl implements Item {
   }
 
   @Override
-  public Map<String,Collection<String>> asMap() {
+  public Map<String, Collection<String>> asMap() {
     return delegate.asMap();
   }
 
@@ -143,6 +164,14 @@ public class ItemImpl implements Item {
 
   @Override
   public Scanner getSource() {
+    if (this.source == null) {
+      try {
+        this.source = (Scanner) plan.findStep(scannerName);
+      } catch (ClassCastException e) {
+        throw new IllegalStateException("name of scanner on item matches a step " +
+            "that is not a scanner!");
+      }
+    }
     return this.source;
   }
 
@@ -164,5 +193,47 @@ public class ItemImpl implements Item {
   @Override
   public void setStatusMessage(String message) {
     this.statusMessage = message;
+  }
+
+  @Override
+  public void setPlan(Plan plan) {
+    this.plan = plan;
+  }
+
+  @Override
+  public Entry toEntry(Step next) {
+    return new ItemEntry(this, next);
+  }
+
+  @Override
+  public ArrayListMultimap<String, String> getDelegate() {
+    return delegate;
+  }
+
+  /**
+   * A serializable form of an item that
+   */
+  public static class ItemEntry implements Entry {
+
+    public ArrayListMultimap<String, String> contents;
+    public String scannerName;
+    public Status status;
+    public String statusMessage;
+    public RawData data;
+    public String nextStepName;
+
+    ItemEntry(Item item, Step destination) {
+      this.contents = item.getDelegate();
+      this.scannerName = item.getSource().getName();
+      this.status = item.getStatus();
+      this.statusMessage = item.getStatusMessage();
+      this.data = new RawData();
+      this.data.data = item.getRawData();
+      this.nextStepName = destination.getName();
+    }
+  }
+
+  public static class RawData {
+    public byte[] data;
   }
 }
