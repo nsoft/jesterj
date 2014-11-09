@@ -51,10 +51,14 @@ dependencies {
     compile 'com.google.code.findbugs:jsr305:3.0.0'
     compile 'jini:jini-core:2.1'
     compile 'org.apache.river:reggie:2.2.2'
+    compile 'org.apache.cassandra:cassandra-all:2.1.1'
+    compile 'org.yaml:snakeyaml:1.14'
+    compile 'org.apache.logging.log4j:log4j-core:2.1'
     compile 'net.jini:jsk-platform:2.2.2'
     compile 'org.apache.logging.log4j:log4j-core:2.0.2'
     compile 'docopt:docopt:0.6.1'
     testCompile 'junit:junit:4.11'
+    testCompile 'com.needhamsoftware:easier-mock:1.0'
 
 }
 

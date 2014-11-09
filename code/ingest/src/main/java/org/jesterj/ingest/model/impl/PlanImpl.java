@@ -17,7 +17,6 @@
 package org.jesterj.ingest.model.impl;
 
 import org.jesterj.ingest.model.Plan;
-import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Step;
 
 /*

@@ -1,7 +1,6 @@
 package org.jesterj.ingest.model.impl;
 
 import com.google.common.collect.*;
-import com.sun.xml.internal.bind.v2.model.core.ID;
 import net.jini.core.entry.Entry;
 import org.jesterj.ingest.model.Item;
 import org.jesterj.ingest.model.Plan;

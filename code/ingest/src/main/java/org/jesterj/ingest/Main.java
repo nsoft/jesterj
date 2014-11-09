@@ -21,6 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.docopt.clj;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URL;
@@ -34,6 +35,10 @@ import java.security.ProtectionDomain;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Executor;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /*
  * Created with IntelliJ IDEA.
@@ -49,10 +54,23 @@ import java.util.Properties;
  */
 public class Main {
 
+  public static String JJ_DIR;
+
   private static final Logger log = LogManager.getLogger();
+
+  private static final Executor exec = new ThreadPoolExecutor(1,10,1000, TimeUnit.SECONDS,new SynchronousQueue<>());
 
   public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
     initRMI();
+    String userDir = System.getProperty("user.home");
+    File jjDir = new File(userDir+ "/.jj");
+    if (!jjDir.exists() && !jjDir.mkdir()) {
+      throw new RuntimeException("could not create " + jjDir);
+    } else {
+      JJ_DIR = jjDir.getCanonicalPath();
+    }
+
+    exec.execute(new Cassandra());
 
     Map<String, Object> parsedArgs = usage(args);
     String id = String.valueOf(parsedArgs.get("id"));
