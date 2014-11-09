@@ -79,46 +79,9 @@ public class CassandraConfig {
     m.put("parameters", l);
     HashMap<String,String> m2 = new HashMap<>();
     l.add(m2);
-    m2.put("seeds", listen_address);
+    m2.put("seeds", getListen_address());
 
   }
-
-  public String getCluster_name() {
-    return cluster_name;
-  }
-
-  public void setCluster_name(String cluster_name) {
-    this.cluster_name = cluster_name;
-  }
-
-  public String getListen_address() {
-    return listen_address;
-  }
-
-  @SuppressWarnings("unchecked")
-  public void setListen_address(String listen_address) {
-    this.listen_address = listen_address;
-    // This is awfull... :(
-    ((List<Map<String,String>>)this.seed_provider.get(0).get("parameters")).get(0).put("seeds", listen_address);
-
-  }
-
-  public String getCommitlog_sync() {
-    return commitlog_sync;
-  }
-
-  public void setCommitlog_sync(String commitlog_sync) {
-    this.commitlog_sync = commitlog_sync;
-  }
-
-  public Integer getCommitlog_sync_period_in_ms() {
-    return commitlog_sync_period_in_ms;
-  }
-
-  public void setCommitlog_sync_period_in_ms(Integer commitlog_sync_period_in_ms) {
-    this.commitlog_sync_period_in_ms = commitlog_sync_period_in_ms;
-  }
-
 
   public String guessIp() {
     for (String host : listAdresses()) {
@@ -196,6 +159,42 @@ public class CassandraConfig {
     }
 
     return false;
+  }
+
+  public String getCluster_name() {
+    return cluster_name;
+  }
+
+  public void setCluster_name(String cluster_name) {
+    this.cluster_name = cluster_name;
+  }
+
+  public String getListen_address() {
+    return listen_address;
+  }
+
+  @SuppressWarnings("unchecked")
+  public void setListen_address(String listen_address) {
+    this.listen_address = listen_address;
+    // This is awfull... :(
+    ((List<Map<String,String>>)this.seed_provider.get(0).get("parameters")).get(0).put("seeds", listen_address);
+
+  }
+
+  public String getCommitlog_sync() {
+    return commitlog_sync;
+  }
+
+  public void setCommitlog_sync(String commitlog_sync) {
+    this.commitlog_sync = commitlog_sync;
+  }
+
+  public Integer getCommitlog_sync_period_in_ms() {
+    return commitlog_sync_period_in_ms;
+  }
+
+  public void setCommitlog_sync_period_in_ms(Integer commitlog_sync_period_in_ms) {
+    this.commitlog_sync_period_in_ms = commitlog_sync_period_in_ms;
   }
 
   public String getPartitioner() {
