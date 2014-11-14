@@ -32,7 +32,7 @@ public interface Item extends ListMultimap<String, String> {
    * Get the raw bytes from which this item was constructed. This is usually only used by the first or
    * second step in the pipeline which converts the binary form into entries in this map.
    *
-   * @return
+   * @return the actual bytes of the document.
    */
   byte[] getRawData();
 
@@ -40,17 +40,10 @@ public interface Item extends ListMultimap<String, String> {
    * Replace the raw bytes. This is only used when the originally indexed document is to be interpreted as
    * a pointer to the "real" document, or when the Item is first constructed.
    *
-   * @param rawData
+   * @param rawData the actual bytes of the document
    */
   void setRawData(byte[] rawData);
 
-  /**
-   * A reference to the scanner that originally generated this item. This is generally used for reporting
-   * the status of an item as it moves down the pipeline.
-   *
-   * @return
-   */
-  public Scanner getSource();
 
   /**
    * The current processing status of the item. Each {@link org.jesterj.ingest.model.ItemProcessor}

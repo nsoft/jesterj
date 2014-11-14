@@ -4,7 +4,6 @@ import com.google.common.collect.*;
 import net.jini.core.entry.Entry;
 import org.jesterj.ingest.model.Item;
 import org.jesterj.ingest.model.Plan;
-import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.Step;
 
@@ -40,13 +39,10 @@ public class ItemImpl implements Item {
   private byte[] rawData;
   private Status status = Status.PROCESSING;
   private String statusMessage = "";
-  private final String scannerName;
 
-  private Scanner source;
   private Plan plan;
 
-  public ItemImpl(String scannerName, byte[] rawData, String id, Plan plan, Step source) {
-    this.scannerName = scannerName;
+  public ItemImpl(byte[] rawData, String id, Plan plan) {
     this.rawData = rawData;
     ID = plan.getDocIdField();
     this.delegate.put(ID, id);
@@ -160,20 +156,6 @@ public class ItemImpl implements Item {
     this.rawData = rawData;
   }
 
-
-  @Override
-  public Scanner getSource() {
-    if (this.source == null) {
-      try {
-        this.source = (Scanner) plan.findStep(scannerName);
-      } catch (ClassCastException e) {
-        throw new IllegalStateException("name of scanner on item matches a step " +
-            "that is not a scanner!");
-      }
-    }
-    return this.source;
-  }
-
   @Override
   public Status getStatus() {
     return this.status;
@@ -223,7 +205,6 @@ public class ItemImpl implements Item {
 
     ItemEntry(Item item, Step destination) {
       this.contents = item.getDelegate();
-      this.scannerName = item.getSource().getName();
       this.status = item.getStatus();
       this.statusMessage = item.getStatusMessage();
       this.data = new RawData();

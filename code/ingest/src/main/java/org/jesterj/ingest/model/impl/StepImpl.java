@@ -247,7 +247,7 @@ public class StepImpl extends Thread implements Step {
   }
 
   private void pushToNextIfOk(Item item) {
-    item.getSource().updateStatus(item);
+    //todo: Log Status to Cassandra
     if (item.getStatus() == Status.PROCESSING) {
       if (this.outputSpace == null) {
         // local processing is our only option, do blocking put.
@@ -256,7 +256,7 @@ public class StepImpl extends Thread implements Step {
         } catch (InterruptedException e) {
           item.setStatusMessage(e.getMessage() + " while offering to " + next().getName());
           item.setStatus(Status.ERROR);
-          item.getSource().updateStatus(item);
+          //todo: Log Status to Cassandra
         }
       } else {
         if (this.isFinalHelper()) {
