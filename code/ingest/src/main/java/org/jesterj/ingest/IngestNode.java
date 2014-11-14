@@ -30,6 +30,8 @@ import net.jini.discovery.DiscoveryManagement;
 import net.jini.discovery.LookupDiscovery;
 import net.jini.lease.LeaseRenewalManager;
 import net.jini.lookup.ServiceDiscoveryManager;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.jini.service.IngestService;
 import org.jesterj.ingest.model.Plan;
 
@@ -41,6 +43,8 @@ import java.util.Map;
  * Don't take this serious... I was just messing around.
  */
 public class IngestNode implements Runnable, IngestService {
+
+  private static final Logger log = LogManager.getLogger();
 
   private final String id;
   private final String password;
@@ -81,13 +85,13 @@ public class IngestNode implements Runnable, IngestService {
         ServiceRegistrar registrar = (ServiceRegistrar) si.service;
         ServiceRegistrar old = registrars.put(registrar.getServiceID(), registrar);
         if (old == null) {
-          System.out.println("added: " + registrar.getServiceID());
+          log.debug("added: " + registrar.getServiceID());
         } else {
-          System.out.println("replaced: " + registrar.getServiceID());
+          log.debug("replaced: " + registrar.getServiceID());
         }
       }
       if (sis.length == 0) {
-        System.out.println("No Service Registries found");
+        log.debug("No Service Registries found");
       }
     }
   }

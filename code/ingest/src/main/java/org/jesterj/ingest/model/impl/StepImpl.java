@@ -17,6 +17,8 @@
 package org.jesterj.ingest.model.impl;
 
 import net.jini.space.JavaSpace;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Item;
 import org.jesterj.ingest.model.ItemProcessor;
 import org.jesterj.ingest.model.Plan;
@@ -39,6 +41,8 @@ import java.util.stream.Stream;
  * Date: 9/28/14
  */
 public class StepImpl extends Thread implements Step {
+
+  private static final Logger log = LogManager.getLogger();
 
   LinkedBlockingQueue<Item> queue;
   AtomicInteger itemCount = new AtomicInteger(0);
@@ -257,7 +261,7 @@ public class StepImpl extends Thread implements Step {
       } else {
         if (this.isFinalHelper()) {
           // remote processing is our only option.
-          System.out.println("todo: send to javaspace");
+          log.debug("todo: send to javaspace");
           // todo: put in javaspace
         } else {
           // Try to process this item locally first with a non-blocking add, and
@@ -265,7 +269,7 @@ public class StepImpl extends Thread implements Step {
           try {
             next().add(item);
           } catch (IllegalStateException e) {
-            System.out.println("todo: send to javaspace");
+            log.debug("todo: send to javaspace");
             // todo: put in javaspace
           }
         }

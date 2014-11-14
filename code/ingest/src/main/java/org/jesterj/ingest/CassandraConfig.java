@@ -16,6 +16,9 @@
 
 package org.jesterj.ingest;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -42,6 +45,8 @@ import java.util.Set;
  */
 public class CassandraConfig {
 
+  private static final Logger log = LogManager.getLogger();
+
   private String cluster_name = "jjCassandra";
   private String listen_address = "127.0.0.1";
   private String commitlog_sync = "periodic";
@@ -51,6 +56,8 @@ public class CassandraConfig {
   private String commitlog_directory;
   private String saved_caches_directory;
   private String[] data_file_directories;
+  private Boolean start_native_transport = Boolean.TRUE;
+  private String authenticator = "PasswordAuthenticator";
 
   public ArrayList getSeed_provider() {
     return seed_provider;
@@ -66,9 +73,9 @@ public class CassandraConfig {
   public CassandraConfig() {
 
     String dir = Main.JJ_DIR;
-    commitlog_directory = dir + "cassandra/data/commitlog";
-    saved_caches_directory = dir + "cassandra/data/saved_caches";
-    data_file_directories = new String[]{dir + "cassandra/data/data"};
+    commitlog_directory = dir + "/cassandra/data/commitlog";
+    saved_caches_directory = dir + "/cassandra/data/saved_caches";
+    data_file_directories = new String[]{dir + "/cassandra/data/data"};
 
     // yuck, but it's what's required.
     seed_provider = new ArrayList();
@@ -85,7 +92,7 @@ public class CassandraConfig {
 
   public String guessIp() {
     for (String host : listAdresses()) {
-      System.out.println(host);
+      log.debug(host);
       if (better(host)) {
         setListen_address(host);
       }
@@ -235,6 +242,22 @@ public class CassandraConfig {
 
   public void setData_file_directories(String[] data_file_directories) {
     this.data_file_directories = data_file_directories;
+  }
+
+  public Boolean getStart_native_transport() {
+    return start_native_transport;
+  }
+
+  public void setStart_native_transport(Boolean start_native_transport) {
+    this.start_native_transport = start_native_transport;
+  }
+
+  public String getAuthenticator() {
+    return authenticator;
+  }
+
+  public void setAuthenticator(String authenticator) {
+    this.authenticator = authenticator;
   }
 
 

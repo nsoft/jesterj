@@ -17,6 +17,8 @@
 package org.jesterj.ingest;
 
 import org.apache.cassandra.service.CassandraDaemon;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
@@ -31,13 +33,15 @@ import java.nio.file.StandardOpenOption;
  */
 public class Cassandra implements Runnable {
 
+  private static final Logger log = LogManager.getLogger();
+
   @Override
   public void run() {
     try {
       CassandraConfig cfg = new CassandraConfig();
       cfg.guessIp();
       String cfgStr = new Yaml().dumpAsMap(cfg);
-      System.out.println(cfgStr);
+      log.debug(cfgStr);
       File f = new File(Main.JJ_DIR + "/cassandra");
       if (!f.exists() && !f.mkdirs()) {
         throw new RuntimeException("could not create" + f);

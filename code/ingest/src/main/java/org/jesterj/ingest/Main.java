@@ -84,7 +84,7 @@ public class Main {
 
     // This  does nothing useful yet, just for testing right now.
 
-    System.out.println("Starting injester node...");
+    log.debug("Starting injester node...");
     Runnable node = new IngestNode(id, password);
 
 
@@ -136,7 +136,7 @@ public class Main {
       }
     }
     if (result == null || result.get("--help") != null) {
-      System.out.println(usageStr);
+      log.debug(usageStr);
       System.exit(1);
     }
     return result;
