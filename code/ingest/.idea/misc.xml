@@ -2,9 +2,10 @@
 <project version="4">
   <component name="EntryPointsManager">
     <entry_points version="2.0" />
-    <list size="2">
+    <list size="3">
       <item index="0" class="java.lang.String" itemvalue="com.copyright.easiertest.Mock" />
       <item index="1" class="java.lang.String" itemvalue="com.copyright.easiertest.ObjectUnderTest" />
+      <item index="2" class="java.lang.String" itemvalue="org.apache.logging.log4j.core.config.plugins.PluginFactory" />
     </list>
   </component>
   <component name="FrameworkDetectionExcludesConfiguration">
