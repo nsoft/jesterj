@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest;
+package org.jesterj.ingest.logging;
 
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jesterj.ingest.Main;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
@@ -31,40 +32,60 @@ import java.nio.file.StandardOpenOption;
  * User: gus
  * Date: 11/8/14
  */
+
+/**
+ * Starts a Casandra Daemon after creating or loading the cassandra config. The main purpose of this
+ * class is to wrap the CassandraDaemon and feed it a programmatically created configuration file.
+ */
 public class Cassandra implements Runnable {
 
   private static final Logger log = LogManager.getLogger();
 
+  private static CassandraDaemon cassandra;
+
+  /**
+   * Indicates whether cassandra has finished booting. Does NOT indicate if
+   * cassandra has subsequently been stopped. This method is not synchronized because
+   * it is not meant to continuously track the state of cassandra, only serve as a latch
+   * to release code that must not execute while cassandra has not yet booted.
+   *
+   * @return true indicating that cassandra has definitely finished booting, false indicates that cassandra may or
+   *              may not have booted yet.
+   */
+  public boolean isBooting() {
+    return booting;
+  }
+
+
+  private volatile boolean booting = true;
+
   @Override
   public void run() {
     try {
-      CassandraConfig cfg = new CassandraConfig();
-      cfg.guessIp();
-      String cfgStr = new Yaml().dumpAsMap(cfg);
-      log.debug(cfgStr);
       File f = new File(Main.JJ_DIR + "/cassandra");
       if (!f.exists() && !f.mkdirs()) {
         throw new RuntimeException("could not create" + f);
       }
       f = new File(f, "cassandra.yaml");
-      if (f.exists()) {
-        //noinspection ResultOfMethodCallIgnored
-        f.delete();
+      if (!f.exists()) {
+        CassandraConfig cfg = new CassandraConfig();
+        cfg.guessIp();
+        String cfgStr = new Yaml().dumpAsMap(cfg);
+        log.debug(cfgStr);
+        Files.write(f.toPath(), cfgStr.getBytes(), StandardOpenOption.CREATE);
       }
-      long start = System.currentTimeMillis();
-      while(f.exists() && (System.currentTimeMillis() - start) < 5000) {
-        try {
-          Thread.sleep(100);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-      }
-      Files.write(f.toPath(), cfgStr.getBytes(), StandardOpenOption.CREATE);
       System.setProperty("cassandra.config", f.toURI().toString());
     } catch (IOException e) {
       e.printStackTrace();
     }
-    CassandraDaemon daemon = new CassandraDaemon();
-    daemon.activate();
+    cassandra = new CassandraDaemon();
+    cassandra.activate();
+    booting = false;
+  }
+
+  public void stop() {
+    if (cassandra != null) {
+      cassandra.deactivate();
+    }
   }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest;
+package org.jesterj.ingest.logging;
 /*
  * Created with IntelliJ IDEA.
  * User: gus

@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest;
+package org.jesterj.ingest.logging;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jesterj.ingest.Main;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -58,6 +59,7 @@ public class CassandraConfig {
   private String[] data_file_directories;
   private Boolean start_native_transport = Boolean.TRUE;
   private String authenticator = "PasswordAuthenticator";
+  private String rpc_address = "127.0.0.1";
 
   public ArrayList getSeed_provider() {
     return seed_provider;
@@ -183,6 +185,7 @@ public class CassandraConfig {
   @SuppressWarnings("unchecked")
   public void setListen_address(String listen_address) {
     this.listen_address = listen_address;
+    this.rpc_address = listen_address;
     // This is awfull... :(
     ((List<Map<String,String>>)this.seed_provider.get(0).get("parameters")).get(0).put("seeds", listen_address);
 
@@ -258,6 +261,14 @@ public class CassandraConfig {
 
   public void setAuthenticator(String authenticator) {
     this.authenticator = authenticator;
+  }
+
+  public String getRpc_address() {
+    return rpc_address;
+  }
+
+  public void setRpc_address(String rpc_address) {
+    this.rpc_address = rpc_address;
   }
 
 

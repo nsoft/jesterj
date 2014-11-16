@@ -1,14 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration status="error" name="LoggingConfig" monitorInterval="5" >
+<configuration status="error" name="LoggingConfig" monitorInterval="5" packages="org.jesterj.ingest.logging" >
 
   <appenders>
     <Console name="STDOUT" target="SYSTEM_OUT">
-      <PatternLayout pattern="%m%n"/>
+      <PatternLayout pattern="%d{ISO8601} %m%n"/>
     </Console>
+    <CassandraAppender name="CASSANDRA">
+      <PatternLayout pattern="%m%n"/>
+    </CassandraAppender>
   </appenders>
 
   <loggers>
-    <root level="error">
+    <logger name="org.jesterj" >
+      <appender-ref ref="STDOUT"/>
+      <appender-ref ref="CASSANDRA"/>
+    </logger>
+    <root level="debug">
       <appender-ref ref="STDOUT"/>
     </root>
   </loggers>

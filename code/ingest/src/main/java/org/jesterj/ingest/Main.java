@@ -35,10 +35,6 @@ import java.security.ProtectionDomain;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.Executor;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /*
  * Created with IntelliJ IDEA.
@@ -55,27 +51,37 @@ import java.util.concurrent.TimeUnit;
 public class Main {
 
   public static String JJ_DIR;
-
-  private static final Logger log = LogManager.getLogger();
-
-  private static final Executor exec = new ThreadPoolExecutor(1,10,1000, TimeUnit.SECONDS,new SynchronousQueue<>());
-
-  public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
-    initRMI();
+  static {
+    // set up a config dir in user's home dir
     String userDir = System.getProperty("user.home");
     File jjDir = new File(userDir+ "/.jj");
     if (!jjDir.exists() && !jjDir.mkdir()) {
       throw new RuntimeException("could not create " + jjDir);
     } else {
-      JJ_DIR = jjDir.getCanonicalPath();
+      try {
+        JJ_DIR = jjDir.getCanonicalPath();
+      } catch (IOException e) {
+        e.printStackTrace();
+        System.exit(1);
+      }
     }
+  }
 
-    exec.execute(new Cassandra());
+  private static Logger log ;
 
+
+  public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
+    initClassloader();
+    initRMI();
+
+    // now we can see log4j2.xml
+    log = LogManager.getLogger();
+
+    // Next check our args and die if they are FUBAR
     Map<String, Object> parsedArgs = usage(args);
+
     String id = String.valueOf(parsedArgs.get("id"));
     String password = String.valueOf(parsedArgs.get("password"));
-
 
     Properties sysprops = System.getProperties();
     for (Object prop : sysprops.keySet()) {
@@ -87,23 +93,26 @@ public class Main {
     log.debug("Starting injester node...");
     Runnable node = new IngestNode(id, password);
 
-
+    //noinspection InfiniteLoopStatement
+    while(true) {
+      // for now ctrl-c to stop...
+      try {
+        Thread.sleep(5000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
 
   }
 
+  /**
+   * Set up security policy that allows RMI and JINI code to work. Also seems to be
+   * helpful for running embedded cassandra. TODO: Minimize the permissions granted.
+   *
+   * @throws NoSuchFieldException
+   * @throws IllegalAccessException
+   */
   private static void initRMI() throws NoSuchFieldException, IllegalAccessException {
-    // for river
-    System.setProperty("java.rmi.server.RMIClassLoaderSpi", "net.jini.loader.pref.PreferredClassProvider");
-
-    // fix bug in One-Jar with an ugly hack
-    ClassLoader myClassLoader = Main.class.getClassLoader();
-    String name = myClassLoader.getClass().getName();
-    if ("com.simontuffs.onejar.JarClassLoader".equals(name)) {
-      Field scl = ClassLoader.class.getDeclaredField("scl"); // Get system class loader
-      scl.setAccessible(true); // Set accessible
-      scl.set(null, myClassLoader); // Update it to your class loader
-    }
-
     // must do this before any jini code
     String policyFile = System.getProperty("java.security.policy");
     if (policyFile == null) {
@@ -125,6 +134,27 @@ public class Main {
     }
   }
 
+  /**
+   * Initialize the classloader. This method fixes up an issue with OneJar's classloaders. Nothing in or before
+   * this method should touch logging, or 3rd party jars that logging that might try to setup log4j.
+   *
+   * @throws NoSuchFieldException
+   * @throws IllegalAccessException
+   */
+  private static void initClassloader() throws NoSuchFieldException, IllegalAccessException {
+    // for river
+    System.setProperty("java.rmi.server.RMIClassLoaderSpi", "net.jini.loader.pref.PreferredClassProvider");
+
+    // fix bug in One-Jar with an ugly hack
+    ClassLoader myClassLoader = Main.class.getClassLoader();
+    String name = myClassLoader.getClass().getName();
+    if ("com.simontuffs.onejar.JarClassLoader".equals(name)) {
+      Field scl = ClassLoader.class.getDeclaredField("scl"); // Get system class loader
+      scl.setAccessible(true); // Set accessible
+      scl.set(null, myClassLoader); // Update it to your class loader
+    }
+  }
+
   private static AbstractMap<String, Object> usage(String[] args) throws IOException {
     URL usage = Resources.getResource("usage.docopts.txt");
     String usageStr = Resources.toString(usage, Charset.forName("UTF-8"));
@@ -136,7 +166,7 @@ public class Main {
       }
     }
     if (result == null || result.get("--help") != null) {
-      log.debug(usageStr);
+      System.out.println(usageStr);
       System.exit(1);
     }
     return result;
