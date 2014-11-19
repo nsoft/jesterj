@@ -20,6 +20,7 @@ import com.google.common.io.Resources;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.docopt.clj;
+import org.jesterj.ingest.logging.Cassandra;
 
 import java.io.File;
 import java.io.IOException;
@@ -51,10 +52,11 @@ import java.util.Properties;
 public class Main {
 
   public static String JJ_DIR;
+
   static {
     // set up a config dir in user's home dir
     String userDir = System.getProperty("user.home");
-    File jjDir = new File(userDir+ "/.jj");
+    File jjDir = new File(userDir + "/.jj");
     if (!jjDir.exists() && !jjDir.mkdir()) {
       throw new RuntimeException("could not create " + jjDir);
     } else {
@@ -67,12 +69,13 @@ public class Main {
     }
   }
 
-  private static Logger log ;
+  private static Logger log;
 
 
   public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
     initClassloader();
     initRMI();
+    Cassandra.start();
 
     // now we can see log4j2.xml
     log = LogManager.getLogger();
@@ -94,7 +97,7 @@ public class Main {
     Runnable node = new IngestNode(id, password);
 
     //noinspection InfiniteLoopStatement
-    while(true) {
+    while (true) {
       // for now ctrl-c to stop...
       try {
         Thread.sleep(5000);

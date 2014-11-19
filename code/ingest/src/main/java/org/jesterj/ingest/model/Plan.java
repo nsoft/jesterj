@@ -34,7 +34,7 @@ public interface Plan extends JiniServiceProvider, Active {
    * Get the subset of steps that will execute when the plan is activated. This should be a continuous set of steps
    * that can be traversed in total via {@link org.jesterj.ingest.model.Step#next()}.
    *
-   * @return
+   * @return a List of steps in the plan that will be executed
    */
   public Step[] getExecutableSteps();
 
@@ -42,7 +42,7 @@ public interface Plan extends JiniServiceProvider, Active {
    * Denote the start point for this node's execution of the plan. Calling this method on anything other
    * than the first step in the plan makes this a "helper" node.
    *
-   * @param step
+   * @param step The first step that will be executed
    */
   public void setFirstExecutableStep(Step step);
 
@@ -50,7 +50,7 @@ public interface Plan extends JiniServiceProvider, Active {
   /**
    * Denote the last step for this node's execution of the plan.
    *
-   * @param step
+   * @param step The last step that will be executed
    */
   public void setLastExecutableStep(Step step);
 
@@ -59,7 +59,7 @@ public interface Plan extends JiniServiceProvider, Active {
    * the default logic are almost inconceivable.
    *
    * @return true if the first step is not the first executible step, or the last step is not the
-   *         last executable step.
+   * last executable step.
    */
   default public boolean isHelping() {
     Step[] all = getAllSteps();

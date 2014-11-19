@@ -1,6 +1,9 @@
 package org.jesterj.ingest.model.impl;
 
-import com.google.common.collect.*;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ForwardingListMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multiset;
 import net.jini.core.entry.Entry;
 import org.jesterj.ingest.model.Item;
 import org.jesterj.ingest.model.Plan;

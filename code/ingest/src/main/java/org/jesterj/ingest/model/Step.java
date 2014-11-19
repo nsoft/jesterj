@@ -92,7 +92,7 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Item> {
       return false; // if we aren't part of a plan yet, we aren't part of a helper node either.
     }
     Step[] executableSteps = plan.getExecutableSteps();
-    return plan.isHelping() && executableSteps[executableSteps.length -1] == this;
+    return plan.isHelping() && executableSteps[executableSteps.length - 1] == this;
   }
 
   /**

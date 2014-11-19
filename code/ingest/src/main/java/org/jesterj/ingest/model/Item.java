@@ -88,6 +88,6 @@ public interface Item extends ListMultimap<String, String> {
 
   public Entry toEntry(Step next);
 
-  ArrayListMultimap<String,String> getDelegate();
+  ArrayListMultimap<String, String> getDelegate();
 
 }

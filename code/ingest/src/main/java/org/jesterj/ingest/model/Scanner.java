@@ -15,8 +15,8 @@ public interface Scanner extends Step {
   /**
    * Set the interval for the scanner to fire in milliseconds.
    *
-   * @see #getInterval()
    * @param milliseconds minnimum miliseconds between scans
+   * @see #getInterval()
    */
   public void setInterval(long milliseconds);
 

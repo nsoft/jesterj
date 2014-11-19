@@ -29,22 +29,21 @@ public interface IngestService {
    * Return a descriptor sufficient to connect to a JavasSpace. If no JavaSpace exists one must be created
    * or an error thrown. Implementations may return a new space each time, or the same space each time at
    * their own discretion.
-   *
+   * <p>
    * returns an object with sufficient information to identify and connect to a javaspace that may be used
-   *         for posting serialized items
+   * for posting serialized items
    */
   void /*JavaSpace Descriptor Foo*/ supplySpace();
 
   /**
    * Install the supplied plan into this ingestion node. Installation of a plan removes the existing plan
-   * from the node. The installed plan will be in the deactivated state until {@link #activate()} is
+   * from the node. The installed plan will be in the deactivated state until {@link #activate(Plan)} is
    * called.
    */
-  void installPlan( Plan plan );
+  void installPlan(Plan plan);
 
 
+  void activate(Plan plan);
 
-  void activate(Plan plan );
-
-  void deactivate( Plan plan );
+  void deactivate(Plan plan);
 }

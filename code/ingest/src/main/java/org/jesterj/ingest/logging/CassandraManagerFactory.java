@@ -23,14 +23,16 @@ import org.apache.logging.log4j.core.appender.ManagerFactory;
  * User: gus
  * Date: 11/15/14
  */
-public class CassandraManagerFactory implements ManagerFactory<CassandraManager,Object> {
+public class CassandraManagerFactory implements ManagerFactory<CassandraManager, Object> {
 
+  // N.B. this probably can't be standard singleton because new CassandraManager() does complicated stuff and
+  // can cause deadlocks if not coordinated properly... So I don't want it firing on class load.
   private static CassandraManager manager;
 
   @Override
   public synchronized CassandraManager createManager(String name, Object data) {
     if (manager == null) {
-      new CassandraManager("name");
+      manager = new CassandraManager("name");
     }
     return manager;
   }

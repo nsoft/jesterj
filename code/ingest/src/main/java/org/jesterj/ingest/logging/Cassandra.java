@@ -17,8 +17,6 @@
 package org.jesterj.ingest.logging;
 
 import org.apache.cassandra.service.CassandraDaemon;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.Main;
 import org.yaml.snakeyaml.Yaml;
 
@@ -26,6 +24,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.RunnableFuture;
 
 /*
  * Created with IntelliJ IDEA.
@@ -37,11 +40,11 @@ import java.nio.file.StandardOpenOption;
  * Starts a Casandra Daemon after creating or loading the cassandra config. The main purpose of this
  * class is to wrap the CassandraDaemon and feed it a programmatically created configuration file.
  */
-public class Cassandra implements Runnable {
+public class Cassandra {
 
-  private static final Logger log = LogManager.getLogger();
 
   private static CassandraDaemon cassandra;
+  private static final ConcurrentLinkedQueue<RunnableFuture> finalBootActions = new ConcurrentLinkedQueue<>();
 
   /**
    * Indicates whether cassandra has finished booting. Does NOT indicate if
@@ -50,17 +53,18 @@ public class Cassandra implements Runnable {
    * to release code that must not execute while cassandra has not yet booted.
    *
    * @return true indicating that cassandra has definitely finished booting, false indicates that cassandra may or
-   *              may not have booted yet.
+   * may not have booted yet.
    */
-  public boolean isBooting() {
+  public static boolean isBooting() {
     return booting;
   }
 
 
-  private volatile boolean booting = true;
+  private volatile static boolean booting = true;
 
-  @Override
-  public void run() {
+  public static void start() {
+
+    System.out.println("Booting to run cassandra");
     try {
       File f = new File(Main.JJ_DIR + "/cassandra");
       if (!f.exists() && !f.mkdirs()) {
@@ -71,7 +75,6 @@ public class Cassandra implements Runnable {
         CassandraConfig cfg = new CassandraConfig();
         cfg.guessIp();
         String cfgStr = new Yaml().dumpAsMap(cfg);
-        log.debug(cfgStr);
         Files.write(f.toPath(), cfgStr.getBytes(), StandardOpenOption.CREATE);
       }
       System.setProperty("cassandra.config", f.toURI().toString());
@@ -79,13 +82,32 @@ public class Cassandra implements Runnable {
       e.printStackTrace();
     }
     cassandra = new CassandraDaemon();
-    cassandra.activate();
-    booting = false;
-  }
+    try {
+      cassandra.activate();
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      System.out.println("Cassandra booted");
+    }
 
-  public void stop() {
-    if (cassandra != null) {
-      cassandra.deactivate();
+    synchronized (finalBootActions) {
+      while (finalBootActions.peek() != null) {
+        finalBootActions.remove().run();
+      }
+      booting = false;
     }
   }
+
+  public static Future whenBooted(Callable<Object> callable) {
+    FutureTask<Object> t = new FutureTask<>(callable);
+    synchronized (finalBootActions) {
+      if (isBooting()) {
+        finalBootActions.add(t);
+      } else {
+        t.run();
+      }
+    }
+    return t;
+  }
+
 }

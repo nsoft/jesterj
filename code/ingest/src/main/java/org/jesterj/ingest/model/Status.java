@@ -31,7 +31,7 @@ public enum Status {
   DIRTY,
 
   /**
-   *  A scanner has picked up resource, and item is in-flight and processing should continue.
+   * A scanner has picked up resource, and item is in-flight and processing should continue.
    */
   PROCESSING,
 

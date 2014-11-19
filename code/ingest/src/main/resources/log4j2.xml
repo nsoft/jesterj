@@ -5,15 +5,15 @@
     <Console name="STDOUT" target="SYSTEM_OUT">
       <PatternLayout pattern="%d{ISO8601} %m%n"/>
     </Console>
-    <CassandraAppender name="CASSANDRA">
+    <JesterJAppender name="CASSANDRA">
       <PatternLayout pattern="%m%n"/>
-    </CassandraAppender>
+    </JesterJAppender>
   </appenders>
 
   <loggers>
     <logger name="org.jesterj" >
       <appender-ref ref="STDOUT"/>
-      <appender-ref ref="CASSANDRA"/>
+      <!--<appender-ref ref="CASSANDRA"/>-->
     </logger>
     <root level="debug">
       <appender-ref ref="STDOUT"/>

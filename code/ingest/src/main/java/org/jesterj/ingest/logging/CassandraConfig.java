@@ -16,8 +16,6 @@
 
 package org.jesterj.ingest.logging;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.Main;
 
 import java.net.InetAddress;
@@ -46,7 +44,6 @@ import java.util.Set;
  */
 public class CassandraConfig {
 
-  private static final Logger log = LogManager.getLogger();
 
   private String cluster_name = "jjCassandra";
   private String listen_address = "127.0.0.1";
@@ -65,11 +62,11 @@ public class CassandraConfig {
     return seed_provider;
   }
 
-  public void setSeed_provider(ArrayList<Map<String,Object>> seed_provider) {
+  public void setSeed_provider(ArrayList<Map<String, Object>> seed_provider) {
     this.seed_provider = seed_provider;
   }
 
-  private ArrayList<Map<String,Object>> seed_provider;
+  private ArrayList<Map<String, Object>> seed_provider;
 
   @SuppressWarnings("unchecked")
   public CassandraConfig() {
@@ -81,24 +78,27 @@ public class CassandraConfig {
 
     // yuck, but it's what's required.
     seed_provider = new ArrayList();
-    HashMap<String,Object> m = new HashMap<>();
+    HashMap<String, Object> m = new HashMap<>();
     seed_provider.add(m);
     m.put("class_name", "org.apache.cassandra.locator.SimpleSeedProvider");
-    ArrayList<Map<String,String>> l = new ArrayList<>();
+    ArrayList<Map<String, String>> l = new ArrayList<>();
     m.put("parameters", l);
-    HashMap<String,String> m2 = new HashMap<>();
+    HashMap<String, String> m2 = new HashMap<>();
     l.add(m2);
     m2.put("seeds", getListen_address());
 
   }
 
   public String guessIp() {
+    System.out.println("Choosing IP");
     for (String host : listAdresses()) {
-      log.debug(host);
+      System.out.println(host);
       if (better(host)) {
+        System.out.println(host + " is better");
         setListen_address(host);
       }
     }
+    System.out.println("Cassandra will listen on " + getListen_address());
     return getListen_address();
   }
 
@@ -187,7 +187,7 @@ public class CassandraConfig {
     this.listen_address = listen_address;
     this.rpc_address = listen_address;
     // This is awfull... :(
-    ((List<Map<String,String>>)this.seed_provider.get(0).get("parameters")).get(0).put("seeds", listen_address);
+    ((List<Map<String, String>>) this.seed_provider.get(0).get("parameters")).get(0).put("seeds", listen_address);
 
   }
 

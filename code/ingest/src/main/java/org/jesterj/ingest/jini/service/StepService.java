@@ -25,8 +25,8 @@ public interface StepService {
   /**
    * Tells the step to begin poling the JavaSpace for items relating to this plan and relating to
    */
-  void drawInputFrom( /*JavaSpace Descriptor Foo*/ );
+  void drawInputFrom( /*JavaSpace Descriptor Foo*/);
 
-  void sendOutputTo( /*Javaspace Descriptor Foo*/ );
+  void sendOutputTo( /*Javaspace Descriptor Foo*/);
 
 }

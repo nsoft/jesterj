@@ -157,7 +157,7 @@ public class StepImpl extends Thread implements Step {
   }
 
   public boolean add(Item item) {
-      return queue.add(item);
+    return queue.add(item);
   }
 
   public void forEach(Consumer<? super Item> action) {

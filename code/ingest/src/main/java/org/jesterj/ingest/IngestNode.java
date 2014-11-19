@@ -72,7 +72,7 @@ public class IngestNode implements Runnable, IngestService {
 
     ServiceTemplate srTemplate = new ServiceTemplate(null, new Class[]{ServiceRegistrar.class}, null);
 
-    while(true) {
+    while (true) {
       try {
         Thread.sleep(1000);
       } catch (InterruptedException e) {

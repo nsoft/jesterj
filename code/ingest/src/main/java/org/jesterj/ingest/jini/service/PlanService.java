@@ -28,7 +28,7 @@ public interface PlanService {
    * because they are before or after the first and last helper steps. Future versions may
    * support branching and merging plans, and the ordering of returned steps will be defined
    * at that time.
-   *
+   * <p>
    * return An array of step service descriptors in the order that the steps execute.
    */
   void /* Step Service Descriptor Foo[] */ getAllSteps();
