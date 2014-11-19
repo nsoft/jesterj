@@ -11,9 +11,9 @@
   </appenders>
 
   <loggers>
-    <logger name="org.jesterj" >
+    <logger level="error" name="org.jesterj" >
       <appender-ref ref="STDOUT"/>
-      <!--<appender-ref ref="CASSANDRA"/>-->
+      <appender-ref ref="CASSANDRA"/>
     </logger>
     <root level="debug">
       <appender-ref ref="STDOUT"/>

@@ -19,8 +19,11 @@ package org.jesterj.ingest;
 import com.google.common.io.Resources;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 import org.docopt.clj;
 import org.jesterj.ingest.logging.Cassandra;
+import org.jesterj.ingest.logging.JesterJAppender;
+import org.jesterj.ingest.logging.Markers;
 
 import java.io.File;
 import java.io.IOException;
@@ -80,6 +83,17 @@ public class Main {
     // now we can see log4j2.xml
     log = LogManager.getLogger();
 
+    log.info(Markers.LOG_MARKER, "Test regular log with marker");
+    log.info( "Test regular log without marker");
+
+    try {
+      ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, "file:///foo/bar.txt");
+      log.error(Markers.SET_DROPPED, "Test fti drop");
+    } finally {
+      ThreadContext.clearAll();
+    }
+
+
     // Next check our args and die if they are FUBAR
     Map<String, Object> parsedArgs = usage(args);
 
@@ -96,15 +110,22 @@ public class Main {
     log.debug("Starting injester node...");
     Runnable node = new IngestNode(id, password);
 
+
     //noinspection InfiniteLoopStatement
     while (true) {
-      // for now ctrl-c to stop...
       try {
         Thread.sleep(5000);
       } catch (InterruptedException e) {
+
+        // Yeah, I know this isn't going to do anything right now.. Placeholder to remind me to implement a real
+        // graceful shutdown... also keeps IDE from complaining stop() isn't used.
+
         e.printStackTrace();
+        Cassandra.stop();
+        System.exit(0);
       }
     }
+
 
   }
 

@@ -57,6 +57,7 @@ public class CassandraConfig {
   private Boolean start_native_transport = Boolean.TRUE;
   private String authenticator = "PasswordAuthenticator";
   private String rpc_address = "127.0.0.1";
+  private Integer num_tokens = 256;
 
   public ArrayList getSeed_provider() {
     return seed_provider;
@@ -269,6 +270,14 @@ public class CassandraConfig {
 
   public void setRpc_address(String rpc_address) {
     this.rpc_address = rpc_address;
+  }
+
+  public Integer getNum_tokens() {
+    return num_tokens;
+  }
+
+  public void setNum_tokens(Integer num_tokens) {
+    this.num_tokens = num_tokens;
   }
 
 

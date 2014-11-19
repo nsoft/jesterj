@@ -16,6 +16,10 @@
 
 package org.jesterj.ingest.logging;
 
+import org.apache.cassandra.config.Config;
+import org.apache.cassandra.config.ConfigurationLoader;
+import org.apache.cassandra.config.YamlConfigurationLoader;
+import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.jesterj.ingest.Main;
 import org.yaml.snakeyaml.Yaml;
@@ -45,6 +49,7 @@ public class Cassandra {
 
   private static CassandraDaemon cassandra;
   private static final ConcurrentLinkedQueue<RunnableFuture> finalBootActions = new ConcurrentLinkedQueue<>();
+  private static String listenAddress;
 
   /**
    * Indicates whether cassandra has finished booting. Does NOT indicate if
@@ -71,14 +76,19 @@ public class Cassandra {
         throw new RuntimeException("could not create" + f);
       }
       f = new File(f, "cassandra.yaml");
+      System.setProperty("cassandra.config", f.toURI().toString());
       if (!f.exists()) {
         CassandraConfig cfg = new CassandraConfig();
         cfg.guessIp();
+        listenAddress = cfg.getListen_address();
         String cfgStr = new Yaml().dumpAsMap(cfg);
         Files.write(f.toPath(), cfgStr.getBytes(), StandardOpenOption.CREATE);
+      } else {
+        ConfigurationLoader cl = new YamlConfigurationLoader();
+        Config conf = cl.loadConfig();
+        listenAddress = conf.listen_address;
       }
-      System.setProperty("cassandra.config", f.toURI().toString());
-    } catch (IOException e) {
+    } catch (IOException | ConfigurationException e) {
       e.printStackTrace();
     }
     cassandra = new CassandraDaemon();
@@ -86,8 +96,6 @@ public class Cassandra {
       cassandra.activate();
     } catch (Exception e) {
       e.printStackTrace();
-    } finally {
-      System.out.println("Cassandra booted");
     }
 
     synchronized (finalBootActions) {
@@ -96,6 +104,15 @@ public class Cassandra {
       }
       booting = false;
     }
+    System.out.println("Cassandra booted");
+  }
+
+  public static String getListenAddress() {
+    return listenAddress;
+  }
+
+  public static void stop() {
+    cassandra.deactivate();
   }
 
   public static Future whenBooted(Callable<Object> callable) {

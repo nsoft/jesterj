@@ -18,14 +18,9 @@ package org.jesterj.ingest.logging;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
-import org.apache.cassandra.config.Config;
-import org.apache.cassandra.config.YamlConfigurationLoader;
-import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.appender.AbstractManager;
-import org.jesterj.ingest.Main;
 
-import java.io.File;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
@@ -43,6 +38,8 @@ public class CassandraManager extends AbstractManager {
   public static final String CREATE_LOG_KEYSPACE =
       "CREATE KEYSPACE IF NOT EXISTS jj_logging " +
           "WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };";
+
+  // Possibly move these to wide rows with time values?
   public static final String CREATE_LOG_TABLE =
       "CREATE TABLE IF NOT EXISTS jj_logging.regular(" +
           "id uuid PRIMARY KEY, " +
@@ -68,65 +65,63 @@ public class CassandraManager extends AbstractManager {
   Executor executor = new ThreadPoolExecutor(1, 1, 100, TimeUnit.SECONDS, new SynchronousQueue<>());
 
 
-  // This constructor is complicated! It's critically important not to throw an exception or
+  // This constructor is weird for a reason. It's critically important not to throw an exception or
   // do anything that causes a log message in another thread before this constructor completes.
   // (such as starting cassandra) Doing so causes that thread and this one to deadlock and hangs
-  // everything.
+  // everything. This includes calling System.exit() since that gets checked in another JVM thread and
+  // the JVM thread tries to start a JUL logger!
   protected CassandraManager(String name) {
     super(name);
-    Config config;
-    try {
-      File f = new File(Main.JJ_DIR + "/cassandra/cassandra.yaml");
-      long start = System.currentTimeMillis();
-      // On first startup we need to wait for the cassandra thread to create this....
-      // but if it takes more than 5 sec, something is wrong and failing is appropriate.
-      while (!f.exists() && (System.currentTimeMillis() - start) < 5000) {
-        try {
-          Thread.sleep(100);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-          System.exit(2);
-        }
-      }
-      if (!f.exists()) {
-        System.exit(4);
-      }
-      String configURI = f.toURI().toString().replaceAll("file:/([^/])", "file:///$1");
-      System.setProperty("cassandra.config", configURI);
-      config = (new YamlConfigurationLoader()).loadConfig();
-    } catch (ConfigurationException e) {
-      throw new RuntimeException("Could not find cassandra config", e);
-    }
 
     Callable<Object> makeTables = new Callable<Object>() {
+
       @Override
       public Object call() throws Exception {
-        Session session = Cluster.builder()
-            .addContactPoint(config.listen_address)
-            .withCredentials("cassandra", "cassandra")
-            .build().newSession();
-
-        try {
-          session.execute(CREATE_LOG_KEYSPACE);
-          session.execute(CREATE_LOG_TABLE);
-          session.execute(CREATE_FT_TABLE);
-        } catch (Exception e) {
-          // complain and die if we can't set up the tables in cassandra.
-          e.printStackTrace();
-          executor.execute(() -> {
-            try {
-              LogManager.getRootLogger().error("!!!!\n!!!!\nShutting down in 5 seconds due to persistence failure: " + e.getMessage() + "\n!!!!\n!!!!");
-              Thread.sleep(5000);
-            } catch (InterruptedException e1) {
-              e1.printStackTrace();
+        boolean tryAgain = true;
+        int tryCount = 0;
+        // ugly but effective fix for https://github.com/nsoft/jesterj/issues/1
+        while(tryAgain) {
+          try (
+              Session session = Cluster.builder()
+                  // safe to use getListenAddress since we will only be called after cassandra is booted.
+                  .addContactPoint(Cassandra.getListenAddress())
+                  //TODO: something secure!
+                  .withCredentials("cassandra", "cassandra")
+                  .build().newSession()
+          ) {
+            session.execute(CREATE_LOG_KEYSPACE);
+            session.execute(CREATE_LOG_TABLE);
+            session.execute(CREATE_FT_TABLE);
+            tryAgain = false;
+          } catch (Exception e) {
+            tryCount++;
+            // complain and die if we can't set up the tables in cassandra.
+            e.printStackTrace();
+            Thread.sleep(1000);
+            if (tryCount > 10) {
+              die(e);
+              tryAgain = false;
             }
-            System.exit(3);
-          });
+          }
         }
         return null;
       }
     };
     this.cassandraReady = Cassandra.whenBooted(makeTables);
+  }
+
+  void die(Exception e) {
+    // Let logging config complete and then die. This avoids deadlocking the JVM shutdown thread
+    // as it attempts to create a JUL logger.
+    executor.execute(() -> {
+      try {
+        LogManager.getRootLogger().error("!!!!\n!!!!\nShutting down in 5 seconds due to persistence failure: " + e.getMessage() + "\n!!!!\n!!!!");
+        Thread.sleep(5000);
+      } catch (InterruptedException e1) {
+        e1.printStackTrace();
+      }
+      System.exit(3);
+    });
   }
 
   @Override
