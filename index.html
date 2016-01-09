@@ -35,12 +35,22 @@
 <a id="the-document-ingestion-wishilist-" class="anchor" href="#the-document-ingestion-wishilist-" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Document Ingestion Wishilist <a name="wishlist"></a>
 </h3>
 
+<p>(please pardon github's terrible list format that uses the same style for every level)</p>
+
 <ol>
 <li>Collect Documents
 
 <ol>
 <li>From one to many sources/locations</li>
-<li>From various types of sources (Disk, website, database, etc) </li>
+<li>From various types of sources 
+
+<ol>
+<li>Disk</li>
+<li>Website</li>
+<li>Database</li>
+<li>Many More...) </li>
+</ol>
+</li>
 <li>Detecting
 
 <ol>
@@ -49,6 +59,66 @@
 <li>Deleted Documents</li>
 </ol>
 </li>
+</ol>
+</li>
+<li>Process Documents
+
+<ol>
+<li>With an ordered set of steps</li>
+<li>Steps arranged in a Directed Acyclic Graph of
+
+<ol>
+<li>Sources</li>
+<li>Transformers</li>
+<li>Routers</li>
+<li>Senders</li>
+</ol>
+</li>
+<li>With visualization of the graph</li>
+<li>Capable of Live editing</li>
+<li>Capable of Parallel running </li>
+<li>Capable of Orderly Transition to a new configuration.</li>
+</ol>
+</li>
+<li>Deliver Documents
+
+<ol>
+<li>In batches of any size</li>
+<li>To destinations of various types
+
+<ol>
+<li>Apache Solr</li>
+<li>ElasticSearch</li>
+<li>Other systems?</li>
+</ol>
+</li>
+</ol>
+</li>
+<li>With Fault Tolerance
+
+<ol>
+<li>Vs. Document Failures
+
+<ol>
+<li>TRANSIENT_FAILURE - Limited retries</li>
+<li>PERMANENT_FAILURE - Fatal Exceptions while processing, Retries exceeded</li>
+</ol>
+</li>
+<li>Vs. Shutdown and Crashes via state tracking
+
+<ol>
+<li>DETECTED - Document needing to be processed</li>
+<li>PROCESSING - Document has started traveling through the system</li>
+<li>SENT - Document Left the ingestion system, and is being handled by the destination.</li>
+<li>LIVE - Document is now available to users in the destination system (Callback)</li>
+</ol>
+</li>
+</ol>
+</li>
+<li>With High Availability
+
+<ol>
+<li>
 </ol>
 </li>
 </ol>
