@@ -118,7 +118,62 @@
 <li>With High Availability
 
 <ol>
-<li>
+<li>Avoiding Resource Exhaustion</li>
+<li>Minimize chance of program termination</li>
+<li>Provide redundancy as desired</li>
+<li>Self Healing</li>
+</ol>
+</li>
+<li>With good support for change
+
+<ol>
+<li>Live Edits - for development and emergencies</li>
+<li>Parallel running and graceful cut over of versions of the DAG</li>
+<li>Configurations exportable in a text format that facilitates
+
+<ol>
+<li>Version Control</li>
+<li>Reproducibility for QA</li>
+<li>Continuous deployment </li>
+</ol>
+</li>
+<li>Visualization tools to make the DAG and the flow of documents easy to perceive</li>
+<li>Configuration in a format supported by common IDEs</li>
+<li>Support for re-indexing of previously indexed data.</li>
+</ol>
+</li>
+<li>Easy deployment
+
+<ol>
+<li>Nodes should be started by a single command line</li>
+<li>Nodes should automatically be made available in the control console without complicated setup</li>
+<li>All Node-Node and Node-Console communication should be secure by default.</li>
+<li>Node-Node communication should "just work" and not require user setup.</li>
+<li>Portions of the DAG should be assignable to specific nodes to support node types specialized for a particular task</li>
+</ol>
+</li>
+<li>Monitoring and Control
+
+<ol>
+<li>Control application that will surface editing, visualization and alerting features.</li>
+<li>Generic support for integration with existing monitoring solutions</li>
+<li>Distinguish types of failures
+
+<ol>
+<li>Hard Failures (Failed docs, lost nodes, Disk space exhaustion)</li>
+<li>Performance Failures (Backlog growth, Unacceptable indexing latency)</li>
+<li>Detection of likely future failures: CPU, Disk, Memory</li>
+</ol>
+</li>
+<li>Support for performance tuning &amp; investigation 
+
+<ol>
+<li>Status of all nodes</li>
+<li>Flow statistics</li>
+<li>Rate Limiting Step detection for specific path through DAG based on stats.</li>
+</ol>
+</li>
+<li>Orderly start stop of system</li>
 </ol>
 </li>
 </ol>
