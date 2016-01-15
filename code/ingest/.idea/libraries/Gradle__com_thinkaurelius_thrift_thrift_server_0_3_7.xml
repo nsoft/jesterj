@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Gradle: com.thinkaurelius.thrift:thrift-server:0.3.7">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.thinkaurelius.thrift/thrift-server/0.3.7/e8182774da1b1dde3704f450837c79997b5d7025/thrift-server-0.3.7.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.thinkaurelius.thrift/thrift-server/0.3.7/d3d926e94882cd1028f0617e0fba18aba8c5205e/thrift-server-0.3.7-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.thinkaurelius.thrift/thrift-server/0.3.7/1613694afc353f5946160c1f5320b0c3a501cd62/thrift-server-0.3.7-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Gradle: com.boundary:high-scale-lib:1.0.6">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.boundary/high-scale-lib/1.0.6/7b44147cb2729e1724d2d46d7b932c56b65087f0/high-scale-lib-1.0.6.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.boundary/high-scale-lib/1.0.6/6fad2e518f9e0e556d2ae7cfe234a345d15b1c6e/high-scale-lib-1.0.6-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.boundary/high-scale-lib/1.0.6/de97ac2123cc410716cd152ddac22b843a3cc615/high-scale-lib-1.0.6-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

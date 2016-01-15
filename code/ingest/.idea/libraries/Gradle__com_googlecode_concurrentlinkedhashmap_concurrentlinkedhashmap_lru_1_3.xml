@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Gradle: com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.3">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.googlecode.concurrentlinkedhashmap/concurrentlinkedhashmap-lru/1.3/beb907bae0604fdc153cbcc2f0dc84d3ae35bf36/concurrentlinkedhashmap-lru-1.3.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.googlecode.concurrentlinkedhashmap/concurrentlinkedhashmap-lru/1.3/abf36afb9ff5d8ea1934c4188e9097f1fc72010b/concurrentlinkedhashmap-lru-1.3-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.googlecode.concurrentlinkedhashmap/concurrentlinkedhashmap-lru/1.3/27616dc8a208da66d7d8611d19f9d74af30af325/concurrentlinkedhashmap-lru-1.3-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
