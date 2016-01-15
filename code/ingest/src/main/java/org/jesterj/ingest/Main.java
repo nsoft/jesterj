@@ -56,6 +56,8 @@ public class Main {
 
   public static String JJ_DIR;
 
+  public static IngestNode node;
+
   static {
     // set up a config dir in user's home dir
     String userDir = System.getProperty("user.home");
@@ -195,6 +197,7 @@ public class Main {
     }
     return result;
   }
+
 }
 
 

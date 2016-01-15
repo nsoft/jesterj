@@ -64,4 +64,4 @@ source, it is guaranteed to eventually do one of the following things with every
  * Process the document and send it to solr. 
  * Log an error explaining why the document processing failed.
  
-It will do this no matter how many nodes fail, or how many times Solr 
+It will do this no matter how many nodes fail, or how many times Solr is rebooted

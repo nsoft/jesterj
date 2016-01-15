@@ -19,18 +19,21 @@ package org.jesterj.ingest.model.impl;
 import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jesterj.ingest.model.Item;
+import org.apache.logging.log4j.ThreadContext;
+import org.jesterj.ingest.logging.JesterJAppender;
+import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.ItemProcessor;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.Step;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -40,26 +43,30 @@ import java.util.stream.Stream;
  * User: gus
  * Date: 9/28/14
  */
-public class StepImpl extends Thread implements Step {
+public class StepImpl extends Thread  implements Step {
 
   private static final Logger log = LogManager.getLogger();
 
-  LinkedBlockingQueue<Item> queue;
-  AtomicInteger itemCount = new AtomicInteger(0);
+  private LinkedBlockingQueue<Document> queue;
   private int batchSize; // no concurrency by default
   private Step nextStep;
   private volatile boolean active;
   private JavaSpace outputSpace;
   private JavaSpace inputSpace;
+  private String stepName;
 
-  StepImpl(int batchSize, Step nextStep) {
-    this.batchSize = batchSize;
+  public StepImpl(Builder builder) {
+    this.stepName = builder.stepName;
+    this.batchSize = builder.batchSize;
+    this.nextStep = builder.nextStep;
+    this.outputSpace = builder.outputSpace;
+    this.inputSpace = builder.inputSpace;
     this.queue = new LinkedBlockingQueue<>(batchSize);
-    this.nextStep = nextStep;
     this.setDaemon(true);
+
   }
 
-  public Spliterator<Item> spliterator() {
+  public Spliterator<Document> spliterator() {
     return queue.spliterator();
   }
 
@@ -67,19 +74,19 @@ public class StepImpl extends Thread implements Step {
     return queue.isEmpty();
   }
 
-  public Item element() {
+  public Document element() {
     return queue.element();
   }
 
-  public Item poll(long timeout, TimeUnit unit) throws InterruptedException {
+  public Document poll(long timeout, TimeUnit unit) throws InterruptedException {
     return queue.poll(timeout, unit);
   }
 
-  public Stream<Item> parallelStream() {
+  public Stream<Document> parallelStream() {
     return queue.parallelStream();
   }
 
-  public Item take() throws InterruptedException {
+  public Document take() throws InterruptedException {
     return queue.take();
   }
 
@@ -87,7 +94,7 @@ public class StepImpl extends Thread implements Step {
     queue.clear();
   }
 
-  public Iterator<Item> iterator() {
+  public Iterator<Document> iterator() {
     return queue.iterator();
   }
 
@@ -100,7 +107,7 @@ public class StepImpl extends Thread implements Step {
     return queue.toArray(a);
   }
 
-  public boolean addAll(Collection<? extends Item> c) {
+  public boolean addAll(Collection<? extends Document> c) {
     throw new UnsupportedOperationException("bulk operations supported for steps");
   }
 
@@ -108,23 +115,23 @@ public class StepImpl extends Thread implements Step {
     return queue.remainingCapacity();
   }
 
-  public Stream<Item> stream() {
+  public Stream<Document> stream() {
     return queue.stream();
   }
 
-  public boolean offer(Item item, long timeout, TimeUnit unit) throws InterruptedException {
-    return queue.offer(item, timeout, unit);
+  public boolean offer(Document document, long timeout, TimeUnit unit) throws InterruptedException {
+    return queue.offer(document, timeout, unit);
   }
 
-  public boolean offer(Item item) {
-    return queue.offer(item);
+  public boolean offer(Document document) {
+    return queue.offer(document);
   }
 
-  public Item poll() {
+  public Document poll() {
     return queue.poll();
   }
 
-  public int drainTo(Collection<? super Item> c, int maxElements) {
+  public int drainTo(Collection<? super Document> c, int maxElements) {
     return queue.drainTo(c, maxElements);
   }
 
@@ -132,11 +139,11 @@ public class StepImpl extends Thread implements Step {
     throw new UnsupportedOperationException("bulk operations supported for steps");
   }
 
-  public void put(Item item) throws InterruptedException {
-    queue.put(item);
+  public void put(Document document) throws InterruptedException {
+    queue.put(document);
   }
 
-  public Item peek() {
+  public Document peek() {
     return queue.peek();
   }
 
@@ -156,15 +163,15 @@ public class StepImpl extends Thread implements Step {
     return queue.removeAll(c);
   }
 
-  public boolean add(Item item) {
-    return queue.add(item);
+  public boolean add(Document document) {
+    return queue.add(document);
   }
 
-  public void forEach(Consumer<? super Item> action) {
+  public void forEach(Consumer<? super Document> action) {
     queue.forEach(action);
   }
 
-  public Item remove() {
+  public Document remove() {
     return queue.remove();
   }
 
@@ -172,11 +179,11 @@ public class StepImpl extends Thread implements Step {
     return queue.toArray();
   }
 
-  public boolean removeIf(Predicate<? super Item> filter) {
+  public boolean removeIf(Predicate<? super Document> filter) {
     return queue.removeIf(filter);
   }
 
-  public int drainTo(Collection<? super Item> c) {
+  public int drainTo(Collection<? super Document> c) {
     return queue.drainTo(c);
   }
 
@@ -186,19 +193,14 @@ public class StepImpl extends Thread implements Step {
   }
 
   @Override
-  public Step next() {
+  public Step getNext(Document doc) {
     return this.nextStep;
   }
 
-
   @Override
-  public void setInputJavaSpace(JavaSpace space) {
-
-  }
-
-  @Override
-  public void setOutputJavaSpace(JavaSpace space) {
-    this.outputSpace = space;
+  public Step[] getSubsequentSteps() {
+    //TODO: Something that isn't braindead
+    return new Step[0];
   }
 
   @Override
@@ -246,17 +248,22 @@ public class StepImpl extends Thread implements Step {
     return this.active;
   }
 
-  private void pushToNextIfOk(Item item) {
-    //todo: Log Status to Cassandra
-    if (item.getStatus() == Status.PROCESSING) {
+  @Override
+  public void sendToNext(Document doc) {
+    pushToNextIfOk(doc);
+  }
+
+  protected final void pushToNextIfOk(Document document) {
+    if (document.getStatus() == Status.PROCESSING) {
+      log.info(Status.PROCESSING.getMarker(), "{} began processing {}", getStepName(), document.getId());
+      Step next = getNext(document);
       if (this.outputSpace == null) {
         // local processing is our only option, do blocking put.
         try {
-          next().put(item);
+          next.put(document);
         } catch (InterruptedException e) {
-          item.setStatusMessage(e.getMessage() + " while offering to " + next().getName());
-          item.setStatus(Status.ERROR);
-          //todo: Log Status to Cassandra
+          String message = "Excpetion while offering to " + next.getStepName();
+          reportException(document,e,message);
         }
       } else {
         if (this.isFinalHelper()) {
@@ -265,9 +272,9 @@ public class StepImpl extends Thread implements Step {
           // todo: put in javaspace
         } else {
           // Try to process this item locally first with a non-blocking add, and
-          // if the next step is bogged down send it out for processing by helpers.
+          // if the getNext step is bogged down send it out for processing by helpers.
           try {
-            next().add(item);
+            next.add(document);
           } catch (IllegalStateException e) {
             log.debug("todo: send to javaspace");
             // todo: put in javaspace
@@ -280,27 +287,60 @@ public class StepImpl extends Thread implements Step {
   @Override
   public void run() {
 
-    parallelStream().forEach(new ItemConsumer());
-
-    while (!this.active) {
-      try {
-        if (!active) {
+    //noinspection InfiniteLoopStatement
+    while (true) {
+      while (!this.active) {
+        try {
           Thread.sleep(500);
+        } catch (InterruptedException e) {
+          // ignore
         }
-      } catch (InterruptedException e) {
-        // ignore
+      }
+      if (queue.peek() != null) {
+        parallelStream().forEach(new ItemConsumer());
+      } else {
+        try {
+          // if we don't have work make sure we let others do their work.
+          Thread.sleep(25);
+        } catch (InterruptedException e) {
+          // ignore
+        }
       }
     }
   }
 
-  private class ItemConsumer implements Consumer<Item> {
+  @Override
+  public String getStepName() {
+    return stepName;
+  }
+
+  protected  Logger getLogger() {
+    return log;
+  }
+
+  protected void reportException(Document doc, Exception e, String message) {
+    try {
+      ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, doc.getId());
+      StringWriter buff = new StringWriter();
+      e.printStackTrace(new PrintWriter(buff));
+      getLogger().error(Status.ERROR.getMarker(), message + e.getMessage() + "\n" + buff.toString());
+    } finally {
+      ThreadContext.clearAll();
+    }
+  }
+
+  public JavaSpace getInputSpace() {
+    return inputSpace;
+  }
+
+  private class ItemConsumer implements Consumer<Document> {
     public ItemProcessor processor;
 
     @Override
-    public void accept(Item item) {
+    public void accept(Document document) {
       try {
-        this.processor.processItem(item);
-        pushToNextIfOk(item);
+        this.processor.processItem(document);
+        pushToNextIfOk(document);
 
       } catch (Error e) {
         throw e;
@@ -310,4 +350,57 @@ public class StepImpl extends Thread implements Step {
     }
 
   }
+
+  public static Builder builder() {
+    return new BuildMe();
+  }
+
+  public static abstract class Builder <T extends Builder<T>>{
+
+    private int batchSize; // no concurrency by default
+    private Step nextStep;
+    private JavaSpace outputSpace;
+    private JavaSpace inputSpace;
+    private String stepName;
+
+    public Builder batchSize(int size) {
+      this.batchSize = size;
+      return  this;
+    }
+
+    public Builder nextStep(Step next) {
+      this.nextStep = next;
+      return this;
+    }
+
+    public Builder outputSpace(JavaSpace outputSpace) {
+      this.outputSpace = outputSpace;
+      return this;
+    }
+
+    public Builder inputSpace(JavaSpace inputSpace) {
+      this.inputSpace = inputSpace;
+      return this;
+    }
+
+    public Builder stepName(String stepName) {
+      this.stepName = stepName;
+      return this;
+    }
+
+    public StepImpl build() {
+      return new StepImpl(this);
+    }
+
+    public abstract T self();
+  }
+
+  public static class BuildMe extends Builder<BuildMe> {
+
+    @Override
+    public BuildMe self() {
+      return this;
+    }
+  }
+
 }

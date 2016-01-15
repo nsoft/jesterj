@@ -6,19 +6,14 @@ package org.jesterj.ingest.model;
  * Date: 11/10/13
  */
 
+
 /**
  * Monitors a document source for changes on a regular basis. When new files are found, they are submitted
- * to the supplied queue.
+ * to the supplied queue. Note that Scanners do not normally support the methods from
+ * {@link java.util.concurrent.BlockingQueue} since they normally only output documents, and never receive them.
+ * These methods may throw {@link java.lang.UnsupportedOperationException}
  */
 public interface Scanner extends Step {
-
-  /**
-   * Set the interval for the scanner to fire in milliseconds.
-   *
-   * @param milliseconds minnimum miliseconds between scans
-   * @see #getInterval()
-   */
-  public void setInterval(long milliseconds);
 
   /**
    * The interval for the scanner to fire. Scanners implementations must not begin a new scan more
@@ -30,32 +25,5 @@ public interface Scanner extends Step {
    * @return the scan interval. Defaults to 30 minutes
    */
   public long getInterval();
-
-  /**
-   * Set the minimum time between scans. See {@link #getPause()} for details.
-   *
-   * @param milliseconds the interval to pause between scans.
-   */
-  public void setPause(long milliseconds);
-
-  /**
-   * The minimum time between the end of a scan and the beginning of a new scan by this scanner.
-   * Setting a non-zero pause value may allow downstream components to complete processing of the
-   * scan output before a new scan begins, and reduce the chances that the overall system will become
-   * overloaded.
-   *
-   * @return The pause interval. Defaults to 10 minutes
-   */
-  public long getPause();
-
-
-  /**
-   * Record the status of the Item. This is meant to be used for logging and fault tolerant indexing.
-   * Each scanner will have it's own means of maintaining information about items that have been seen,
-   * when they are dirty and need to be re-indexed and means for recording or reporting error conditions.
-   *
-   * @param item The item for which new status information is avaiable.
-   */
-  public void updateStatus(Item item);
 
 }

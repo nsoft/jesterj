@@ -26,7 +26,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import net.jini.core.entry.Entry;
 
-public interface Item extends ListMultimap<String, String> {
+public interface Document extends ListMultimap<String, String> {
 
   /**
    * Get the raw bytes from which this item was constructed. This is usually only used by the first or
@@ -62,6 +62,8 @@ public interface Item extends ListMultimap<String, String> {
    */
   public void setStatus(Status status);
 
+  void setStatus(Status status, String statusMessage);
+
   /**
    * Get a message relating to the processing status. This will typically be used to print the name of
    * The last successful processor, or the error message onto the item.
@@ -90,4 +92,10 @@ public interface Item extends ListMultimap<String, String> {
 
   ArrayListMultimap<String, String> getDelegate();
 
+  /**
+   * Returns the identifier for this document. This should be identical to get(getIdField()).
+   */
+  String getId();
+
+  String getIdField();
 }

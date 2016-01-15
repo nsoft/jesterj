@@ -25,14 +25,17 @@ import org.jesterj.ingest.model.Step;
  * Date: 10/9/14
  */
 public class PlanImpl implements Plan {
+
+  Step[] steps;
+
   @Override
   public Step[] getAllSteps() {
-    return new Step[0];
+    return steps;
   }
 
   @Override
   public Step[] getExecutableSteps() {
-    return new Step[0];
+    return steps;
   }
 
   @Override
@@ -57,7 +60,7 @@ public class PlanImpl implements Plan {
     }
     for (int i = 0; i < this.getAllSteps().length; i++) {
       Step step = this.getAllSteps()[i];
-      if (stepName.equals(step.getName())) {
+      if (stepName.equals(step.getStepName())) {
         return step;
       }
     }

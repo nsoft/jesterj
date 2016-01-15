@@ -5,7 +5,9 @@ import com.google.common.collect.ForwardingListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import net.jini.core.entry.Entry;
-import org.jesterj.ingest.model.Item;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.Step;
@@ -33,22 +35,23 @@ import java.util.Set;
  *
  * @see ForwardingListMultimap
  */
-public class ItemImpl implements Item {
+public class DocumentImpl implements Document {
 
-  // document id feild.
-  private final String ID;
+  // document id field.
+  private final String idField;
+
+  Logger log = LogManager.getLogger();
 
   private ArrayListMultimap<String, String> delegate = ArrayListMultimap.create();
   private byte[] rawData;
   private Status status = Status.PROCESSING;
   private String statusMessage = "";
-
   private Plan plan;
 
-  public ItemImpl(byte[] rawData, String id, Plan plan) {
+  public DocumentImpl(byte[] rawData, String id, Plan plan) {
     this.rawData = rawData;
-    ID = plan.getDocIdField();
-    this.delegate.put(ID, id);
+    this.idField = plan.getDocIdField();
+    this.delegate.put(idField, id);
   }
 
 
@@ -67,7 +70,7 @@ public class ItemImpl implements Item {
     if (plan.getDocIdField().equals(key)) {
       ArrayList<String> values = new ArrayList<>();
       values.add(value);
-      List<String> prev = replaceValues(this.ID, values);
+      List<String> prev = replaceValues(this.idField, values);
       return prev == null || prev.size() != 1 || !prev.get(0).equals(value);
     } else {
       return delegate.put(key, value);
@@ -165,8 +168,15 @@ public class ItemImpl implements Item {
   }
 
   @Override
+  public void setStatus(Status status, String statusMessage) {
+    this.statusMessage = statusMessage;
+    setStatus(status);
+  }
+
+  @Override
   public void setStatus(Status status) {
     this.status = status;
+    log.info(status.getMarker(),statusMessage);
   }
 
   @Override
@@ -194,6 +204,16 @@ public class ItemImpl implements Item {
     return delegate;
   }
 
+  @Override
+  public String getId() {
+    return get(getIdField()).get(0);
+  }
+
+  @Override
+  public String getIdField() {
+    return idField;
+  }
+
   /**
    * A serializable form of an item that
    */
@@ -206,13 +226,13 @@ public class ItemImpl implements Item {
     public RawData data;
     public String nextStepName;
 
-    ItemEntry(Item item, Step destination) {
-      this.contents = item.getDelegate();
-      this.status = item.getStatus();
-      this.statusMessage = item.getStatusMessage();
+    ItemEntry(Document document, Step destination) {
+      this.contents = document.getDelegate();
+      this.status = document.getStatus();
+      this.statusMessage = document.getStatusMessage();
       this.data = new RawData();
-      this.data.data = item.getRawData();
-      this.nextStepName = destination.getName();
+      this.data.data = document.getRawData();
+      this.nextStepName = destination.getStepName();
     }
   }
 
