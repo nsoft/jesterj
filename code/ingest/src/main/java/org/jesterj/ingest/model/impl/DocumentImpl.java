@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Plan;
+import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.Step;
 
@@ -47,9 +48,13 @@ public class DocumentImpl implements Document {
   private Status status = Status.PROCESSING;
   private String statusMessage = "";
   private Plan plan;
+  private Operation operation;
+  private String sourceScannerName;
 
-  public DocumentImpl(byte[] rawData, String id, Plan plan) {
+  public DocumentImpl(byte[] rawData, String id, Plan plan, Operation operation, Scanner source) {
     this.rawData = rawData;
+    this.operation = operation;
+    this.sourceScannerName = source.getStepName();
     this.idField = plan.getDocIdField();
     this.delegate.put(idField, id);
   }
@@ -214,8 +219,19 @@ public class DocumentImpl implements Document {
     return idField;
   }
 
+  @Override
+  public Operation getOperation() {
+    
+    return operation;
+  }
+
+  public String getSourceScannerName() {
+    return sourceScannerName;
+  }
+
   /**
-   * A serializable form of an item that
+   * A serializable form of an item that can be placed in a JavaSpace. The nextStepName is the property on which 
+   * steps query JavaSpaces to retrieve entries.
    */
   public static class ItemEntry implements Entry {
 
@@ -225,17 +241,22 @@ public class DocumentImpl implements Document {
     public String statusMessage;
     public RawData data;
     public String nextStepName;
+    public String operation;
 
     ItemEntry(Document document, Step destination) {
+      this.scannerName = document.getSourceScannerName();
       this.contents = document.getDelegate();
       this.status = document.getStatus();
       this.statusMessage = document.getStatusMessage();
       this.data = new RawData();
       this.data.data = document.getRawData();
       this.nextStepName = destination.getStepName();
+      this.operation = document.getOperation().toString();
+      
     }
   }
 
+  // may want to associate encoding or parsing related information in the future...
   public static class RawData {
     public byte[] data;
   }

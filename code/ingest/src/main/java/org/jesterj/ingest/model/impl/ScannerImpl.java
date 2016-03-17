@@ -16,6 +16,7 @@
 
 package org.jesterj.ingest.model.impl;
 
+import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Document;
@@ -24,11 +25,12 @@ import org.jesterj.ingest.model.Step;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -38,19 +40,28 @@ import java.util.function.Function;
  * User: gus
  * Date: 11/29/14
  */
+
+/**
+ * A base implementation of a scanner that doesn't do anything. {@link #getScanOperation()} and
+ * {@link #getLinkDataPersister()} should be overridden.
+ */
 public class ScannerImpl extends StepImpl implements Scanner {
 
   private static final Logger log = LogManager.getLogger();
 
   private long interval;
-  private volatile boolean active;
+
+  // can be used to avoid starting a scan while one is still running. This is not required however
+  // and can be ignored if desired.
+  private final AtomicBoolean activeScan = new AtomicBoolean(false);
   private final ScheduledExecutorService scheduler =
       Executors.newScheduledThreadPool(1);
 
-  public ScannerImpl(Builder builder) {
-    super(builder);
-    this.interval = builder.interval;
+  // don't want multiple scans initiated simultaneously. If the scanning mechanism
+  // wants to distribute work among threads it may, but that should be done in the scan operation.
+  private final ExecutorService scanExec = Executors.newSingleThreadExecutor();
 
+  protected ScannerImpl() {
   }
 
 
@@ -66,9 +77,9 @@ public class ScannerImpl extends StepImpl implements Scanner {
 
   /**
    * A procedure that takes an array of Object[] and uses this information to persist a record that this
-   * document has been scanned. Typical implimemtations might be writing a status to cassandra, updating a row in
+   * document has been scanned. Typical implementations might be writing a status to cassandra, updating a row in
    * a database, or renaming the target file. By convention, the first element of the object array passed will
-   * be a String identifer, and the second argument  will be the document object. Subsequent arguments are
+   * be a String identifier, and the second argument  will be the document object. Subsequent arguments are
    * unrestricted. The default implementation is a no-op.
    *
    * @return a {@link java.util.function.Consumer} that consumes data about a document and has the side effect of persisting a record that
@@ -80,32 +91,19 @@ public class ScannerImpl extends StepImpl implements Scanner {
   }
 
   /**
-   * A procedure that when invoked produces an array of document objects.
+   * A callback that calls docFound() on the scanner when a document is found that needs to be indexed.
    * <p>
-   * return a {@link java.util.concurrent.Callable} object that generates documents.
+   * return a {@link java.lang.Runnable} object that locates documents.
    */
-  Callable<Document[]> getScanOperation() {
-    return () -> new Document[0];
+  protected Runnable getScanOperation() {
+    return () -> {
+    };
   }
 
 
   public void run() {
-    ScheduledFuture<?> scanner = scheduler.schedule(() -> {
-      try {
-        Document[] docs = getScanOperation().call();
-        for (Document doc : docs) {
-          doc.put(doc.getIdField(), getIdFunction().apply(doc.getId()));
-          getLinkDataPersister().accept(new Object[]{doc.getId(), doc});
-          sendToNext(doc);
-        }
-      } catch (Exception e) {
-        // We don't generally want to let the exception escape, since that will 
-        // halt future executions.
-        log.error(e);
-      }
-    }, interval, TimeUnit.MILLISECONDS);
-
-    while (this.active) {
+    ScheduledFuture<?> scanner = scheduler.schedule(getScanOperation(), interval, TimeUnit.MILLISECONDS);
+    while (this.isActive()) {
       try {
         Thread.sleep(500);
       } catch (InterruptedException e) {
@@ -113,6 +111,17 @@ public class ScannerImpl extends StepImpl implements Scanner {
       }
     }
     scanner.cancel(true);
+  }
+
+  /**
+   * What to do when a document has been recognized as required for indexing.
+   *
+   * @param doc The document to be processed
+   */
+  public void docFound(Document doc) {
+    doc.put(doc.getIdField(), getIdFunction().apply(doc.getId()));
+    getLinkDataPersister().accept(new Object[]{doc.getId(), doc});
+    sendToNext(doc);
   }
 
 
@@ -308,31 +317,78 @@ public class ScannerImpl extends StepImpl implements Scanner {
 
 
   public static Builder builder() {
-    return new BuildMe();
+    return new Builder();
   }
 
-  public static abstract class Builder<T extends Builder<T>> extends StepImpl.Builder<T> {
+  public boolean isActiveScan() {
+    return activeScan.get();
+  }
 
-    private long interval;
+  public void scanStarted() {
+    activeScan.set(true);
+  }
+
+  public void scanFinished() {
+    activeScan.set(false);
+  }
+
+  public static class Builder extends StepImpl.Builder {
+
+    private ScannerImpl obj;
+
+    public Builder() {
+      this.obj = new ScannerImpl();
+    }
+
+
+    @Override
+    public StepImpl.Builder batchSize(int size) {
+      super.batchSize(size);
+      return this;
+    }
+
+    @Override
+    public StepImpl.Builder nextStep(Step next) {
+      super.nextStep(next);
+      return this;
+    }
+
+    @Override
+    public StepImpl.Builder outputSpace(JavaSpace outputSpace) {
+      super.outputSpace(outputSpace);
+      return this;
+    }
+
+    @Override
+    public StepImpl.Builder inputSpace(JavaSpace inputSpace) {
+      super.inputSpace(inputSpace);
+      return this;
+    }
+
+    @Override
+    public StepImpl.Builder stepName(String stepName) {
+      super.stepName(stepName);
+      return this;
+    }
+    @Override
+    protected ScannerImpl getObject() {
+      return obj;
+    }
+    private void setObj(ScannerImpl obj) {
+      this.obj = obj;
+    }
 
     public Builder interval(long interval) {
-      this.interval = interval;
+      getObject().interval = interval;
       return this;
     }
 
     public ScannerImpl build() {
-      return new ScannerImpl(this);
+      return new ScannerImpl();
     }
 
-    public abstract T self();
+
   }
 
-  public static class BuildMe extends Builder<BuildMe> {
-
-    @Override
-    public BuildMe self() {
-      return this;
-    }
-  }
 
 }

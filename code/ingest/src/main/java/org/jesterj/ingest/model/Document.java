@@ -98,4 +98,14 @@ public interface Document extends ListMultimap<String, String> {
   String getId();
 
   String getIdField();
+  
+  Operation getOperation();
+
+  String getSourceScannerName();
+
+  public static enum Operation {
+    NEW,
+    UPDATE,
+    DELETE
+  }
 }

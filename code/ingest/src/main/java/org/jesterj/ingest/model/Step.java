@@ -43,28 +43,28 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Documen
    *
    * @return the batch size.
    */
-  public int getBatchSize();
+  int getBatchSize();
 
   /**
    * Get the getNext step in the plan for the given document
    *
    * @return the getNext step
    */
-  public Step getNext(Document d);
+  Step getNext(Document d);
 
   /**
    * Get all the steps to which a document might travel
    *
    * @return
    */
-  public Step[] getSubsequentSteps();
+  Step[] getSubsequentSteps();
 
   /**
    * Get the plan instance to which this step belongs.
    *
    * @return the plan (not a man, not a canal, not panama)
    */
-  public Plan getPlan();
+  Plan getPlan();
 
   /**
    * Determine if this step is the last step in a helper node. Implementations that need to overide the
@@ -72,7 +72,7 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Documen
    *
    * @return true if this is the last step in a helper node, false otherwise.
    */
-  default public boolean isFinalHelper() {
+  default boolean isFinalHelper() {
     Plan plan = getPlan();
     if (plan == null) {
       return false; // if we aren't part of a plan yet, we aren't part of a helper node either.

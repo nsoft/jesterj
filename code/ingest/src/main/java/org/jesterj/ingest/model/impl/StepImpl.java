@@ -55,12 +55,8 @@ public class StepImpl extends Thread  implements Step {
   private JavaSpace inputSpace;
   private String stepName;
 
-  public StepImpl(Builder builder) {
-    this.stepName = builder.stepName;
-    this.batchSize = builder.batchSize;
-    this.nextStep = builder.nextStep;
-    this.outputSpace = builder.outputSpace;
-    this.inputSpace = builder.inputSpace;
+  StepImpl() {
+
     this.queue = new LinkedBlockingQueue<>(batchSize);
     this.setDaemon(true);
 
@@ -351,56 +347,54 @@ public class StepImpl extends Thread  implements Step {
 
   }
 
-  public static Builder builder() {
-    return new BuildMe();
-  }
+  public static class Builder  {
 
-  public static abstract class Builder <T extends Builder<T>>{
+    private StepImpl obj;
 
-    private int batchSize; // no concurrency by default
-    private Step nextStep;
-    private JavaSpace outputSpace;
-    private JavaSpace inputSpace;
-    private String stepName;
-
+    public Builder() {
+      obj = new StepImpl();
+    }
+    
+    protected StepImpl getObject() {
+      return obj;
+    }
+ 
     public Builder batchSize(int size) {
-      this.batchSize = size;
-      return  this;
+      getObject().batchSize = size;
+      return this;
     }
 
     public Builder nextStep(Step next) {
-      this.nextStep = next;
+      getObject().nextStep = next;
       return this;
     }
 
     public Builder outputSpace(JavaSpace outputSpace) {
-      this.outputSpace = outputSpace;
+      getObject().outputSpace = outputSpace;
       return this;
     }
 
     public Builder inputSpace(JavaSpace inputSpace) {
-      this.inputSpace = inputSpace;
+      getObject().inputSpace = inputSpace;
       return this;
     }
 
     public Builder stepName(String stepName) {
-      this.stepName = stepName;
+      getObject().stepName = stepName;
       return this;
     }
 
-    public StepImpl build() {
-      return new StepImpl(this);
+    private void setObj(StepImpl obj) {
+      this.obj = obj;
     }
 
-    public abstract T self();
-  }
-
-  public static class BuildMe extends Builder<BuildMe> {
-
-    @Override
-    public BuildMe self() {
-      return this;
+    StepImpl build() {
+      StepImpl object = getObject();
+      setObj(new StepImpl());
+      return object;
     }
+
   }
+  
 
 }

@@ -20,6 +20,8 @@ package org.jesterj.ingest.model;/*
  * Date: 12/7/14
  */
 
+
+// this may or may not remain...
 public interface Builder<T> {
 
   T build();
