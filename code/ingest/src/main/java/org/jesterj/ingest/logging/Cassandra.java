@@ -93,6 +93,8 @@ public class Cassandra {
     }
     cassandra = new CassandraDaemon();
     try {
+      // keep cassandra from clobering system.out and sytem.err
+      System.setProperty("cassandra-foreground", "true");
       cassandra.activate();
     } catch (Exception e) {
       e.printStackTrace();

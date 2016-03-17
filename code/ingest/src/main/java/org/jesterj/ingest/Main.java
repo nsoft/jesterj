@@ -37,6 +37,7 @@ import java.security.Permissions;
 import java.security.Policy;
 import java.security.ProtectionDomain;
 import java.util.AbstractMap;
+import java.util.Date;
 import java.util.Map;
 import java.util.Properties;
 
@@ -110,12 +111,14 @@ public class Main {
     // This  does nothing useful yet, just for testing right now.
 
     log.debug("Starting injester node...");
-    Runnable node = new IngestNode(id, password);
+    node = new IngestNode(id, password);
+    new Thread(node).start();
 
 
     //noinspection InfiniteLoopStatement
     while (true) {
       try {
+        log.info("\n\n\nJesterJ Listening \n\n\n");
         Thread.sleep(5000);
       } catch (InterruptedException e) {
 

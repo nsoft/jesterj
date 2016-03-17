@@ -11,9 +11,12 @@
   </appenders>
 
   <loggers>
-    <logger level="error" name="org.jesterj" >
+    <logger level="debug" name="org.jesterj" additivity="false">
       <appender-ref ref="STDOUT"/>
       <appender-ref ref="CASSANDRA"/>
+    </logger>
+    <logger level="error" name="org.apache.cassandra" additivity="false">
+      <appender-ref ref="STDOUT"/>
     </logger>
     <root level="debug">
       <appender-ref ref="STDOUT"/>
