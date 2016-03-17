@@ -57,7 +57,9 @@ public class StepImpl extends Thread  implements Step {
 
   StepImpl() {
 
-    this.queue = new LinkedBlockingQueue<>(batchSize);
+    if (this.queue == null) {
+      this.queue = new LinkedBlockingQueue<>(batchSize > 0 ? batchSize : 50); 
+    }
     this.setDaemon(true);
 
   }
@@ -352,15 +354,22 @@ public class StepImpl extends Thread  implements Step {
     private StepImpl obj;
 
     public Builder() {
-      obj = new StepImpl();
+      if (whoAmI() == this.getClass()) {
+        obj = new StepImpl();
+      }
     }
-    
+
+    private Class whoAmI() {
+      return new Object(){}.getClass().getEnclosingMethod().getDeclaringClass();
+    }
+
     protected StepImpl getObject() {
       return obj;
     }
  
     public Builder batchSize(int size) {
       getObject().batchSize = size;
+      getObject().queue = new LinkedBlockingQueue<>(size);
       return this;
     }
 

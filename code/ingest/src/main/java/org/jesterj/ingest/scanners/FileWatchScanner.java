@@ -43,12 +43,21 @@ public class FileWatchScanner extends ScannerImpl {
 
   protected FileWatchScanner() {
   }
-  
-  
+
 
   public static class Builder extends ScannerImpl.Builder {
 
-    private FileWatchScanner obj = new FileWatchScanner();
+    private FileWatchScanner obj;
+
+    public Builder() {
+      if (whoAmI() == this.getClass()) {
+        obj = new FileWatchScanner();
+      }
+    }
+
+    private Class whoAmI() {
+      return new Object() {}.getClass().getEnclosingMethod().getDeclaringClass();
+    }
 
     public Builder withRoot(File root) {
       getObject().rootDir = root;

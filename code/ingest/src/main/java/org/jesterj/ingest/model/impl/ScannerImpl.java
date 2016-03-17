@@ -45,7 +45,7 @@ import java.util.function.Function;
  * A base implementation of a scanner that doesn't do anything. {@link #getScanOperation()} and
  * {@link #getLinkDataPersister()} should be overridden.
  */
-public class ScannerImpl extends StepImpl implements Scanner {
+public abstract class ScannerImpl extends StepImpl implements Scanner {
 
   private static final Logger log = LogManager.getLogger();
 
@@ -53,7 +53,8 @@ public class ScannerImpl extends StepImpl implements Scanner {
 
   // can be used to avoid starting a scan while one is still running. This is not required however
   // and can be ignored if desired.
-  private final AtomicBoolean activeScan = new AtomicBoolean(false);
+  protected final AtomicBoolean activeScan = new AtomicBoolean(false);
+  
   private final ScheduledExecutorService scheduler =
       Executors.newScheduledThreadPool(1);
 
@@ -123,8 +124,7 @@ public class ScannerImpl extends StepImpl implements Scanner {
     getLinkDataPersister().accept(new Object[]{doc.getId(), doc});
     sendToNext(doc);
   }
-
-
+  
   @Override
   public long getInterval() {
     return this.interval;
@@ -315,11 +315,6 @@ public class ScannerImpl extends StepImpl implements Scanner {
     return log;
   }
 
-
-  public static Builder builder() {
-    return new Builder();
-  }
-
   public boolean isActiveScan() {
     return activeScan.get();
   }
@@ -332,14 +327,17 @@ public class ScannerImpl extends StepImpl implements Scanner {
     activeScan.set(false);
   }
 
-  public static class Builder extends StepImpl.Builder {
+  public static abstract class Builder extends StepImpl.Builder {
 
     private ScannerImpl obj;
 
     public Builder() {
-      this.obj = new ScannerImpl();
-    }
 
+    }
+    
+    private Class whoAmI() {
+      return new Object(){}.getClass().getEnclosingMethod().getDeclaringClass();
+    }
 
     @Override
     public StepImpl.Builder batchSize(int size) {
@@ -383,9 +381,7 @@ public class ScannerImpl extends StepImpl implements Scanner {
       return this;
     }
 
-    public ScannerImpl build() {
-      return new ScannerImpl();
-    }
+    public abstract ScannerImpl build();
 
 
   }
