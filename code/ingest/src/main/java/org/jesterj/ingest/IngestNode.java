@@ -72,6 +72,7 @@ public class IngestNode implements Runnable, IngestService {
 
     ServiceTemplate srTemplate = new ServiceTemplate(null, new Class[]{ServiceRegistrar.class}, null);
 
+    log.info("Now Scanning for Service Registries...");
     while (true) {
       try {
         Thread.sleep(1000);
@@ -91,7 +92,7 @@ public class IngestNode implements Runnable, IngestService {
         }
       }
       if (sis.length == 0) {
-        log.debug("No Service Registries found");
+        log.trace("No Service Registries found");
       }
     }
   }

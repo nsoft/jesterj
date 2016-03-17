@@ -118,7 +118,6 @@ public class Main {
     //noinspection InfiniteLoopStatement
     while (true) {
       try {
-        log.info("\n\n\nJesterJ Listening \n\n\n");
         Thread.sleep(5000);
       } catch (InterruptedException e) {
 
