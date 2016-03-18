@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 Needham Software LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.jesterj.ingest.model.impl;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -201,7 +217,7 @@ public class DocumentImpl implements Document {
 
   @Override
   public Entry toEntry(Step next) {
-    return new ItemEntry(this, next);
+    return new DocumentEntry(this, next);
   }
 
   @Override
@@ -229,11 +245,16 @@ public class DocumentImpl implements Document {
     return sourceScannerName;
   }
 
+  @Override
+  public String getFirstValue(String fieldName) {
+    return get(fieldName).get(0);
+  }
+
   /**
    * A serializable form of an item that can be placed in a JavaSpace. The nextStepName is the property on which 
    * steps query JavaSpaces to retrieve entries.
    */
-  public static class ItemEntry implements Entry {
+  public static class DocumentEntry implements Entry {
 
     public ArrayListMultimap<String, String> contents;
     public String scannerName;
@@ -243,7 +264,7 @@ public class DocumentImpl implements Document {
     public String nextStepName;
     public String operation;
 
-    ItemEntry(Document document, Step destination) {
+    DocumentEntry(Document document, Step destination) {
       this.scannerName = document.getSourceScannerName();
       this.contents = document.getDelegate();
       this.status = document.getStatus();
@@ -259,5 +280,18 @@ public class DocumentImpl implements Document {
   // may want to associate encoding or parsing related information in the future...
   public static class RawData {
     public byte[] data;
+  }
+
+  @Override
+  public String toString() {
+    return "DocumentImpl{" +
+        "delegate=" + delegate +
+        ", status=" + status +
+        ", statusMessage='" + statusMessage + '\'' +
+        ", plan=" + plan +
+        ", operation=" + operation +
+        ", sourceScannerName='" + sourceScannerName + '\'' +
+        ", idField='" + idField + '\'' +
+        '}';
   }
 }

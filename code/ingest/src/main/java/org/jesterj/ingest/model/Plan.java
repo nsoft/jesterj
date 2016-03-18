@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Needham Software LLC
+ * Copyright 2016 Needham Software LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,40 +28,25 @@ public interface Plan extends JiniServiceProvider, Active {
    *
    * @return All steps
    */
-  public Step[] getAllSteps();
+  Step[] getAllSteps();
 
   /**
    * Get the subset of steps that will execute when the plan is activated. This should be a continuous set of steps
-   * that can be traversed in total via {@link org.jesterj.ingest.model.Step#next()}.
+   * that can be traversed in total via {@link org.jesterj.ingest.model.Step#getNext(Document)}.
    *
    * @return a List of steps in the plan that will be executed
    */
-  public Step[] getExecutableSteps();
+  Step[] getExecutableSteps();
 
-  /**
-   * Denote the start point for this node's execution of the plan. Calling this method on anything other
-   * than the first step in the plan makes this a "helper" node.
-   *
-   * @param step The first step that will be executed
-   */
-  public void setFirstExecutableStep(Step step);
-
-
-  /**
-   * Denote the last step for this node's execution of the plan.
-   *
-   * @param step The last step that will be executed
-   */
-  public void setLastExecutableStep(Step step);
 
   /**
    * Is this plan installed as a helper, or as a primary. Implementations that need something other than
    * the default logic are almost inconceivable.
    *
-   * @return true if the first step is not the first executible step, or the last step is not the
+   * @return true if the first step is not the first executable step, or the last step is not the
    * last executable step.
    */
-  default public boolean isHelping() {
+  default boolean isHelping() {
     Step[] all = getAllSteps();
     Step[] exec = getExecutableSteps();
     return (all[0] != exec[0] || all[all.length - 1] != exec[exec.length - 1]);
@@ -72,7 +57,7 @@ public interface Plan extends JiniServiceProvider, Active {
    *
    * @return usually "id" but some legacy indexes may need to use something else
    */
-  public String getDocIdField();
+  String getDocIdField();
 
 
   /**
@@ -82,6 +67,6 @@ public interface Plan extends JiniServiceProvider, Active {
    * @param stepName the name of the step to find
    * @return the step if found or null if the name does not match any steps.
    */
-  public Step findStep(String stepName);
+  Step findStep(String stepName);
 
 }

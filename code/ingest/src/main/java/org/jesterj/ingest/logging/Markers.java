@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Needham Software LLC
+ * Copyright 2016 Needham Software LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,14 @@ package org.jesterj.ingest.logging;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 
-import static org.jesterj.ingest.model.Status.*;
+import static org.jesterj.ingest.model.Status.DEAD;
+import static org.jesterj.ingest.model.Status.DIRTY;
+import static org.jesterj.ingest.model.Status.DROPPED;
+import static org.jesterj.ingest.model.Status.ERROR;
+import static org.jesterj.ingest.model.Status.INDEXED;
+import static org.jesterj.ingest.model.Status.PROCESSING;
+import static org.jesterj.ingest.model.Status.READY;
+import static org.jesterj.ingest.model.Status.SEARCHABLE;
 
 
 /*
@@ -36,6 +43,7 @@ public class Markers {
   public static final Marker SET_DROPPED = MarkerManager.getMarker(DROPPED.toString()).setParents(FTI_MARKER);
   public static final Marker SET_ERROR = MarkerManager.getMarker(ERROR.toString()).setParents(FTI_MARKER);
   public static final Marker SET_INDEXED = MarkerManager.getMarker(INDEXED.toString()).setParents(FTI_MARKER);
+  public static final Marker SET_READY = MarkerManager.getMarker(READY.toString()).setParents(FTI_MARKER);
   public static final Marker SET_SEARCHABLE = MarkerManager.getMarker(SEARCHABLE.toString()).setParents(FTI_MARKER);
   public static final Marker SET_DEAD = MarkerManager.getMarker(DEAD.toString()).setParents(FTI_MARKER);
 }

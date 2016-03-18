@@ -1,29 +1,27 @@
 # Status
 
 ## Working:
- * Ebedded Cassandra server
+ * Embedded Cassandra server
  * Log4j can log to embedded cassandra server for regular logs and FTI status reports
  
 ## TODO for 0.1:
- * MANY things... but notably..
  * Options to specify dirs for cassandra
- * Options to specify regular logs go to file also, or only to file (and locations of the file)
+ * (done, log4j config) Options to specify regular logs go to file also, or only to file (and locations of the file)
+ * Simple filesystem scanner
+ * Split field values step
+ * Solr sender.
+ * Execute a Plan that scans a filesystem, fixes up file sizes, and indexes the documents in solr!
+ 
+Release 0.1 is intended to be the smallest functional unit. Plans and steps will need to be assembled 
+in code etc and only run locally, only single node supported.
+
+## TODO for 0.2
+ * ensure nodes namespace their cassandra data dirs
  * JINI Registrar 
  * Register Node Service on JINI Registrar
  * Serialized format for a plan/steps.
  * JINI Service to accept serialized format
- * Simple DB scanner
- * Split field values step
- * Solr sender.
- * Execute a Plan that scans a DB, splits a comma separated list to multi-values and sends it to solr!
- 
-Release 0.1 is intended to be the smallest functional unit. 
-
-## TODO for 0.2
- * Solr FTI plugin jar
- * Execute a plan with data that causes an error, properly adjust statuses in cassandra FTI
- * Do the above via the control web-app.
- * Installation process.
+ * Do run the 0.1 via the control web-app.
  * Support for external Cassandra if desired.
  * Contributions from others welcome for 0.2 and beyond.
  
@@ -31,13 +29,15 @@ Release 0.1 is intended to be the smallest functional unit.
 Release 0.2 is intended to be the minimum usable system.  
  
 ## TODO for 0.3
+ * Solr FTI plugin jar
+ * Execute a plan with data that causes an error, properly adjust statuses in cassandra FTI
  * Cassandra cluster formation (Success here solidifies Cassandra as a persistence solution)
  * Official API/process for user written steps.
  * Support for helper nodes that scale a step or several steps horizontally.
  * Ability to design a plan in web-app.
  * 80% test coverage
- * Actual web site, deploy as github site.
- * Availbility on maven central.
+ * Actual web site, deploy as Github site.
+ * Availability on maven central.
  
 Release 0.3 is intended to be the first production release for use by folks who dare to tread the bleeding edge.
   

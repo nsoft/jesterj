@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Needham Software LLC
+ * Copyright 2016 Needham Software LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,13 +46,13 @@ public interface Document extends ListMultimap<String, String> {
 
 
   /**
-   * The current processing status of the item. Each {@link org.jesterj.ingest.model.ItemProcessor}
+   * The current processing status of the item. Each {@link DocumentProcessor}
    * is responsible for releasing the item with a correct status.
    *
    * @return An enumeration value indicating whether the item is processing, errored out or complete.
    * @throws java.lang.IllegalStateException if the plan has not been set.
    */
-  public Status getStatus();
+  Status getStatus();
 
   /**
    * Set the status
@@ -60,7 +60,7 @@ public interface Document extends ListMultimap<String, String> {
    * @param status The new status.
    * @see #getStatus()
    */
-  public void setStatus(Status status);
+  void setStatus(Status status);
 
   void setStatus(Status status, String statusMessage);
 
@@ -70,7 +70,7 @@ public interface Document extends ListMultimap<String, String> {
    *
    * @return A short message suitable for logging and debugging (not a stack trace)
    */
-  public String getStatusMessage();
+  String getStatusMessage();
 
   /**
    * Set the status message.
@@ -78,7 +78,7 @@ public interface Document extends ListMultimap<String, String> {
    * @param message the status message.
    * @see #getStatus()
    */
-  public void setStatusMessage(String message);
+  void setStatusMessage(String message);
 
   /**
    * The plan that is processing this item. This method must be called before get source is called or an
@@ -86,9 +86,9 @@ public interface Document extends ListMultimap<String, String> {
    *
    * @param plan The plan processing this item
    */
-  public void setPlan(Plan plan);
+  void setPlan(Plan plan);
 
-  public Entry toEntry(Step next);
+  Entry toEntry(Step next);
 
   ArrayListMultimap<String, String> getDelegate();
 
@@ -103,7 +103,9 @@ public interface Document extends ListMultimap<String, String> {
 
   String getSourceScannerName();
 
-  public static enum Operation {
+  String getFirstValue(String fieldName);
+
+  enum Operation {
     NEW,
     UPDATE,
     DELETE

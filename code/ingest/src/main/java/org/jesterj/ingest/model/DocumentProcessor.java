@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Needham Software LLC
+ * Copyright 2016 Needham Software LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ package org.jesterj.ingest.model;
  * Date: 9/28/14
  */
 
-public interface ItemProcessor {
+public interface DocumentProcessor {
 
   /**
    * Mutate, validate or transmit an item (to a search index). Implementations must not throw any
@@ -34,6 +34,6 @@ public interface ItemProcessor {
    * @param document the item to process
    * @return true if processing succeeded, false otherwise.
    */
-  public boolean processItem(Document document);
+  Document[] processDocument(Document document);
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Needham Software LLC
+ * Copyright 2016 Needham Software LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,14 @@ package org.jesterj.ingest.model;/*
 
 import org.apache.logging.log4j.Marker;
 
-import static org.jesterj.ingest.logging.Markers.*;
+import static org.jesterj.ingest.logging.Markers.SET_DEAD;
+import static org.jesterj.ingest.logging.Markers.SET_DIRTY;
+import static org.jesterj.ingest.logging.Markers.SET_DROPPED;
+import static org.jesterj.ingest.logging.Markers.SET_ERROR;
+import static org.jesterj.ingest.logging.Markers.SET_INDEXED;
+import static org.jesterj.ingest.logging.Markers.SET_PROCESSING;
+import static org.jesterj.ingest.logging.Markers.SET_READY;
+import static org.jesterj.ingest.logging.Markers.SET_SEARCHABLE;
 
 /**
  * The conceptual states available for indexed resources.
@@ -71,7 +78,17 @@ public enum Status {
   },
 
   /**
-   * The item has been accepted by the destination index, but may not be searchable until the getNext commit.
+   * The item has been fully processed and is queued for sending to a final destination (usually a search index).
+   */
+  READY {
+    @Override
+    public Marker getMarker() {
+      return SET_READY;
+    }
+  },
+  
+  /**
+   * The item has been accepted by the destination index, but may not be searchable until the next commit.
    */
   INDEXED {
     @Override

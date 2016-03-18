@@ -14,35 +14,25 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest.scanners;
+package org.jesterj.ingest.model.impl;
+
+import org.jesterj.ingest.model.Document;
+import org.jesterj.ingest.model.Router;
+import org.jesterj.ingest.model.Step;
+
+import java.util.LinkedHashMap;
+
 /*
  * Created with IntelliJ IDEA.
  * User: gus
- * Date: 3/17/16
+ * Date: 3/18/16
  */
+public class DefaultStepNameRouter implements Router {
 
-import org.jesterj.ingest.model.impl.ScannerImpl;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+  public static final String JESTERJ_NEXT_STEP_NAME = "__JESTERJ_NEXT_STEP_NAME__";
 
-import static org.junit.Assert.assertEquals;
-
-public class FileWatchScannerImplTest {
-
-  @Before
-  public void setUp() {
+  @Override
+  public Step route(Document doc, LinkedHashMap<String, Step> nextSteps) {
+    return nextSteps.get(doc.getFirstValue(JESTERJ_NEXT_STEP_NAME));
   }
-
-  @After
-  public void tearDown() {
-  }
-
-  @Test
-  public void testBuildAStep() {
-    FileWatchScanner.Builder builder = new FileWatchScanner.Builder();
-    ScannerImpl build = builder.build();
-    assertEquals(FileWatchScanner.class,build.getClass());
-  }
- 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Needham Software LLC
+ * Copyright 2016 Needham Software LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,15 +22,18 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.jesterj.ingest.logging.JesterJAppender;
 import org.jesterj.ingest.model.Document;
-import org.jesterj.ingest.model.ItemProcessor;
+import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
+import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.Step;
+import org.jesterj.ingest.processors.DefaultWarningProcessor;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Spliterator;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -43,22 +46,33 @@ import java.util.stream.Stream;
  * User: gus
  * Date: 9/28/14
  */
-public class StepImpl extends Thread  implements Step {
+
+/**
+ * The class that is used to run {@link DocumentProcessor}s. This class takes care of the handling of the document
+ * ensures it is properly received and passed on. This class is not normally overridden, to implement custom
+ * processing logic write a class that implements <tt>DocumentProcessor</tt> and then build a stepImpl that uses
+ * an instance of your processor. Also note that one does not normally call build on a StepImpl or any of it's
+ * subclasses. The builder for this class is provided to a {@link org.jesterj.ingest.model.impl.PlanImpl.Builder} so
+ * that the plan can validate the ordering of the steps and assemble the entire plan as an immutable DAG.
+ */
+public class StepImpl extends Thread implements Step {
 
   private static final Logger log = LogManager.getLogger();
 
   private LinkedBlockingQueue<Document> queue;
   private int batchSize; // no concurrency by default
-  private Step nextStep;
+  private LinkedHashMap<String, Step> nextSteps = new LinkedHashMap<>();
   private volatile boolean active;
   private JavaSpace outputSpace;
   private JavaSpace inputSpace;
   private String stepName;
+  private Router router = new DefaultStepNameRouter();
+  private DocumentProcessor processor = new DefaultWarningProcessor();
 
   StepImpl() {
 
     if (this.queue == null) {
-      this.queue = new LinkedBlockingQueue<>(batchSize > 0 ? batchSize : 50); 
+      this.queue = new LinkedBlockingQueue<>(batchSize > 0 ? batchSize : 50);
     }
     this.setDaemon(true);
 
@@ -192,12 +206,14 @@ public class StepImpl extends Thread  implements Step {
 
   @Override
   public Step getNext(Document doc) {
-    return this.nextStep;
+    if (nextSteps.size() == 0) return null;
+    if (nextSteps.size() == 1) return nextSteps.values().iterator().next();
+    return router.route(doc, nextSteps);
   }
 
   @Override
   public Step[] getSubsequentSteps() {
-    //TODO: Something that isn't braindead
+    //TODO: Something that isn't brain dead
     return new Step[0];
   }
 
@@ -253,29 +269,29 @@ public class StepImpl extends Thread  implements Step {
 
   protected final void pushToNextIfOk(Document document) {
     if (document.getStatus() == Status.PROCESSING) {
-      log.info(Status.PROCESSING.getMarker(), "{} began processing {}", getStepName(), document.getId());
+      log.info(Status.PROCESSING.getMarker(), "{} finished processing {}", getStepName(), document.getId());
       Step next = getNext(document);
       if (this.outputSpace == null) {
         // local processing is our only option, do blocking put.
         try {
           next.put(document);
         } catch (InterruptedException e) {
-          String message = "Excpetion while offering to " + next.getStepName();
-          reportException(document,e,message);
+          String message = "Exception while offering to " + next.getStepName();
+          reportException(document, e, message);
         }
       } else {
         if (this.isFinalHelper()) {
           // remote processing is our only option.
-          log.debug("todo: send to javaspace");
-          // todo: put in javaspace
+          log.debug("todo: send to JavaSpace");
+          // todo: put in JavaSpace
         } else {
           // Try to process this item locally first with a non-blocking add, and
           // if the getNext step is bogged down send it out for processing by helpers.
           try {
             next.add(document);
           } catch (IllegalStateException e) {
-            log.debug("todo: send to javaspace");
-            // todo: put in javaspace
+            log.debug("todo: send to JavaSpace");
+            // todo: put in JavaSpace
           }
         }
       }
@@ -312,7 +328,7 @@ public class StepImpl extends Thread  implements Step {
     return stepName;
   }
 
-  protected  Logger getLogger() {
+  protected Logger getLogger() {
     return log;
   }
 
@@ -332,14 +348,13 @@ public class StepImpl extends Thread  implements Step {
   }
 
   private class ItemConsumer implements Consumer<Document> {
-    public ItemProcessor processor;
 
     @Override
     public void accept(Document document) {
       try {
-        this.processor.processItem(document);
-        pushToNextIfOk(document);
-
+        for (Document documentResult : StepImpl.this.processor.processDocument(document)) {
+          pushToNextIfOk(documentResult);
+        }
       } catch (Error e) {
         throw e;
       } catch (Throwable t) {
@@ -349,7 +364,7 @@ public class StepImpl extends Thread  implements Step {
 
   }
 
-  public static class Builder  {
+  public static class Builder {
 
     private StepImpl obj;
 
@@ -360,23 +375,20 @@ public class StepImpl extends Thread  implements Step {
     }
 
     private Class whoAmI() {
-      return new Object(){}.getClass().getEnclosingMethod().getDeclaringClass();
+      return new Object() {
+      }.getClass().getEnclosingMethod().getDeclaringClass();
     }
 
     protected StepImpl getObject() {
       return obj;
     }
- 
+
     public Builder batchSize(int size) {
       getObject().batchSize = size;
       getObject().queue = new LinkedBlockingQueue<>(size);
       return this;
     }
 
-    public Builder nextStep(Step next) {
-      getObject().nextStep = next;
-      return this;
-    }
 
     public Builder outputSpace(JavaSpace outputSpace) {
       getObject().outputSpace = outputSpace;
@@ -393,17 +405,49 @@ public class StepImpl extends Thread  implements Step {
       return this;
     }
 
+    public Builder routingBy(Router router) {
+      getObject().router = router;
+      return this;
+    }
+
+    public Builder withProcessor(DocumentProcessor processor) {
+      getObject().processor = processor;
+      return this;
+    }
+
+    /**
+     * Used when assembling steps into a plan
+     *
+     * @return the name of the step
+     */
+    public String getStepName() {
+      return getObject().stepName;
+    }
+
     private void setObj(StepImpl obj) {
       this.obj = obj;
     }
 
+    /**
+     * Should only be called by a PlanImpl
+     *
+     * @return the immutable step instance.
+     */
     StepImpl build() {
       StepImpl object = getObject();
       setObj(new StepImpl());
       return object;
     }
 
+    /**
+     * should only be used by PlanImpl
+     *
+     * @param step a fully built step
+     */
+    void addNextStep(Step step) {
+      getObject().nextSteps.put(step.getStepName(), step);
+    }
   }
-  
+
 
 }
