@@ -41,7 +41,7 @@ public class PlanImplTest {
   private static final String SCAN_FOO_BAR = "scan foo/bar";
 
   @Test
-  public void testObj() {
+  public void testSimple2Step() {
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
     SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
     StepImpl.Builder dropStepBuilder = new StepImpl.Builder();

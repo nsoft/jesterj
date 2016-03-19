@@ -73,6 +73,7 @@ public class DocumentImpl implements Document {
     this.sourceScannerName = source.getStepName();
     this.idField = plan.getDocIdField();
     this.delegate.put(idField, id);
+    this.plan = plan;
   }
 
 

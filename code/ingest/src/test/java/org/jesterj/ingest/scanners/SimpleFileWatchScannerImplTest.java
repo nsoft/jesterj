@@ -21,14 +21,24 @@ package org.jesterj.ingest.scanners;
  * Date: 3/17/16
  */
 
+import org.jesterj.ingest.model.Document;
+import org.jesterj.ingest.model.Plan;
+import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.ScannerImpl;
+import org.jesterj.ingest.model.impl.StepImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.util.HashMap;
+
+import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 
 public class SimpleFileWatchScannerImplTest {
+
+  private static final String SHAKESPEAR = "Shakespear scanner";
 
   @Before
   public void setUp() {
@@ -44,5 +54,42 @@ public class SimpleFileWatchScannerImplTest {
     ScannerImpl build = builder.build();
     assertEquals(SimpleFileWatchScanner.class, build.getClass());
   }
- 
+
+  @Test
+  public void testScan() throws InterruptedException {
+    PlanImpl.Builder planBuilder = new PlanImpl.Builder();
+    SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
+    StepImpl.Builder testStepBuilder = new StepImpl.Builder();
+
+    File tragedies = new File("src/test/resources/test-data/tragedies");
+    scannerBuilder.withRoot(tragedies).stepName(SHAKESPEAR).scanFreqMS(100);
+
+    HashMap<String, Document> scannedDocs = new HashMap<>();
+
+    testStepBuilder.stepName("test").batchSize(10).withProcessor(
+        document -> {
+          scannedDocs.put(document.getId(), document);
+          return new Document[]{document};
+        }
+    );
+
+    planBuilder
+        .addStep(null, scannerBuilder)
+        .addStep(new String[]{SHAKESPEAR}, testStepBuilder)
+        .withIdField("id");
+    Plan plan = planBuilder.build();
+
+    plan.activate();
+
+    Thread.sleep(1500);
+    assertEquals(10, scannedDocs.size());
+
+    scannedDocs.clear();
+    File hamlet = new File(tragedies, "hamlet");
+    assertTrue(hamlet.setLastModified(System.currentTimeMillis()));
+
+    Thread.sleep(2000);
+    assertEquals(1, scannedDocs.size());
+
+  }
 }

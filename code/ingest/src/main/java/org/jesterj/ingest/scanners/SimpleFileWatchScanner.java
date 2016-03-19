@@ -16,6 +16,7 @@
 
 package org.jesterj.ingest.scanners;
 
+import com.sun.nio.file.SensitivityWatchEventModifier;
 import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,7 +24,6 @@ import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.impl.DocumentImpl;
 import org.jesterj.ingest.model.impl.ScannerImpl;
-import org.jesterj.ingest.model.impl.StepImpl;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,6 +37,7 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.LinkedHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -61,7 +62,7 @@ public class SimpleFileWatchScanner extends ScannerImpl {
   private static final Logger log = LogManager.getLogger();
 
   private File rootDir;
-  WatchService watcher;
+  LinkedHashMap<File, WatchService> watchers = new LinkedHashMap<>();
   private final Object watcherLock = new Object();
 
   protected SimpleFileWatchScanner() {
@@ -83,67 +84,75 @@ public class SimpleFileWatchScanner extends ScannerImpl {
     return () -> {
       // set up our watcher if needed
       synchronized (watcherLock) {
-        if (watcher == null) {
-          try {
-            watcher = FileSystems.getDefault().newWatchService();
-          } catch (IOException e) {
-            log.error("failed to access filesystem!", e);
-            throw new IllegalStateException("Cannot access directory: " + rootDir, e);
-          }
+        if (watchers.size() == 0) {
           try {
             Files.walkFileTree(rootDir.toPath(), new RootWalker());
           } catch (IOException e) {
-            watcher = null;
             log.error("failed to walk filesystem!", e);
             throw new RuntimeException(e);
           }
         }
       }
       // Process pending events
-      for (WatchKey key; (key = watcher.poll()) != null; ) {
-        for (WatchEvent<?> event : key.pollEvents()) {
-          if (OVERFLOW == event.kind()) {
-            // need to look into avoiding this case...
-            log.error("too many simultaneous watch events. Some filesystem were lost!", key);
+      for (File dir : watchers.keySet()) {
+        WatchService watcher = watchers.get(dir);
+        for (WatchKey key; (key = watcher.poll()) != null; ) {
+          for (WatchEvent<?> event : key.pollEvents()) {
+            if (OVERFLOW == event.kind()) {
+              //TODO need to look into what causes this and how to avoid this case...
+              log.error("too many simultaneous watch events. Some filesystem were lost!", key);
+            }
+            @SuppressWarnings("unchecked")
+            WatchEvent<Path> fileEvent = (WatchEvent<Path>) event;
+            if (ENTRY_CREATE == fileEvent.kind()) {
+              makeDoc(dir.toPath().resolve(fileEvent.context()), Document.Operation.NEW);
+            }
+            if (ENTRY_MODIFY == fileEvent.kind()) {
+              makeDoc(dir.toPath().resolve(fileEvent.context()), Document.Operation.UPDATE);
+            }
+            if (ENTRY_DELETE == fileEvent.kind()) {
+              makeDoc(dir.toPath().resolve(fileEvent.context()), Document.Operation.DELETE);
+            }
           }
-          @SuppressWarnings("unchecked")
-          WatchEvent<Path> fileEvent = (WatchEvent<Path>) event;
-          if (ENTRY_CREATE == fileEvent.kind()) {
-            makeDoc(fileEvent.context(), Document.Operation.NEW);
-          }
-          if (ENTRY_MODIFY == fileEvent.kind()) {
-            makeDoc(fileEvent.context(), Document.Operation.UPDATE);
-          }
-          if (ENTRY_DELETE == fileEvent.kind()) {
-            makeDoc(fileEvent.context(), Document.Operation.DELETE);
-          }
+          key.reset();
         }
       }
     };
   }
 
   private class RootWalker extends SimpleFileVisitor<Path> {
+    @Override
+    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+      try {
+        watchers.put(dir.toFile(), FileSystems.getDefault().newWatchService());
+      } catch (IOException e) {
+        log.error("failed to access filesystem directory:" + dir, e);
+        return FileVisitResult.SKIP_SUBTREE;
+      }
+      return FileVisitResult.CONTINUE;
+    }
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
       makeDoc(file, Document.Operation.NEW);
-      return super.visitFile(file, attrs);
+      return FileVisitResult.CONTINUE;
     }
 
     @Override
     public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-      log.warn("unable to scan file", exc);
-      return super.visitFileFailed(file, exc);
+      log.warn("unable to scan file " + file, exc);
+      return FileVisitResult.CONTINUE;
     }
 
     @Override
     public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
       try {
-        dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+        //todo investigate BarbaryWatchService for osx... even with the sun package modifier this takes 2 seconds :(
+        dir.register(watchers.get(dir.toFile()), new WatchEvent.Kind[]{ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY}, SensitivityWatchEventModifier.HIGH);
       } catch (IOException e) {
         log.error("Failed to register watcher for:" + dir, e);
       }
-      return super.postVisitDirectory(dir, exc);
+      return FileVisitResult.CONTINUE;
     }
   }
 
@@ -194,43 +203,43 @@ public class SimpleFileWatchScanner extends ScannerImpl {
     }
 
     @Override
-    public StepImpl.Builder batchSize(int size) {
+    public SimpleFileWatchScanner.Builder batchSize(int size) {
       super.batchSize(size);
       return this;
     }
 
     @Override
-    public StepImpl.Builder outputSpace(JavaSpace outputSpace) {
+    public SimpleFileWatchScanner.Builder outputSpace(JavaSpace outputSpace) {
       super.outputSpace(outputSpace);
       return this;
     }
 
     @Override
-    public StepImpl.Builder inputSpace(JavaSpace inputSpace) {
+    public SimpleFileWatchScanner.Builder inputSpace(JavaSpace inputSpace) {
       super.inputSpace(inputSpace);
       return this;
     }
 
     @Override
-    public StepImpl.Builder stepName(String stepName) {
+    public SimpleFileWatchScanner.Builder stepName(String stepName) {
       super.stepName(stepName);
       return this;
     }
 
     @Override
-    public StepImpl.Builder routingBy(Router router) {
+    public SimpleFileWatchScanner.Builder routingBy(Router router) {
       super.routingBy(router);
       return this;
     }
 
     @Override
-    public ScannerImpl.Builder interval(long interval) {
-      super.interval(interval);
+    public SimpleFileWatchScanner.Builder scanFreqMS(long interval) {
+      super.scanFreqMS(interval);
       return this;
     }
 
     @Override
-    public ScannerImpl build() {
+    protected ScannerImpl build() {
       SimpleFileWatchScanner tmp = obj;
       this.obj = new SimpleFileWatchScanner();
       return tmp;

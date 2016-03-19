@@ -35,6 +35,7 @@ public class PlanImpl implements Plan {
 
   private LinkedHashMap<String, Step> steps;
   private String idField;
+  private boolean active = false;
 
   protected PlanImpl() {
   }
@@ -71,18 +72,20 @@ public class PlanImpl implements Plan {
   }
 
   @Override
-  public void activate() {
-
+  public synchronized void activate() {
+    steps.values().forEach(Step::activate);
+    this.active = true;
   }
 
   @Override
-  public void deactivate() {
-
+  public synchronized void deactivate() {
+    steps.values().forEach(Step::deactivate);
+    this.active = false;
   }
 
   @Override
-  public boolean isActive() {
-    return false;
+  public synchronized boolean isActive() {
+    return active;
   }
 
   @Override
@@ -158,6 +161,9 @@ public class PlanImpl implements Plan {
       builders.put(step.getStepName(), step);
       if (predecessors != null) {
         for (String predecessor : predecessors) {
+          if (!builders.keySet().contains(predecessor)) {
+            throw new IllegalArgumentException("Unknown Step as predecessor:" + predecessor);
+          }
           this.predecessors.put(step.getStepName(), predecessor);
         }
       }
@@ -179,8 +185,13 @@ public class PlanImpl implements Plan {
       for (StepImpl.Builder scanner : scanners) {
         buildStep(scanner);
       }
-      getObj().steps = this.steps;
-      return getObj();
+      PlanImpl obj = getObj();
+      this.obj = new PlanImpl();
+      obj.steps = this.steps;
+      for (Step step : steps.values()) {
+        ((StepImpl) step).setPlan(obj); // get with the plan...
+      }
+      return obj;
     }
 
     private void buildStep(StepImpl.Builder builder) {
@@ -203,7 +214,9 @@ public class PlanImpl implements Plan {
       for (String successor : successors) {
         builder.addNextStep(steps.get(successor));
       }
-      steps.put(builder.getStepName(), builder.build());
+      StepImpl step = builder.build();
+      String stepName = step.getStepName();
+      steps.put(stepName, step);
     }
 
     protected PlanImpl getObj() {

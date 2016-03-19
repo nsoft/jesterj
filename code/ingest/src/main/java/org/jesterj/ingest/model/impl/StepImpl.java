@@ -31,6 +31,7 @@ import org.jesterj.ingest.processors.DefaultWarningProcessor;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -55,11 +56,12 @@ import java.util.stream.Stream;
  * subclasses. The builder for this class is provided to a {@link org.jesterj.ingest.model.impl.PlanImpl.Builder} so
  * that the plan can validate the ordering of the steps and assemble the entire plan as an immutable DAG.
  */
-public class StepImpl extends Thread implements Step {
+public class StepImpl implements Step {
 
   private static final Logger log = LogManager.getLogger();
 
   private LinkedBlockingQueue<Document> queue;
+  private final Object queueLock = new Object();
   private int batchSize; // no concurrency by default
   private LinkedHashMap<String, Step> nextSteps = new LinkedHashMap<>();
   private volatile boolean active;
@@ -68,14 +70,10 @@ public class StepImpl extends Thread implements Step {
   private String stepName;
   private Router router = new DefaultStepNameRouter();
   private DocumentProcessor processor = new DefaultWarningProcessor();
+  protected Thread worker;
+  private Plan plan;
 
   StepImpl() {
-
-    if (this.queue == null) {
-      this.queue = new LinkedBlockingQueue<>(batchSize > 0 ? batchSize : 50);
-    }
-    this.setDaemon(true);
-
   }
 
   public Spliterator<Document> spliterator() {
@@ -111,7 +109,7 @@ public class StepImpl extends Thread implements Step {
   }
 
   public boolean containsAll(Collection<?> c) {
-    throw new UnsupportedOperationException("bulk operations supported for steps");
+    throw new UnsupportedOperationException("bulk operations not supported for steps");
   }
 
   public <T> T[] toArray(T[] a) {
@@ -219,7 +217,16 @@ public class StepImpl extends Thread implements Step {
 
   @Override
   public Plan getPlan() {
-    return null;
+    return this.plan;
+  }
+
+  /**
+   * Only to be used in PlanImpl
+   *
+   * @param plan the plan to which this step is attached
+   */
+  void setPlan(Plan plan) {
+    this.plan = plan;
   }
 
   @Override
@@ -249,6 +256,11 @@ public class StepImpl extends Thread implements Step {
 
   @Override
   public void activate() {
+    if (worker == null || !worker.isAlive()) {
+      worker = new Thread(this);
+      worker.setDaemon(true);
+      worker.start();
+    }
     this.active = true;
   }
 
@@ -271,6 +283,9 @@ public class StepImpl extends Thread implements Step {
     if (document.getStatus() == Status.PROCESSING) {
       log.info(Status.PROCESSING.getMarker(), "{} finished processing {}", getStepName(), document.getId());
       Step next = getNext(document);
+      if (next == null) {
+        return;
+      }
       if (this.outputSpace == null) {
         // local processing is our only option, do blocking put.
         try {
@@ -300,7 +315,6 @@ public class StepImpl extends Thread implements Step {
 
   @Override
   public void run() {
-
     //noinspection InfiniteLoopStatement
     while (true) {
       while (!this.active) {
@@ -310,15 +324,24 @@ public class StepImpl extends Thread implements Step {
           // ignore
         }
       }
-      if (queue.peek() != null) {
-        parallelStream().forEach(new ItemConsumer());
-      } else {
-        try {
-          // if we don't have work make sure we let others do their work.
-          Thread.sleep(25);
-        } catch (InterruptedException e) {
-          // ignore
+      ArrayList<Document> temp = null;
+      synchronized (queueLock) {
+        if (peek() != null) {
+          temp = new ArrayList<>();
+          temp.addAll(queue);
+          clear();
         }
+      }
+      if (temp != null) {
+        temp.parallelStream().forEach(new ItemConsumer());
+        continue;
+      }
+
+      try {
+        // if we don't have work make sure we let others do their work.
+        Thread.sleep(25);
+      } catch (InterruptedException e) {
+        // ignore
       }
     }
   }
@@ -435,6 +458,8 @@ public class StepImpl extends Thread implements Step {
      */
     StepImpl build() {
       StepImpl object = getObject();
+      int batchSize = object.batchSize;
+      object.queue = new LinkedBlockingQueue<>(batchSize > 0 ? batchSize : 50);
       setObj(new StepImpl());
       return object;
     }
@@ -449,5 +474,8 @@ public class StepImpl extends Thread implements Step {
     }
   }
 
-
+  @Override
+  public String toString() {
+    return getStepName();
+  }
 }

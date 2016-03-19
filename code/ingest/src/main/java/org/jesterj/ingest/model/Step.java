@@ -36,7 +36,7 @@ import java.util.concurrent.BlockingQueue;
  * the step must never add or offer to the getNext step, but always place the <code>Item</code> in the
  * <code>JavaSpace</code>
  */
-public interface Step extends Active, JiniServiceProvider, BlockingQueue<Document> {
+public interface Step extends Active, JiniServiceProvider, BlockingQueue<Document>, Runnable {
 
   /**
    * Set the number of items to process concurrently.
@@ -55,7 +55,8 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Documen
   /**
    * Get all the steps to which a document might travel
    *
-   * @return
+   * @experimental
+   * @return downstream steps
    */
   Step[] getSubsequentSteps();
 
@@ -87,8 +88,8 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Documen
    *
    * @return The user supplied name for this step
    */
-  public String getStepName();
+  String getStepName();
 
-  public void sendToNext(Document doc);
+  void sendToNext(Document doc);
 
 }

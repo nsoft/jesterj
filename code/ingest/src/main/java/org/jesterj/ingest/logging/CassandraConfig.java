@@ -99,8 +99,9 @@ public class CassandraConfig {
         setListen_address(host);
       }
     }
-    System.out.println("Cassandra will listen on " + getListen_address());
-    return getListen_address();
+    String listen_address = getListen_address();
+    System.out.println("Cassandra will listen on " + listen_address);
+    return listen_address;
   }
 
   // No unit test for this because of final class NetworkInterface.

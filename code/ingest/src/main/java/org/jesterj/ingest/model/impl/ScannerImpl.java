@@ -32,6 +32,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 
 /*
@@ -66,15 +67,26 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
 
 
   public void run() {
-    ScheduledFuture<?> scanner = scheduler.schedule(getScanOperation(), interval, TimeUnit.MILLISECONDS);
+    ScheduledFuture<?> scanner = null;
     while (this.isActive()) {
+      scanner = scheduler.schedule(getScanOperation(), interval, TimeUnit.MILLISECONDS);
       try {
-        Thread.sleep(500);
+        Thread.sleep(interval);
       } catch (InterruptedException e) {
+        scanner.cancel(true);
         e.printStackTrace();
       }
     }
-    scanner.cancel(true);
+    if (scanner != null) {
+      scanner.cancel(true);
+    }
+  }
+
+  @Override
+  public void deactivate() {
+    super.deactivate();
+    worker.interrupt();
+    worker = null;
   }
 
   /**
@@ -83,7 +95,11 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
    * @param doc The document to be processed
    */
   public void docFound(Document doc) {
-    doc.put(doc.getIdField(), getIdFunction().apply(doc.getId()));
+    String id = doc.getId();
+    Function<String, String> idFunction = getIdFunction();
+    String result = idFunction.apply(id);
+    String idField = doc.getIdField();
+    doc.put(idField, result);
     getDocumentTracker().accept(doc);
     sendToNext(doc);
   }
@@ -103,18 +119,6 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     return false;
   }
 
-  @Override
-  public synchronized void activate() {
-  }
-
-  @Override
-  public synchronized void deactivate() {
-  }
-
-  @Override
-  public boolean isActive() {
-    return false;
-  }
 
   @Override
   public boolean add(Document document) {
@@ -324,13 +328,13 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
 
     @Override
     protected abstract ScannerImpl getObject();
-    
-    public Builder interval(long interval) {
+
+    public Builder scanFreqMS(long interval) {
       getObject().interval = interval;
       return this;
     }
 
-    public abstract ScannerImpl build();
+    protected abstract ScannerImpl build();
 
 
   }
