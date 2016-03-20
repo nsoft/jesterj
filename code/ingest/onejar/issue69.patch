@@ -1,0 +1,19 @@
+These jar files are here because the following patch was not accepted for Issue 69 in onjar. Without this
+we get >100 lines of spam on startup...
+
+Index: src/com/simontuffs/onejar/Logger.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/com/simontuffs/onejar/Logger.java	(date 1344914352000)
++++ src/com/simontuffs/onejar/Logger.java	(revision )
+@@ -29,7 +29,7 @@
+   public static final int LOGLEVEL_VERBOSE = 5;
+   
+   // Loglevel for all loggers.
+-  private static int loglevel = LOGLEVEL_INFO;
++  private static int loglevel = LOGLEVEL_NONE;
+   
+   private final String prefix;
+   

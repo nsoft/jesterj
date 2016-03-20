@@ -29,9 +29,9 @@ idea {
 buildscript {
 
     repositories {
-//        maven {
-//            url 'file://Users/gus/projects/onejar/one-jar/dist'
-//        }
+        flatDir {
+            dir 'onejar'
+        }
         mavenCentral()
     }
     dependencies {
@@ -44,16 +44,25 @@ repositories {
     maven {
         url 'https://clojars.org/repo'
     }
+    flatDir {
+        dir 'onejar'
+    }
+
 }
 
 dependencies {
+    compile 'org.apache.tika:tika-parsers:1.12'
+    compile 'org.apache.solr:solr-solrj:5.5.0'
+
     compile 'com.google.guava:guava:18.0'
     compile 'com.google.code.findbugs:jsr305:3.0.0'
+
     compile 'jini:jini-core:2.1'
     compile 'org.apache.river:reggie:2.2.2'
     compile 'org.apache.cassandra:cassandra-all:2.1.1'
     compile 'com.datastax.cassandra:cassandra-driver-core:2.1.1'
     compile 'org.yaml:snakeyaml:1.14'
+
     compile 'org.apache.logging.log4j:log4j-core:2.1'
     compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.1'
     compile 'org.apache.logging.log4j:log4j-jcl:2.1'
@@ -65,6 +74,7 @@ dependencies {
     compile 'docopt:docopt:0.6.1'
     testCompile 'junit:junit:4.11'
     testCompile 'com.needhamsoftware:easier-mock:1.0'
+    //runtime ':one-jar-boot:0.98' // uncomment for debugging stack traces into one-jar classes
 
 }
 
