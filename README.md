@@ -13,6 +13,7 @@ See the [web site](http://www.jesterj.org) for more info
  * Options to specify regular logs go to file also, or only to file (and locations of the file) -> log4j config
  * Actual web site, deploy as Github site.
  * Official API/process for user written steps. (just implement DocumentProcessor)
+ * 40% test coverage (jacoco)
  * Simple filesystem scanner
  * Copy Field processor
  * Date Reformat processor
@@ -24,7 +25,6 @@ See the [web site](http://www.jesterj.org) for more info
  * Options to specify dirs for cassandra
  * Add Field Processor
  * Field value Number Format Processor
- * 40% test coverage (jacoco)
  * Fix up filesizes and provide slightly better metadata for demo execution
  
 Release 0.1 is intended to be the smallest functional unit. Plans and steps will need to be assembled 
