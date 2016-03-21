@@ -14,4 +14,4 @@ If you set up a solr cloud with zookeeper at 9983 on localhost and a collection 
 
  java -Djj.example=run -jar ingest-node.jar foo bar
 
-The code that sets this up and runs it starts at [Line 133 of Main.java](https://github.com/nsoft/jesterj/blob/master/code/ingest/src/main/java/org/jesterj/ingest/Main.java#L133)
+The code that sets this up and runs it starts at [Line 130 of Main.java](https://github.com/nsoft/jesterj/blob/master/code/ingest/src/main/java/org/jesterj/ingest/Main.java#L130)
