@@ -47,8 +47,12 @@ repositories {
     flatDir {
         dir 'onejar'
     }
-
 }
+
+configurations {
+    oneJarLib
+}
+
 
 dependencies {
     compile 'org.apache.tika:tika-parsers:1.12'
@@ -76,6 +80,8 @@ dependencies {
     testCompile 'com.needhamsoftware:easier-mock:1.0'
     //runtime ':one-jar-boot:0.98' // uncomment for debugging stack traces into one-jar classes
 
+    oneJarLib files('onejar/one-jar-boot-0.98.jar')
+
 }
 
 task oneJar(type: OneJar, dependsOn: clean) {
@@ -85,4 +91,5 @@ task oneJar(type: OneJar, dependsOn: clean) {
     manifest {
         attributes 'One-Jar-URL-Factory': 'com.simontuffs.onejar.JarClassLoader$OneJarURLFactory'
     }
+    oneJarConfiguration = configurations.oneJarLib
 }
