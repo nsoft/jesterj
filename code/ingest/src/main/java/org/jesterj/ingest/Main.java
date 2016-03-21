@@ -27,6 +27,7 @@ import org.jesterj.ingest.logging.JesterJAppender;
 import org.jesterj.ingest.logging.Markers;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
+import org.jesterj.ingest.processors.FieldCopyProcessor;
 import org.jesterj.ingest.processors.SendToSolrCloudProcessor;
 import org.jesterj.ingest.processors.SimpleDateTimeReformater;
 import org.jesterj.ingest.processors.TikaProcessor;
@@ -64,6 +65,8 @@ public class Main {
   private static final String ACCESSED = "format accessed date";
   private static final String CREATED = "format created date";
   private static final String MODIFIED = "format modified date";
+  private static final String SIZE_TO_INT = "size to int";
+  private static final String TIKA = "tika";
   public static String JJ_DIR;
 
   public static IngestNode node;
@@ -132,14 +135,15 @@ public class Main {
       StepImpl.Builder formatCreated = new StepImpl.Builder();
       StepImpl.Builder formatModified = new StepImpl.Builder();
       StepImpl.Builder formatAccessed = new StepImpl.Builder();
+      StepImpl.Builder renameFileszieToInteger = new StepImpl.Builder();
       StepImpl.Builder tikaBuilder = new StepImpl.Builder();
       StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
 
-      File tragedies = new File("/Users/gus/projects/solrsystem/jesterj/code/ingest/src/test/resources/test-data/");
+      File testDocs = new File("/Users/gus/projects/solrsystem/jesterj/code/ingest/src/test/resources/test-data/");
 
       scanner
           .stepName(SHAKESPEAR)
-          .withRoot(tragedies)
+          .withRoot(testDocs)
           .scanFreqMS(100);
       formatCreated
           .stepName(CREATED)
@@ -165,8 +169,16 @@ public class Main {
                   .into("accessed_dt")
                   .build()
           );
+      renameFileszieToInteger
+          .stepName(SIZE_TO_INT)
+          .withProcessor(
+              new FieldCopyProcessor.Builder()
+                  .from("file_size")
+                  .into("file_size_i")
+                  .retainingOriginal(false)
+                  .build());
       tikaBuilder
-          .stepName("tika")
+          .stepName(TIKA)
           .withProcessor(new TikaProcessor());
 
       sendToSolrBuilder
@@ -184,8 +196,9 @@ public class Main {
           .addStep(new String[]{SHAKESPEAR}, formatCreated)
           .addStep(new String[]{CREATED}, formatModified)
           .addStep(new String[]{MODIFIED}, formatAccessed)
-          .addStep(new String[]{ACCESSED}, tikaBuilder)
-          .addStep(new String[]{"tika"}, sendToSolrBuilder)
+          .addStep(new String[]{ACCESSED}, renameFileszieToInteger)
+          .addStep(new String[]{SIZE_TO_INT}, tikaBuilder)
+          .addStep(new String[]{TIKA}, sendToSolrBuilder)
           .withIdField("id")
           .build()
           .activate();
