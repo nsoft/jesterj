@@ -21,6 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.docopt.clj;
+import org.jesterj.ingest.forkjoin.JesterJForkJoinThreadFactory;
 import org.jesterj.ingest.logging.Cassandra;
 import org.jesterj.ingest.logging.JesterJAppender;
 import org.jesterj.ingest.logging.Markers;
@@ -37,7 +38,6 @@ import java.security.Permissions;
 import java.security.Policy;
 import java.security.ProtectionDomain;
 import java.util.AbstractMap;
-import java.util.Date;
 import java.util.Map;
 import java.util.Properties;
 
@@ -52,7 +52,7 @@ import java.util.Properties;
  * by the user starting the process. The ID will be used to display the node in the control
  * console and the password is meant to provide temporary security until the node is
  * configured properly.
- */
+ */ 
 public class Main {
 
   public static String JJ_DIR;
@@ -77,8 +77,10 @@ public class Main {
 
   private static Logger log;
 
-
+  private static final String SHAKESPEAR = "Shakespear scanner";
+  
   public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
+    System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
     initClassloader();
     initRMI();
     Cassandra.start();
@@ -87,7 +89,7 @@ public class Main {
     log = LogManager.getLogger();
 
     log.info(Markers.LOG_MARKER, "Test regular log with marker");
-    log.info( "Test regular log without marker");
+    log.info("Test regular log without marker");
 
     try {
       ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, "file:///foo/bar.txt");
@@ -105,7 +107,7 @@ public class Main {
 
     Properties sysprops = System.getProperties();
     for (Object prop : sysprops.keySet()) {
-      log.debug(prop + "=" + sysprops.get(prop));
+      log.trace(prop + "=" + sysprops.get(prop));
     }
 
     // This  does nothing useful yet, just for testing right now.
@@ -157,6 +159,7 @@ public class Main {
         public PermissionCollection getPermissions(ProtectionDomain domain) {
           return pc;
         }
+
       });
       System.setSecurityManager(new SecurityManager());
     }
