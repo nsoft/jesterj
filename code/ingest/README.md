@@ -8,9 +8,9 @@ java -jar build/libs/ingest-node.jar
 This will print usage info. This jar contains all dependencies, and thus can be copied to any machine and run
 without any additional setup. It will create &lt;user_home_dir&gt;/.jj and place cassandra related files there.
 
-Some of the startup spam can be reduced by adding -Done-jar.silent=true
+# Watch It Go
 
-https://sourceforge.net/p/one-jar/bugs/69/
+If you set up a solr cloud with zookeeper at 9983 on localhost and a collection named jjtest that is configured similarly to the dynamic schema example that comes with solr, the following command will index the complete works of shakespear into your index:
 
-You can omit the onejar property if you don't mind some additional spam.
+ java -Djj.example=run -jar ingest-node.jar foo bar
 
