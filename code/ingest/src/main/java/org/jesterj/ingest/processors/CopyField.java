@@ -16,6 +16,7 @@
 
 package org.jesterj.ingest.processors;
 
+import com.copyright.easiertest.SimpleProperty;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 
@@ -26,24 +27,39 @@ import java.util.List;
  * User: gus
  * Date: 3/21/16
  */
-public class FieldCopyProcessor implements DocumentProcessor {
-  String from;
-  String into;
-  boolean retainOriginal = true;
+public class CopyField implements DocumentProcessor {
+  private String from;
+  private String into;
+  private boolean retainOriginal = true;
 
   @Override
   public Document[] processDocument(Document document) {
 
-    List<String> values = document.get(from);
-    document.putAll(into, values);
-    if (!retainOriginal) {
-      document.removeAll(from);
+    List<String> values = document.get(getFrom());
+    document.putAll(getInto(), values);
+    if (!isRetainOriginal()) {
+      document.removeAll(getFrom());
     }
     return new Document[]{document};
   }
 
+  @SimpleProperty
+  public String getFrom() {
+    return from;
+  }
+
+  @SimpleProperty
+  public String getInto() {
+    return into;
+  }
+
+  @SimpleProperty
+  public boolean isRetainOriginal() {
+    return retainOriginal;
+  }
+
   public static class Builder {
-    private FieldCopyProcessor obj = new FieldCopyProcessor();
+    private CopyField obj = new CopyField();
 
     public Builder from(String from) {
       getObj().from = from;
@@ -60,17 +76,17 @@ public class FieldCopyProcessor implements DocumentProcessor {
       return this;
     }
 
-    protected FieldCopyProcessor getObj() {
+    protected CopyField getObj() {
       return obj;
     }
 
-    private void setObj(FieldCopyProcessor obj) {
+    private void setObj(CopyField obj) {
       this.obj = obj;
     }
 
-    public FieldCopyProcessor build() {
-      FieldCopyProcessor object = getObj();
-      setObj(new FieldCopyProcessor());
+    public CopyField build() {
+      CopyField object = getObj();
+      setObj(new CopyField());
       return object;
     }
   }

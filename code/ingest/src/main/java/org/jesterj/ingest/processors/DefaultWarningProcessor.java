@@ -27,7 +27,9 @@ import org.jesterj.ingest.model.DocumentProcessor;
  * Date: 3/18/16
  */
 public class DefaultWarningProcessor implements DocumentProcessor {
-  private static final Logger log = LogManager.getLogger();
+  // leaving this non-final because logging is a critical aspect of the unit test for this
+  // most other cases we ignore testing the logging.
+  static Logger log = LogManager.getLogger();
 
   @Override
   public Document[] processDocument(Document document) {

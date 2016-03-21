@@ -34,7 +34,9 @@ import org.jesterj.ingest.model.Status;
  */
 public class LogAndDrop implements DocumentProcessor {
 
-  private static final Logger log = LogManager.getLogger();
+  // leaving this non-final because logging is a critical aspect of the unit test for this
+  // most other cases we ignore testing the logging.
+  static Logger log = LogManager.getLogger();
   private Level level;
 
   protected LogAndDrop() {
@@ -42,11 +44,15 @@ public class LogAndDrop implements DocumentProcessor {
 
   @Override
   public Document[] processDocument(Document document) {
-    log.log(this.level, document.toString());
+    log.log(getLevel(), document.toString());
     document.setStatus(Status.DROPPED);
     return new Document[]{document};
   }
 
+  Level getLevel() {
+    return level;
+  }
+  
   public static class Builder {
 
     LogAndDrop obj = new LogAndDrop();

@@ -27,7 +27,7 @@ import org.jesterj.ingest.logging.JesterJAppender;
 import org.jesterj.ingest.logging.Markers;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
-import org.jesterj.ingest.processors.FieldCopyProcessor;
+import org.jesterj.ingest.processors.CopyField;
 import org.jesterj.ingest.processors.SendToSolrCloudProcessor;
 import org.jesterj.ingest.processors.SimpleDateTimeReformater;
 import org.jesterj.ingest.processors.TikaProcessor;
@@ -172,15 +172,16 @@ public class Main {
       renameFileszieToInteger
           .stepName(SIZE_TO_INT)
           .withProcessor(
-              new FieldCopyProcessor.Builder()
+              new CopyField.Builder()
                   .from("file_size")
                   .into("file_size_i")
                   .retainingOriginal(false)
-                  .build());
+                  .build()
+          );
       tikaBuilder
           .stepName(TIKA)
-          .withProcessor(new TikaProcessor());
-
+          .withProcessor(new TikaProcessor()
+          );
       sendToSolrBuilder
           .stepName("solr sender")
           .withProcessor(
@@ -189,8 +190,8 @@ public class Main {
                   .atZookeeperPort(9983)
                   .usingCollection("jjtest")
                   .placingTextContentIn("_text_")
-                  .build());
-
+                  .build()
+          );
       planBuilder
           .addStep(null, scanner)
           .addStep(new String[]{SHAKESPEAR}, formatCreated)
@@ -202,7 +203,6 @@ public class Main {
           .withIdField("id")
           .build()
           .activate();
-
     }
 
     //noinspection InfiniteLoopStatement

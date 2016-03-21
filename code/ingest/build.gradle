@@ -18,6 +18,7 @@ apply plugin: 'idea'
 apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'gradle-one-jar'
+apply plugin: 'jacoco'
 
 idea {
     module {
@@ -73,8 +74,10 @@ dependencies {
     compile 'org.apache.logging.log4j:log4j-1.2-api:2.1'
     compile 'org.apache.logging.log4j:log4j-jul:2.1'
 
+    compile('com.needhamsoftware:easier-mock:1.0') {
+        ext.transative = false;
+    }
     compile 'net.jini:jsk-platform:2.2.2'
-    compile 'org.apache.logging.log4j:log4j-core:2.0.2'
     compile 'docopt:docopt:0.6.1'
     testCompile 'junit:junit:4.11'
     testCompile 'com.needhamsoftware:easier-mock:1.0'
@@ -93,3 +96,5 @@ task oneJar(type: OneJar, dependsOn: clean) {
     }
     oneJarConfiguration = configurations.oneJarLib
 }
+
+jacocoTestReport.dependsOn test
