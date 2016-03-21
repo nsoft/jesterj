@@ -104,14 +104,18 @@ public class SimpleFileWatchScanner extends ScannerImpl {
             }
             @SuppressWarnings("unchecked")
             WatchEvent<Path> fileEvent = (WatchEvent<Path>) event;
+            Path resolvedPath = dir.toPath().resolve(fileEvent.context());
+            if (resolvedPath.toFile().isDirectory()) {
+              continue;
+            }
             if (ENTRY_CREATE == fileEvent.kind()) {
-              makeDoc(dir.toPath().resolve(fileEvent.context()), Document.Operation.NEW);
+              makeDoc(resolvedPath, Document.Operation.NEW);
             }
             if (ENTRY_MODIFY == fileEvent.kind()) {
-              makeDoc(dir.toPath().resolve(fileEvent.context()), Document.Operation.UPDATE);
+              makeDoc(resolvedPath, Document.Operation.UPDATE);
             }
             if (ENTRY_DELETE == fileEvent.kind()) {
-              makeDoc(dir.toPath().resolve(fileEvent.context()), Document.Operation.DELETE);
+              makeDoc(resolvedPath, Document.Operation.DELETE);
             }
           }
           key.reset();
