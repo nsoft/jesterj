@@ -25,6 +25,12 @@ import org.jesterj.ingest.forkjoin.JesterJForkJoinThreadFactory;
 import org.jesterj.ingest.logging.Cassandra;
 import org.jesterj.ingest.logging.JesterJAppender;
 import org.jesterj.ingest.logging.Markers;
+import org.jesterj.ingest.model.Plan;
+import org.jesterj.ingest.model.impl.PlanImpl;
+import org.jesterj.ingest.model.impl.StepImpl;
+import org.jesterj.ingest.processors.SendToSolrCloudProcessor;
+import org.jesterj.ingest.processors.TikaProcessor;
+import org.jesterj.ingest.scanners.SimpleFileWatchScanner;
 
 import java.io.File;
 import java.io.IOException;
@@ -116,6 +122,42 @@ public class Main {
     node = new IngestNode(id, password);
     new Thread(node).start();
 
+    if (System.getProperty("jj.example") == "run") {
+      PlanImpl.Builder planBuilder = new PlanImpl.Builder();
+      SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
+      StepImpl.Builder tikaBuilder = new StepImpl.Builder();
+      StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
+
+      File tragedies = new File("/Users/gus/projects/solrsystem/jesterj/code/ingest/src/test/resources/test-data/");
+
+      scannerBuilder
+          .stepName(SHAKESPEAR)
+          .withRoot(tragedies)
+          .scanFreqMS(100);
+
+      tikaBuilder
+          .stepName("tika")
+          .withProcessor(new TikaProcessor());
+
+      sendToSolrBuilder
+          .stepName("solr sender")
+          .withProcessor(
+              new SendToSolrCloudProcessor.Builder()
+                  .withZookeperHost("localhost")
+                  .atZookeeperPort(9983)
+                  .usingCollection("jjtest")
+                  .placingTextContentIn("_text_")
+                  .build());
+
+      Plan plan = planBuilder
+          .addStep(null, scannerBuilder)
+          .addStep(new String[]{SHAKESPEAR}, tikaBuilder)
+          .addStep(new String[]{"tika"}, sendToSolrBuilder)
+          .withIdField("id")
+          .build();
+
+      plan.activate();
+    }
 
     //noinspection InfiniteLoopStatement
     while (true) {
