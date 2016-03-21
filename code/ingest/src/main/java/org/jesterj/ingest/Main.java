@@ -122,7 +122,8 @@ public class Main {
     node = new IngestNode(id, password);
     new Thread(node).start();
 
-    if (System.getProperty("jj.example") == "run") {
+    String property = System.getProperty("jj.example");
+    if ("run".equals(property)) {
       PlanImpl.Builder planBuilder = new PlanImpl.Builder();
       SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
       StepImpl.Builder tikaBuilder = new StepImpl.Builder();
