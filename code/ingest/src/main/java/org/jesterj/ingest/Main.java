@@ -25,10 +25,10 @@ import org.jesterj.ingest.forkjoin.JesterJForkJoinThreadFactory;
 import org.jesterj.ingest.logging.Cassandra;
 import org.jesterj.ingest.logging.JesterJAppender;
 import org.jesterj.ingest.logging.Markers;
-import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
 import org.jesterj.ingest.processors.SendToSolrCloudProcessor;
+import org.jesterj.ingest.processors.SimpleDateTimeReformater;
 import org.jesterj.ingest.processors.TikaProcessor;
 import org.jesterj.ingest.scanners.SimpleFileWatchScanner;
 
@@ -58,9 +58,12 @@ import java.util.Properties;
  * by the user starting the process. The ID will be used to display the node in the control
  * console and the password is meant to provide temporary security until the node is
  * configured properly.
- */ 
+ */
 public class Main {
 
+  private static final String ACCESSED = "format accessed date";
+  private static final String CREATED = "format created date";
+  private static final String MODIFIED = "format modified date";
   public static String JJ_DIR;
 
   public static IngestNode node;
@@ -84,7 +87,7 @@ public class Main {
   private static Logger log;
 
   private static final String SHAKESPEAR = "Shakespear scanner";
-  
+
   public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
     System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
     initClassloader();
@@ -125,17 +128,43 @@ public class Main {
     String property = System.getProperty("jj.example");
     if ("run".equals(property)) {
       PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-      SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
+      SimpleFileWatchScanner.Builder scanner = new SimpleFileWatchScanner.Builder();
+      StepImpl.Builder formatCreated = new StepImpl.Builder();
+      StepImpl.Builder formatModified = new StepImpl.Builder();
+      StepImpl.Builder formatAccessed = new StepImpl.Builder();
       StepImpl.Builder tikaBuilder = new StepImpl.Builder();
       StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
 
       File tragedies = new File("/Users/gus/projects/solrsystem/jesterj/code/ingest/src/test/resources/test-data/");
 
-      scannerBuilder
+      scanner
           .stepName(SHAKESPEAR)
           .withRoot(tragedies)
           .scanFreqMS(100);
-
+      formatCreated
+          .stepName(CREATED)
+          .withProcessor(
+              new SimpleDateTimeReformater.Builder()
+                  .from("created")
+                  .into("created_dt")
+                  .build()
+          );
+      formatModified
+          .stepName(MODIFIED)
+          .withProcessor(
+              new SimpleDateTimeReformater.Builder()
+                  .from("modified")
+                  .into("modified_dt")
+                  .build()
+          );
+      formatAccessed
+          .stepName(ACCESSED)
+          .withProcessor(
+              new SimpleDateTimeReformater.Builder()
+                  .from("accessed")
+                  .into("accessed_dt")
+                  .build()
+          );
       tikaBuilder
           .stepName("tika")
           .withProcessor(new TikaProcessor());
@@ -150,14 +179,17 @@ public class Main {
                   .placingTextContentIn("_text_")
                   .build());
 
-      Plan plan = planBuilder
-          .addStep(null, scannerBuilder)
-          .addStep(new String[]{SHAKESPEAR}, tikaBuilder)
+      planBuilder
+          .addStep(null, scanner)
+          .addStep(new String[]{SHAKESPEAR}, formatCreated)
+          .addStep(new String[]{CREATED}, formatModified)
+          .addStep(new String[]{MODIFIED}, formatAccessed)
+          .addStep(new String[]{ACCESSED}, tikaBuilder)
           .addStep(new String[]{"tika"}, sendToSolrBuilder)
           .withIdField("id")
-          .build();
+          .build()
+          .activate();
 
-      plan.activate();
     }
 
     //noinspection InfiniteLoopStatement

@@ -36,6 +36,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.LinkedHashMap;
 import java.util.function.Consumer;
@@ -108,14 +109,26 @@ public class SimpleFileWatchScanner extends ScannerImpl {
             if (resolvedPath.toFile().isDirectory()) {
               continue;
             }
+
+            if (ENTRY_DELETE == fileEvent.kind()) {
+              makeDoc(resolvedPath, Document.Operation.DELETE, null);
+              continue;
+            }
+
+            BasicFileAttributeView view = Files.getFileAttributeView(resolvedPath, BasicFileAttributeView.class);
+            BasicFileAttributes attrs = null;
+            try {
+              attrs = view.readAttributes();
+            } catch (IOException e) {
+              log.warn("Could not read attributes for file:{}", resolvedPath);
+            }
+
             if (ENTRY_CREATE == fileEvent.kind()) {
-              makeDoc(resolvedPath, Document.Operation.NEW);
+
+              makeDoc(resolvedPath, Document.Operation.NEW, attrs);
             }
             if (ENTRY_MODIFY == fileEvent.kind()) {
-              makeDoc(resolvedPath, Document.Operation.UPDATE);
-            }
-            if (ENTRY_DELETE == fileEvent.kind()) {
-              makeDoc(resolvedPath, Document.Operation.DELETE);
+              makeDoc(resolvedPath, Document.Operation.UPDATE, attrs);
             }
           }
           key.reset();
@@ -138,7 +151,7 @@ public class SimpleFileWatchScanner extends ScannerImpl {
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-      makeDoc(file, Document.Operation.NEW);
+      makeDoc(file, Document.Operation.NEW, attrs);
       return FileVisitResult.CONTINUE;
     }
 
@@ -160,7 +173,7 @@ public class SimpleFileWatchScanner extends ScannerImpl {
     }
   }
 
-  void makeDoc(Path file, Document.Operation operation) {
+  void makeDoc(Path file, Document.Operation operation, BasicFileAttributes attributes) {
     byte[] rawData = new byte[0];
     try {
       rawData = Files.readAllBytes(file);
@@ -170,15 +183,20 @@ public class SimpleFileWatchScanner extends ScannerImpl {
     String id;
     try {
       id = file.toRealPath(new LinkOption[0]).toUri().toASCIIString();
-      SimpleFileWatchScanner.this.docFound(
-          new DocumentImpl(
-              rawData,
-              id,
-              getPlan(),
-              operation,
-              SimpleFileWatchScanner.this
-          )
+      DocumentImpl doc = new DocumentImpl(
+          rawData,
+          id,
+          getPlan(),
+          operation,
+          SimpleFileWatchScanner.this
       );
+      if (attributes != null) {
+        doc.put("modified", String.valueOf(attributes.lastModifiedTime().toMillis()));
+        doc.put("accessed", String.valueOf(attributes.lastAccessTime().toMillis()));
+        doc.put("created", String.valueOf(attributes.creationTime().toMillis()));
+        doc.put("file_size", String.valueOf(attributes.size()));
+      }
+      SimpleFileWatchScanner.this.docFound(doc);
     } catch (IOException e) {
       // TODO: perhaps we still want to proceed with non-canonical version?
       log.error("Could not resolve file path. Skipping:" + file, e);
