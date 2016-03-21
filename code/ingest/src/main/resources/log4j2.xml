@@ -1,25 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration status="error" name="LoggingConfig" monitorInterval="5" packages="org.jesterj.ingest.logging" >
+<configuration status="error" name="LoggingConfig" monitorInterval="5" packages="org.jesterj.ingest.logging">
 
   <appenders>
     <Console name="STDOUT" target="SYSTEM_OUT">
-      <PatternLayout pattern="%d{ISO8601} %m%n"/>
+      <PatternLayout pattern="%d{ISO8601} %p %t %c %m%n" />
     </Console>
     <JesterJAppender name="CASSANDRA">
-      <PatternLayout pattern="%m%n"/>
+      <PatternLayout pattern="%m%n" />
     </JesterJAppender>
   </appenders>
 
   <loggers>
     <logger level="debug" name="org.jesterj" additivity="false">
-      <appender-ref ref="STDOUT"/>
-      <appender-ref ref="CASSANDRA"/>
+      <appender-ref ref="STDOUT" />
+      <appender-ref ref="CASSANDRA" />
+    </logger>
+    <logger level="error" name="org.apache.http.wire" additivity="false">
+      <appender-ref ref="STDOUT" />
     </logger>
     <logger level="error" name="org.apache.cassandra" additivity="false">
-      <appender-ref ref="STDOUT"/>
+      <appender-ref ref="STDOUT" />
     </logger>
-    <root level="debug">
-      <appender-ref ref="STDOUT"/>
+    <root level="info">
+      <appender-ref ref="STDOUT" />
     </root>
   </loggers>
 
