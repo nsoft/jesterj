@@ -20,6 +20,7 @@ See the [web site](http://www.jesterj.org) for more info
  * Options to specify dirs for cassandra
  * Rename Field Processor
  * Add Field Processor
+ * Tika processor to extract content
  * Field value Number Format Processor
  * Field value Date Format Processor
  * Solr sender.
@@ -33,7 +34,6 @@ file name and file size.
 ## TODO for 0.2
  * Serialized format for a plan/steps.
  * Cassandra stored hashcode based file scanner
- * Tika processor
  * Xpath extractor
  * JsonPath extractor
  * Database table scanner
