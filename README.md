@@ -11,21 +11,21 @@ See the [web site](http://www.jesterj.org) for more info
  * Embedded Cassandra server
  * Log4j can log to embedded cassandra server for regular logs and FTI status reports
  * Options to specify regular logs go to file also, or only to file (and locations of the file) -> log4j config
- * Simple filesystem scanner
- * Official API/process for user written steps. (just implement DocumentProcessor)
  * Actual web site, deploy as Github site.
+ * Official API/process for user written steps. (just implement DocumentProcessor)
+ * Simple filesystem scanner
+ * Tika processor to extract content
+ * Solr sender.
+ * [Execute a Plan](https://github.com/nsoft/jesterj/blob/master/code/ingest/README.md) that scans a filesystem, and indexes the documents in solr!
 
- 
 ## TODO for 0.1:
  * Options to specify dirs for cassandra
  * Rename Field Processor
  * Add Field Processor
- * Tika processor to extract content
  * Field value Number Format Processor
  * Field value Date Format Processor
- * Solr sender.
  * 40% test coverage (jacoco)
- * Execute a Plan that scans a filesystem, fixes up file sizes, and indexes the documents in solr!
+ * Fix up filesizes and provide slightly better metadata for demo execution
  
 Release 0.1 is intended to be the smallest functional unit. Plans and steps will need to be assembled 
 in code etc and only run locally, only single node supported. Documents indexed will have fields for mod-time, 
