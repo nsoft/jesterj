@@ -14,16 +14,16 @@ See the [web site](http://www.jesterj.org) for more info
  * Actual web site, deploy as Github site.
  * Official API/process for user written steps. (just implement DocumentProcessor)
  * Simple filesystem scanner
+ * Copy Field processor
+ * Date Reformat processor
  * Tika processor to extract content
  * Solr sender.
  * [Execute a Plan](https://github.com/nsoft/jesterj/blob/master/code/ingest/README.md) that scans a filesystem, and indexes the documents in solr!
 
 ## TODO for 0.1:
  * Options to specify dirs for cassandra
- * Rename Field Processor
  * Add Field Processor
  * Field value Number Format Processor
- * Field value Date Format Processor
  * 40% test coverage (jacoco)
  * Fix up filesizes and provide slightly better metadata for demo execution
  
