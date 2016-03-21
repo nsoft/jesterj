@@ -24,7 +24,6 @@ See the [web site](http://www.jesterj.org) for more info
  * Options to specify dirs for cassandra
  * Add Field Processor
  * Field value Number Format Processor
- * Field value Date Format Processor
  * 40% test coverage (jacoco)
  * Fix up filesizes and provide slightly better metadata for demo execution
  
