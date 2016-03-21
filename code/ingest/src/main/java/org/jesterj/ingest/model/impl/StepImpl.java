@@ -333,7 +333,7 @@ public class StepImpl implements Step {
         }
       }
       if (temp != null) {
-        temp.parallelStream().forEach(new ItemConsumer());
+        temp.parallelStream().forEach(new DocumentConsumer());
         continue;
       }
 
@@ -370,7 +370,7 @@ public class StepImpl implements Step {
     return inputSpace;
   }
 
-  private class ItemConsumer implements Consumer<Document> {
+  private class DocumentConsumer implements Consumer<Document> {
 
     @Override
     public void accept(Document document) {
@@ -384,7 +384,6 @@ public class StepImpl implements Step {
         t.printStackTrace();
       }
     }
-
   }
 
   public static class Builder {
