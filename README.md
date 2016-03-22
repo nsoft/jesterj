@@ -1,4 +1,4 @@
-JesterJ
+JesterJ [![License](https://img.shields.io/badge/license-Apache%202.0-B70E23.svg?style=plastic)](http://www.opensource.org/licenses/Apache-2.0)
 =======
 
 A new highly flexible, highly scaleable document ingestion system. 
