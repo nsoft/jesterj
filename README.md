@@ -9,6 +9,7 @@ See the [web site](http://www.jesterj.org) for more info
 
 ## Working:
  * Embedded Cassandra server
+ * Cassandra config and data location configurable, defaults to ~/.jj/cassandra
  * Log4j can log to embedded cassandra server for regular logs and FTI status reports
  * Options to specify regular logs go to file also, or only to file (and locations of the file) -> log4j config
  * Actual web site, deploy as Github site.
@@ -22,7 +23,6 @@ See the [web site](http://www.jesterj.org) for more info
  * [Execute a Plan](https://github.com/nsoft/jesterj/blob/master/code/ingest/README.md) that scans a filesystem, and indexes the documents in solr!
 
 ## TODO for 0.1:
- * Options to specify dirs for cassandra
  * Add Field Processor
  * Field value Number Format Processor
  * Fix up filesizes and provide slightly better metadata for demo execution
