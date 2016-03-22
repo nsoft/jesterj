@@ -41,7 +41,6 @@ import static org.junit.Assert.assertEquals;
 
 public class CopyFieldTest {
   @ObjectUnderTest private CopyField obj;
-  @Mock private Object mock;
   @Mock private Document mockDocument;
 
   public CopyFieldTest() {
