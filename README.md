@@ -7,26 +7,26 @@ See the [web site](http://www.jesterj.org) and the [documentation](https://githu
 
 # Status
 
-## Working:
+Current release version: 0.1.
+
+## Features:
+
+In this release we have the following features
+
  * Embedded Cassandra server
  * Cassandra config and data location configurable, defaults to ~/.jj/cassandra
- * Log4j can log to embedded cassandra server for regular logs and FTI status reports
- * Options to specify regular logs go to file also, or only to file (and locations of the file) -> log4j config
- * Actual web site, deploy as Github site.
- * Official API/process for user written steps. (just implement DocumentProcessor)
+ * Initial support for fault tolerance via logging statuses to the embedded cassandra server (WIP)
+ * Log4j appender to write to Cassandra where desired
+ * Initial API/process for user written steps. (see [documentation](https://github.com/nsoft/jesterj/wiki/Documentation))
  * 40% test coverage (jacoco)
  * Simple filesystem scanner
  * Copy Field processor
  * Date Reformat processor
+ * Human Readable File Size processor 
  * Tika processor to extract content
- * Solr sender.
- * [Execute a Plan](https://github.com/nsoft/jesterj/blob/master/code/ingest/README.md) that scans a filesystem, and indexes the documents in solr!
+ * Solr sender to send documents to solr in batches.
+ * Runnable example to [execute a plan](https://github.com/nsoft/jesterj/blob/master/code/ingest/README.md) that scans a filesystem, and indexes the documents in solr.
 
-## TODO for 0.1:
- * Add Field Processor
- * Field value Number Format Processor
- * Fix up filesizes and provide slightly better metadata for demo execution
- 
 Release 0.1 is intended to be the smallest functional unit. Plans and steps will need to be assembled 
 in code etc and only run locally, only single node supported. Documents indexed will have fields for mod-time, 
 file name and file size.
