@@ -37,7 +37,7 @@ import static org.jesterj.ingest.logging.Markers.SET_SEARCHABLE;
 public enum Status {
   /**
    * Resource requires re-indexing. Scanners will look for this state when deciding whether to create
-   * an item for processing.
+   * an document for processing.
    */
   DIRTY {
     @Override
@@ -47,7 +47,7 @@ public enum Status {
   },
 
   /**
-   * A scanner has picked up resource, and item is in-flight and processing should continue.
+   * A scanner has picked up resource, and document is in-flight and processing should continue.
    */
   PROCESSING {
     @Override
@@ -57,7 +57,7 @@ public enum Status {
   },
 
   /**
-   * This item was intentionally skipped by the pipeline. Further processing should be avoided.
+   * This document was intentionally skipped by the pipeline. Further processing should be avoided.
    */
   DROPPED {
     @Override
@@ -68,7 +68,7 @@ public enum Status {
 
   /**
    * Something went wrong, human being must intervene and evaluate. Further processing should be avoided, and stateful
-   * Scanners should avoid creating new items for the resource.
+   * Scanners should avoid creating new documents for the resource.
    */
   ERROR {
     @Override
@@ -78,9 +78,10 @@ public enum Status {
   },
 
   /**
-   * The item has been fully processed and is queued for sending to a final destination (usually a search index).
+   * The document is being held for communication to an entity in a batch. Commonly used when send to outside systems
+   * that are more efficient receiving batches (e.g. Solr).
    */
-  READY {
+  BATCHED {
     @Override
     public Marker getMarker() {
       return SET_READY;
@@ -88,7 +89,7 @@ public enum Status {
   },
   
   /**
-   * The item has been accepted by the destination index, but may not be searchable until the next commit.
+   * The document has been accepted by the destination index, but may not be searchable until the next commit.
    */
   INDEXED {
     @Override
@@ -99,7 +100,7 @@ public enum Status {
 
   /**
    * The resource is visible to users in the search index. This state is optional, and requires an index that
-   * can report the status of committed items. Most indexes don't do this without customization code.
+   * can report the status of committed documents. Most indexes don't do this without customization code.
    */
   SEARCHABLE {
     @Override
@@ -109,7 +110,7 @@ public enum Status {
   },
 
   /**
-   * Terminal state for resources that generate items that will never succeed and cannot be processed.
+   * Terminal state for resources that generate documents that will never succeed and cannot be processed.
    */
   DEAD {
     @Override

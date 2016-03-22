@@ -73,7 +73,7 @@ public class SendToSolrCloudProcessor implements DocumentProcessor {
         }
         scheduledSend = sender.schedule((Runnable) this::sendBatch, sendPartialBatchAfterMs, TimeUnit.MILLISECONDS);
       }
-      log.info(Status.READY.getMarker(), "{} queued in postition {} for sending to solr. " +
+      log.info(Status.BATCHED.getMarker(), "{} queued in postition {} for sending to solr. " +
           "Will be sent within {} milliseconds.", document.getId(), batch.size(), sendPartialBatchAfterMs);
     }
     return new Document[0];
