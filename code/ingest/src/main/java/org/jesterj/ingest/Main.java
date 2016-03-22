@@ -157,10 +157,11 @@ public class Main {
           .stepName(SHAKESPEAR)
           .withRoot(testDocs)
           .scanFreqMS(100);
+      SimpleDateTimeReformater.Builder dateTimeReformatBuilder = new SimpleDateTimeReformater.Builder();
       formatCreated
           .stepName(CREATED)
           .withProcessor(
-              new SimpleDateTimeReformater.Builder()
+              dateTimeReformatBuilder
                   .from("created")
                   .into("created_dt")
                   .build()
@@ -168,7 +169,7 @@ public class Main {
       formatModified
           .stepName(MODIFIED)
           .withProcessor(
-              new SimpleDateTimeReformater.Builder()
+              dateTimeReformatBuilder
                   .from("modified")
                   .into("modified_dt")
                   .build()
@@ -176,11 +177,12 @@ public class Main {
       formatAccessed
           .stepName(ACCESSED)
           .withProcessor(
-              new SimpleDateTimeReformater.Builder()
+              dateTimeReformatBuilder
                   .from("accessed")
                   .into("accessed_dt")
                   .build()
           );
+
       renameFileszieToInteger
           .stepName(SIZE_TO_INT)
           .withProcessor(
