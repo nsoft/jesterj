@@ -53,6 +53,7 @@ public class SendToSolrCloudProcessor implements DocumentProcessor {
   private ScheduledFuture scheduledSend;
   private final ConcurrentHashMap<Document, SolrInputDocument> batch = new ConcurrentHashMap<>(batchSize);
   private String textContentField = "content";
+  private String fieldsField;
 
   private CloudSolrClient solrClient;
 
@@ -137,6 +138,9 @@ public class SendToSolrCloudProcessor implements DocumentProcessor {
         String value = new String(document.getRawData(), Charset.forName("UTF-8"));
         doc.addField(textContentField, value);
       }
+      if (fieldsField != null) {
+        doc.addField(fieldsField, field);
+      }
     }
     return doc;
   }
@@ -173,6 +177,11 @@ public class SendToSolrCloudProcessor implements DocumentProcessor {
 
     public Builder atZookeeperPort(int port) {
       getObj().zkPort = port;
+      return this;
+    }
+
+    public Builder withDocFieldsIn(String fieldsField) {
+      getObj().fieldsField = fieldsField;
       return this;
     }
 

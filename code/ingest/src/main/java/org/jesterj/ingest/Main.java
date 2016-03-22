@@ -98,7 +98,7 @@ public class Main {
     // Next check our args and die if they are FUBAR
     Map<String, Object> parsedArgs = usage(args);
 
-    String cassandraHome = String.valueOf(parsedArgs.get("--cassandra-home"));
+    String cassandraHome = (String) parsedArgs.get("--cassandra-home");
     File cassandraDir = null;
     if (cassandraHome != null) {
       cassandraHome = cassandraHome.replaceFirst("^~", System.getProperty("user.home"));
@@ -202,6 +202,7 @@ public class Main {
                   .atZookeeperPort(9983)
                   .usingCollection("jjtest")
                   .placingTextContentIn("_text_")
+                  .withDocFieldsIn(".fields")
                   .build()
           );
       planBuilder
