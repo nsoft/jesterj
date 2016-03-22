@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Gradle: org.apache.httpcomponents:httpmime:4.4.1">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents/httpmime/4.4.1/2f8757f5ac5e38f46c794e5229d1f3c522e9b1df/httpmime-4.4.1.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents/httpmime/4.4.1/91d277515c8897b39b31cf63e133e268ba7e0dd8/httpmime-4.4.1-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents/httpmime/4.4.1/5394d3715181a87009032335a55b0a9789f6e26f/httpmime-4.4.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
