@@ -3,7 +3,7 @@ JesterJ
 
 A new highly flexible, highly scaleable document ingestion system. 
 
-See the [web site](http://www.jesterj.org) for more info
+See the [web site](http://www.jesterj.org) and the [documentation](https://github.com/nsoft/jesterj/wiki/Documentation) for more info
 
 # Status
 
