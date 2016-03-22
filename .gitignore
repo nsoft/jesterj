@@ -45,3 +45,11 @@ build
 *~
 .~lock.*
 workspace.xml
+
+# Eclipse related #
+###################
+.classpath
+.project
+.settings/
+bin/
+
