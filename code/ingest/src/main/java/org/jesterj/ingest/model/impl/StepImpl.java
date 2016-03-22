@@ -281,7 +281,7 @@ public class StepImpl implements Step {
 
   protected final void pushToNextIfOk(Document document) {
     if (document.getStatus() == Status.PROCESSING) {
-      log.info(Status.PROCESSING.getMarker(), "{} finished processing {}", getStepName(), document.getId());
+      reportDocStatus(Status.PROCESSING, document, "{} finished processing {}", getStepName(), document.getId());
       Step next = getNext(document);
       if (next == null) {
         return;
@@ -310,6 +310,18 @@ public class StepImpl implements Step {
           }
         }
       }
+    } else {
+      reportDocStatus(document.getStatus(), document,
+          "Document processing for {} terminated after {}", document.getId(), getStepName());
+    }
+  }
+
+  private void reportDocStatus(Status status, Document document, String message, Object... messageParams) {
+    try {
+      ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, document.getId());
+      log.info(status.getMarker(), message, messageParams);
+    } finally {
+      ThreadContext.clearAll();
     }
   }
 
@@ -356,14 +368,10 @@ public class StepImpl implements Step {
   }
 
   protected void reportException(Document doc, Exception e, String message) {
-    try {
-      ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, doc.getId());
-      StringWriter buff = new StringWriter();
-      e.printStackTrace(new PrintWriter(buff));
-      getLogger().error(Status.ERROR.getMarker(), message + e.getMessage() + "\n" + buff.toString());
-    } finally {
-      ThreadContext.clearAll();
-    }
+    StringWriter buff = new StringWriter();
+    e.printStackTrace(new PrintWriter(buff));
+    String errorMsg = message + " " + e.getMessage() + "\n" + buff.toString();
+    reportDocStatus(Status.ERROR, doc, errorMsg);
   }
 
   public JavaSpace getInputSpace() {
