@@ -3,7 +3,7 @@ Start an injester process supplying a password required to configure it. A prefi
 java -jar is presumed for all usage below.
 
 Usage:
-  ingest-node.jar <id> <secret>
+  ingest-node.jar [--cassandra-home=<dir>] <id> <secret>
 
 Options:
   --help

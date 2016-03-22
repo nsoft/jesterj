@@ -21,7 +21,6 @@ import org.apache.cassandra.config.ConfigurationLoader;
 import org.apache.cassandra.config.YamlConfigurationLoader;
 import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.service.CassandraDaemon;
-import org.jesterj.ingest.Main;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
@@ -67,22 +66,21 @@ public class Cassandra {
 
   private volatile static boolean booting = true;
 
-  public static void start() {
+  public static void start(File cassandraDir) {
 
     System.out.println("Booting to run cassandra");
     try {
-      File f = new File(Main.JJ_DIR + "/cassandra");
-      if (!f.exists() && !f.mkdirs()) {
-        throw new RuntimeException("could not create" + f);
+      if (!cassandraDir.exists() && !cassandraDir.mkdirs()) {
+        throw new RuntimeException("could not create" + cassandraDir);
       }
-      f = new File(f, "cassandra.yaml");
-      System.setProperty("cassandra.config", f.toURI().toString());
-      if (!f.exists()) {
-        CassandraConfig cfg = new CassandraConfig();
+      File yaml = new File(cassandraDir, "cassandra.yaml");
+      System.setProperty("cassandra.config", yaml.toURI().toString());
+      if (!yaml.exists()) {
+        CassandraConfig cfg = new CassandraConfig(cassandraDir.getCanonicalPath());
         cfg.guessIp();
         listenAddress = cfg.getListen_address();
         String cfgStr = new Yaml().dumpAsMap(cfg);
-        Files.write(f.toPath(), cfgStr.getBytes(), StandardOpenOption.CREATE);
+        Files.write(yaml.toPath(), cfgStr.getBytes(), StandardOpenOption.CREATE);
       } else {
         ConfigurationLoader cl = new YamlConfigurationLoader();
         Config conf = cl.loadConfig();

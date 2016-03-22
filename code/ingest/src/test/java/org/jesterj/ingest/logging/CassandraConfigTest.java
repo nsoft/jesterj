@@ -22,6 +22,7 @@ package org.jesterj.ingest.logging;
  */
 
 import com.copyright.easiertest.ObjectUnderTest;
+import org.jesterj.ingest.Main;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -142,7 +143,7 @@ public class CassandraConfigTest {
   @Test
   public void testBetter() throws SocketException {
     replay();
-    CassandraConfig example = new CassandraConfig();
+    CassandraConfig example = new CassandraConfig(Main.JJ_DIR + "/cassandra");
 
     example.setListen_address(LOCALHOST);
     assertTrue(example.better(PUBLIC));

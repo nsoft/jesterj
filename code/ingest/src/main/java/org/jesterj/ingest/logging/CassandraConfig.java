@@ -16,8 +16,6 @@
 
 package org.jesterj.ingest.logging;
 
-import org.jesterj.ingest.Main;
-
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -70,12 +68,12 @@ public class CassandraConfig {
   private ArrayList<Map<String, Object>> seed_provider;
 
   @SuppressWarnings("unchecked")
-  public CassandraConfig() {
+  public CassandraConfig(String cassandraDir) {
 
-    String dir = Main.JJ_DIR;
-    commitlog_directory = dir + "/cassandra/data/commitlog";
-    saved_caches_directory = dir + "/cassandra/data/saved_caches";
-    data_file_directories = new String[]{dir + "/cassandra/data/data"};
+    String dir = cassandraDir;
+    commitlog_directory = dir + "/data/commitlog";
+    saved_caches_directory = dir + "/data/saved_caches";
+    data_file_directories = new String[]{dir + "/data/data"};
 
     // yuck, but it's what's required.
     seed_provider = new ArrayList();

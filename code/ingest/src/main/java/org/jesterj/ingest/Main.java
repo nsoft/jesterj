@@ -95,7 +95,23 @@ public class Main {
     System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
     initClassloader();
     initRMI();
-    Cassandra.start();
+    // Next check our args and die if they are FUBAR
+    Map<String, Object> parsedArgs = usage(args);
+
+    String cassandraHome = String.valueOf(parsedArgs.get("--cassandra-home"));
+    File cassandraDir = null;
+    if (cassandraHome != null) {
+      cassandraHome = cassandraHome.replaceFirst("^~", System.getProperty("user.home"));
+      cassandraDir = new File(cassandraHome);
+      if (!cassandraDir.isDirectory()) {
+        System.err.println("\nERROR: --cassandra-home must specify a directory\n");
+        System.exit(1);
+      }
+    }
+    if (cassandraDir == null) {
+      cassandraDir = new File(JJ_DIR + "/cassandra");
+    }
+    Cassandra.start(cassandraDir);
 
     // now we can see log4j2.xml
     log = LogManager.getLogger();
@@ -109,10 +125,6 @@ public class Main {
     } finally {
       ThreadContext.clearAll();
     }
-
-
-    // Next check our args and die if they are FUBAR
-    Map<String, Object> parsedArgs = usage(args);
 
     String id = String.valueOf(parsedArgs.get("id"));
     String password = String.valueOf(parsedArgs.get("password"));
@@ -280,8 +292,9 @@ public class Main {
     @SuppressWarnings("unchecked")
     AbstractMap<String, Object> result = clj.docopt(usageStr, args);
     if (result != null) {
+      System.out.println("\nReceived arguments:");
       for (String s : result.keySet()) {
-        log.debug("{}:{}", s, result.get(s));
+        System.out.printf("   %s:%s\n", s, result.get(s));
       }
     }
     if (result == null || result.get("--help") != null) {
