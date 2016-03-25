@@ -1,0 +1,55 @@
+Need to represent a graph
+Want to easily parse DSL to graphical display of graph.
+Problem: dsl linear. How to connect nodes of graph...
+
+Graph is directional and acyclic, so require previous definition?
+
+Perhaps separate config for node from config for graph... 
+
+Configurations will be stored in a directory structure similar to
+
+<default config dir>
+  +group_name
+  |\
+  | +config.jjg
+  | +plan_name
+  | |\
+  | | +config.jj
+  | | +step_name
+  | | |\
+  | | | +config.jjs
+  | | | +processor_name.jjp
+  | | | +router_name.jjr
+  | | +step_name
+  | | |\
+  | | | +config.jjs
+  | | | +processor_name.jjp
+  | | | +router_name.jjr
+  | | +step_name
+  | |  \
+  | |   +config.jjs
+  | |   +processor_name.jjp
+  | |   +router_name.jjr
+  | +plan_name
+  |  \
+  |   +config.jj
+  |   +step_name
+  |   |\
+  |   | +config.jjs
+  |   | +processor_name.jjp
+  |   | +router_name.jjr
+  |   +step_name
+  |   |\
+  |   | +config.jjs
+  |   | +processor_name.jjp
+  |   | +router_name.jjr
+  |   +step_name
+  |    \
+  |     +config.jjs
+  |     +processor_name.jjp
+  |     +router_name.jjr
+  +group_name2
+(etc)
+
+Builder objects will be serialized as YAML, if this can be done in a deterministic manner. It's important that the
+order of attributes be consistent every time the file is written. If not we may have to 
