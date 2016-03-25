@@ -16,12 +16,11 @@
 
 package org.jesterj.ingest.processors;
 
+import com.copyright.easiertest.SimpleProperty;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
-
-import com.copyright.easiertest.SimpleProperty;
 
 /**
  * Sets readable file size field values, as follows:
@@ -42,6 +41,7 @@ public class SetReadableFileSize implements DocumentProcessor {
   private String numericAndUnitsField;
   private String unitsField;
   private String numericField;
+  private String name;
 
   @Override
   public Document[] processDocument(Document document) {
@@ -86,6 +86,11 @@ public class SetReadableFileSize implements DocumentProcessor {
     return numericField;
   }
 
+  @Override
+  public String getName() {
+    return name;
+  }
+
   /**
    * Represents a builder which sets configuration properties on the
    * <code>SetReadableFileSize</code> processor.
@@ -113,6 +118,11 @@ public class SetReadableFileSize implements DocumentProcessor {
 
     public Builder intoNumericField(String toField) {
       getObj().numericField = toField;
+      return this;
+    }
+
+    public Builder named(String name) {
+      getObj().name = name;
       return this;
     }
 

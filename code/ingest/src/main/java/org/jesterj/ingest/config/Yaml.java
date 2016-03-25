@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest.model;
-
-import java.util.LinkedHashMap;
-
-/*
+package org.jesterj.ingest.config;/*
  * Created with IntelliJ IDEA.
  * User: gus
- * Date: 3/18/16
+ * Date: 3/24/16
  */
-public interface Router extends Configurable {
-  Step route(Document doc, LinkedHashMap<String, Step> nextSteps);
+
+/**
+ * Denotes a method on a builder that sets a field on the object being built that should be represented
+ * in the YAML save file. The value is the name of the field that should be set
+ */
+public @interface Yaml {
 }

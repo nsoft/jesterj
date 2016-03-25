@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest.model;
-
-import java.util.LinkedHashMap;
-
-/*
+package org.jesterj.ingest.model;/*
  * Created with IntelliJ IDEA.
  * User: gus
- * Date: 3/18/16
+ * Date: 3/24/16
  */
-public interface Router extends Configurable {
-  Step route(Document doc, LinkedHashMap<String, Step> nextSteps);
+
+
+public interface DeferredBuilding {
+
+  void executeDeferred();
+
+  void addDeferred(Runnable builderAction);
 }

@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
+import org.jesterj.ingest.model.Buildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
@@ -38,6 +39,7 @@ import java.security.AccessControlException;
 public class TikaProcessor implements DocumentProcessor {
 
   private static final Logger log = LogManager.getLogger();
+  private String name;
 
   @Override
   public Document[] processDocument(Document document) {
@@ -67,4 +69,35 @@ public class TikaProcessor implements DocumentProcessor {
     }
     return new Document[]{document};
   }
+
+  @Override
+  public String getName() {
+    return name;
+  }
+
+  public static class Builder implements Buildable<TikaProcessor> {
+
+    TikaProcessor obj = new TikaProcessor();
+
+    protected TikaProcessor getObj() {
+      return obj;
+    }
+
+    public Builder named(String name) {
+      getObj().name = name;
+      return this;
+    }
+
+    private void setObj(TikaProcessor obj) {
+      this.obj = obj;
+    }
+
+    public TikaProcessor build() {
+      TikaProcessor object = getObj();
+      setObj(new TikaProcessor());
+      return object;
+    }
+
+  }
+
 }

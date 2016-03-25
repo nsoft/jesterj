@@ -23,6 +23,7 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.common.SolrInputDocument;
 import org.jesterj.ingest.logging.JesterJAppender;
+import org.jesterj.ingest.model.Buildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
@@ -56,6 +57,7 @@ public class SendToSolrCloudProcessor implements DocumentProcessor {
   private String fieldsField;
 
   private CloudSolrClient solrClient;
+  private String name;
 
   protected SendToSolrCloudProcessor() {
   }
@@ -145,8 +147,13 @@ public class SendToSolrCloudProcessor implements DocumentProcessor {
     return doc;
   }
 
+  @Override
+  public String getName() {
+    return name;
+  }
 
-  public static class Builder {
+
+  public static class Builder implements Buildable<SendToSolrCloudProcessor> {
 
     SendToSolrCloudProcessor obj = new SendToSolrCloudProcessor();
 
@@ -182,6 +189,11 @@ public class SendToSolrCloudProcessor implements DocumentProcessor {
 
     public Builder withDocFieldsIn(String fieldsField) {
       getObj().fieldsField = fieldsField;
+      return this;
+    }
+
+    public Builder named(String name) {
+      getObj().name = name;
       return this;
     }
 

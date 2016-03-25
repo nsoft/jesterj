@@ -19,6 +19,7 @@ package org.jesterj.ingest.processors;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jesterj.ingest.model.Buildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
@@ -38,6 +39,7 @@ public class LogAndDrop implements DocumentProcessor {
   // most other cases we ignore testing the logging.
   static Logger log = LogManager.getLogger();
   private Level level;
+  private String name;
 
   protected LogAndDrop() {
   }
@@ -52,8 +54,13 @@ public class LogAndDrop implements DocumentProcessor {
   Level getLevel() {
     return level;
   }
-  
-  public static class Builder {
+
+  @Override
+  public String getName() {
+    return name;
+  }
+
+  public static class Builder implements Buildable<LogAndDrop> {
 
     LogAndDrop obj = new LogAndDrop();
 
@@ -66,6 +73,11 @@ public class LogAndDrop implements DocumentProcessor {
       return obj;
     }
 
+    public Builder named(String name) {
+      getObj().name = name;
+      return this;
+    }
+    
     private void setObj(LogAndDrop obj) {
       this.obj = obj;
     }

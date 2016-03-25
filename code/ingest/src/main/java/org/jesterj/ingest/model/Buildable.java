@@ -22,7 +22,7 @@ package org.jesterj.ingest.model;/*
 
 
 // this may or may not remain...
-public interface Builder<T> {
+public interface Buildable<T> {
 
   T build();
 }

@@ -17,6 +17,7 @@
 package org.jesterj.ingest.processors;
 
 import com.copyright.easiertest.SimpleProperty;
+import org.jesterj.ingest.model.Buildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 
@@ -31,6 +32,7 @@ public class CopyField implements DocumentProcessor {
   private String from;
   private String into;
   private boolean retainOriginal = true;
+  private String name;
 
   @Override
   public Document[] processDocument(Document document) {
@@ -58,7 +60,12 @@ public class CopyField implements DocumentProcessor {
     return retainOriginal;
   }
 
-  public static class Builder {
+  @Override
+  public String getName() {
+    return name;
+  }
+
+  public static class Builder implements Buildable<CopyField> {
     private CopyField obj = new CopyField();
 
     public Builder from(String from) {
@@ -73,6 +80,11 @@ public class CopyField implements DocumentProcessor {
 
     public Builder retainingOriginal(boolean retain) {
       getObj().retainOriginal = retain;
+      return this;
+    }
+
+    public Builder named(String name) {
+      getObj().name = name;
       return this;
     }
 

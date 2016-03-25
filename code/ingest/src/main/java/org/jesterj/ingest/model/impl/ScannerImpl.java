@@ -19,6 +19,7 @@ package org.jesterj.ingest.model.impl;
 import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jesterj.ingest.model.Buildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.Scanner;
@@ -205,10 +206,10 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
 
   }
 
-  @Override
-  public int size() {
-    throw new UnsupportedOperationException("Scanners are a push only source of documents. Queue methods are not supported for this type of step.");
-  }
+//  @Override
+//  public int size() {
+//    throw new UnsupportedOperationException("Scanners are a push only source of documents. Queue methods are not supported for this type of step.");
+//  }
 
   @Override
   public boolean isEmpty() {
@@ -315,13 +316,13 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     }
 
     @Override
-    public StepImpl.Builder stepName(String stepName) {
-      super.stepName(stepName);
+    public StepImpl.Builder named(String stepName) {
+      super.named(stepName);
       return this;
     }
 
     @Override
-    public StepImpl.Builder routingBy(Router router) {
+    public StepImpl.Builder routingBy(Buildable<Router> router) {
       super.routingBy(router);
       return this;
     }
@@ -334,7 +335,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       return this;
     }
 
-    protected abstract ScannerImpl build();
+    public abstract ScannerImpl build();
 
 
   }

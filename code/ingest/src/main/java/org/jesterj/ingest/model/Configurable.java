@@ -16,13 +16,28 @@
 
 package org.jesterj.ingest.model;
 
-import java.util.LinkedHashMap;
+import java.util.regex.Pattern;
 
 /*
  * Created with IntelliJ IDEA.
  * User: gus
- * Date: 3/18/16
+ * Date: 3/24/16
  */
-public interface Router extends Configurable {
-  Step route(Document doc, LinkedHashMap<String, Step> nextSteps);
+public interface Configurable {
+
+  Pattern VALID_NAME = Pattern.compile("^[A-Za-z][\\w\\.]*$");
+
+  /**
+   * A name for this object to distinguish it from other objects. This value is generally supplied
+   * by the plan author. Every object in a plan must have a unique name, begin with a letter
+   * and only contain letters, digits, underscores and periods.
+   *
+   * @return The user supplied name for this step
+   */
+
+  String getName();
+
+  default boolean isValidName(String name) {
+    return VALID_NAME.matcher(name).matches();
+  }
 }

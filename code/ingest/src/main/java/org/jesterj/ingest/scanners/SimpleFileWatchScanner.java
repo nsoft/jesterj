@@ -20,6 +20,7 @@ import com.sun.nio.file.SensitivityWatchEventModifier;
 import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jesterj.ingest.model.Buildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.impl.DocumentImpl;
@@ -243,13 +244,13 @@ public class SimpleFileWatchScanner extends ScannerImpl {
     }
 
     @Override
-    public SimpleFileWatchScanner.Builder stepName(String stepName) {
-      super.stepName(stepName);
+    public SimpleFileWatchScanner.Builder named(String stepName) {
+      super.named(stepName);
       return this;
     }
 
     @Override
-    public SimpleFileWatchScanner.Builder routingBy(Router router) {
+    public SimpleFileWatchScanner.Builder routingBy(Buildable<Router> router) {
       super.routingBy(router);
       return this;
     }
@@ -261,7 +262,7 @@ public class SimpleFileWatchScanner extends ScannerImpl {
     }
 
     @Override
-    protected ScannerImpl build() {
+    public ScannerImpl build() {
       SimpleFileWatchScanner tmp = obj;
       this.obj = new SimpleFileWatchScanner();
       return tmp;
