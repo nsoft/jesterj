@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Needham Software LLC
+ * Copyright 2016 Needham Software LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,9 @@
 package org.jesterj.ingest.model;/*
  * Created with IntelliJ IDEA.
  * User: gus
- * Date: 12/7/14
+ * Date: 3/26/16
  */
 
-
-// this may or may not remain...
 public interface Buildable<T> {
-
   T build();
 }

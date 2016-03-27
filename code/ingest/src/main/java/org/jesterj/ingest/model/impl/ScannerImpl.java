@@ -19,7 +19,7 @@ package org.jesterj.ingest.model.impl;
 import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jesterj.ingest.model.Buildable;
+import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.Scanner;
@@ -322,7 +322,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     }
 
     @Override
-    public StepImpl.Builder routingBy(Buildable<Router> router) {
+    public StepImpl.Builder routingBy(ConfiguredBuildable<Router> router) {
       super.routingBy(router);
       return this;
     }

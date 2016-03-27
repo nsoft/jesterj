@@ -21,7 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.jesterj.ingest.logging.JesterJAppender;
-import org.jesterj.ingest.model.Buildable;
+import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
@@ -408,7 +408,7 @@ public class StepImpl implements Step {
     }
   }
 
-  public static class Builder implements Buildable<StepImpl> {
+  public static class Builder extends NamedBuilder<StepImpl> {
 
     private StepImpl obj;
 
@@ -449,12 +449,12 @@ public class StepImpl implements Step {
       return this;
     }
 
-    public Builder routingBy(Buildable<Router> router) {
+    public Builder routingBy(ConfiguredBuildable<Router> router) {
       getObject().addDeferred(router::build);
       return this;
     }
 
-    public Builder withProcessor(Buildable<? extends DocumentProcessor> processor) {
+    public Builder withProcessor(ConfiguredBuildable<? extends DocumentProcessor> processor) {
       getObject().addDeferred(() -> getObject().processor = processor.build());
       return this;
     }

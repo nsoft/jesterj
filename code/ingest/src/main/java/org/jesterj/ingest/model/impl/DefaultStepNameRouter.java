@@ -16,7 +16,6 @@
 
 package org.jesterj.ingest.model.impl;
 
-import org.jesterj.ingest.model.Buildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.Step;
@@ -43,7 +42,7 @@ public class DefaultStepNameRouter implements Router {
     return name;
   }
 
-  public static class Builder implements Buildable<DefaultStepNameRouter> {
+  public static class Builder extends NamedBuilder<DefaultStepNameRouter> {
     private DefaultStepNameRouter obj = new DefaultStepNameRouter();
 
     public Builder named(String name) {

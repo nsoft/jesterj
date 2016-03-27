@@ -20,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
+import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -36,7 +37,7 @@ public class DefaultWarningProcessor implements DocumentProcessor {
 
   // todo this isn't going to work out... need to think harder here non-unique name possible with deserialization
   private String name = "default_processor" + count.getAndIncrement();
-  
+
 
   @Override
   public Document[] processDocument(Document document) {
@@ -49,7 +50,7 @@ public class DefaultWarningProcessor implements DocumentProcessor {
     return name;
   }
 
-  public static class Builder {
+  public static class Builder extends NamedBuilder<DefaultWarningProcessor> {
 
     DefaultWarningProcessor obj = new DefaultWarningProcessor();
 

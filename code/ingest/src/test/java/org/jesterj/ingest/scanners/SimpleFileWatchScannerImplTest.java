@@ -24,6 +24,7 @@ package org.jesterj.ingest.scanners;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
+import org.jesterj.ingest.model.impl.NamedBuilder;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.ScannerImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
@@ -67,18 +68,30 @@ public class SimpleFileWatchScannerImplTest {
 
     HashMap<String, Document> scannedDocs = new HashMap<>();
 
-    testStepBuilder.named("test").batchSize(10).withProcessor(() -> new DocumentProcessor() {
-      @Override
-      public String getName() {
-        return null;
-      }
+    testStepBuilder.named("test").batchSize(10).withProcessor(
+        new NamedBuilder<DocumentProcessor>() {
+          @Override
+          public NamedBuilder<DocumentProcessor> named(String name) {
+            return null;
+          }
 
-      @Override
-      public Document[] processDocument(Document document) {
-        scannedDocs.put(document.getId(), document);
-        return new Document[]{document};
-      }
-    });
+          @Override
+          public DocumentProcessor build() {
+            return new DocumentProcessor() {
+              @Override
+              public String getName() {
+                return null;
+              }
+
+              @Override
+              public Document[] processDocument(Document document) {
+                scannedDocs.put(document.getId(), document);
+                return new Document[]{document};
+              }
+            };
+          }
+        }
+    );
 
     planBuilder
         .addStep(null, scannerBuilder)

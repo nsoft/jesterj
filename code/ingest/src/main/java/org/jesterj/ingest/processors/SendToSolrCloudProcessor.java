@@ -23,10 +23,10 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.common.SolrInputDocument;
 import org.jesterj.ingest.logging.JesterJAppender;
-import org.jesterj.ingest.model.Buildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
+import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -153,7 +153,7 @@ public class SendToSolrCloudProcessor implements DocumentProcessor {
   }
 
 
-  public static class Builder implements Buildable<SendToSolrCloudProcessor> {
+  public static class Builder extends NamedBuilder<SendToSolrCloudProcessor> {
 
     SendToSolrCloudProcessor obj = new SendToSolrCloudProcessor();
 

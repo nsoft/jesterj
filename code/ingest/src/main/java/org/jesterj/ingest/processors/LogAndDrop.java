@@ -19,10 +19,10 @@ package org.jesterj.ingest.processors;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jesterj.ingest.model.Buildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
+import org.jesterj.ingest.model.impl.NamedBuilder;
 
 /*
  * Created with IntelliJ IDEA.
@@ -60,7 +60,7 @@ public class LogAndDrop implements DocumentProcessor {
     return name;
   }
 
-  public static class Builder implements Buildable<LogAndDrop> {
+  public static class Builder extends NamedBuilder<LogAndDrop> {
 
     LogAndDrop obj = new LogAndDrop();
 
@@ -77,7 +77,7 @@ public class LogAndDrop implements DocumentProcessor {
       getObj().name = name;
       return this;
     }
-    
+
     private void setObj(LogAndDrop obj) {
       this.obj = obj;
     }

@@ -120,7 +120,7 @@ public class PlanImpl implements Plan {
   }
 
 
-  public static class Builder {
+  public static class Builder extends NamedBuilder<Plan> {
 
     PlanImpl obj = new PlanImpl();
     /**

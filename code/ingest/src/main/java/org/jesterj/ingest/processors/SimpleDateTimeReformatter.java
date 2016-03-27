@@ -18,9 +18,9 @@ package org.jesterj.ingest.processors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jesterj.ingest.model.Buildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
+import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -80,7 +80,7 @@ public class SimpleDateTimeReformatter implements DocumentProcessor {
     return name;
   }
 
-  public static class Builder implements Buildable<SimpleDateTimeReformatter> {
+  public static class Builder extends NamedBuilder<SimpleDateTimeReformatter> {
 
     SimpleDateTimeReformatter obj = new SimpleDateTimeReformatter();
 
