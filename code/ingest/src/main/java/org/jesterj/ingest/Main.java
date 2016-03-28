@@ -89,7 +89,7 @@ public class Main {
 
   private static Logger log;
 
-  private static final String SHAKESPEAR = "Shakespear scanner";
+  private static final String SHAKESPEARE = "Shakespear scanner";
 
   public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
     System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
@@ -154,7 +154,7 @@ public class Main {
       File testDocs = new File("/Users/gus/projects/solrsystem/jesterj/code/ingest/src/test/resources/test-data/");
 
       scanner
-          .named(SHAKESPEAR)
+          .named(SHAKESPEARE)
           .withRoot(testDocs)
           .scanFreqMS(100);
       formatCreated
@@ -208,7 +208,7 @@ public class Main {
           );
       planBuilder
           .addStep(null, scanner)
-          .addStep(new String[]{SHAKESPEAR}, formatCreated)
+          .addStep(new String[]{SHAKESPEARE}, formatCreated)
           .addStep(new String[]{CREATED}, formatModified)
           .addStep(new String[]{MODIFIED}, formatAccessed)
           .addStep(new String[]{ACCESSED}, renameFileszieToInteger)
@@ -233,7 +233,6 @@ public class Main {
         System.exit(0);
       }
     }
-
 
   }
 
