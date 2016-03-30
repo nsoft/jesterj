@@ -16,6 +16,7 @@
 
 package org.jesterj.ingest.config;
 
+import org.jesterj.ingest.utils.AnnotationUtil;
 import org.yaml.snakeyaml.introspector.Property;
 import org.yaml.snakeyaml.representer.Representer;
 

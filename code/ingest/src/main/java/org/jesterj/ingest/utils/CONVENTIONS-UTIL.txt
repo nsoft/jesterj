@@ -1,0 +1,9 @@
+                              *******************************************
+                              ***  STATIC METHODS SHOULD BE AVOIDED   ***
+                              *******************************************
+
+Utility classes for this project should be written such that they are stateless beans that are instantiated for use. 
+
+Actual usage should ensure that they are not created in tight loops or where they will frequently be garbage 
+collected. Since they are stateless they are thread safe and may safely be attached as fields or constants as needed. 
+Supplying standard getters that are package private will improve testability, allowing replacement with mock objects.

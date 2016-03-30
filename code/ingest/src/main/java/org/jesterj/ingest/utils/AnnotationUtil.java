@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest.config;
+package org.jesterj.ingest.utils;
 
 /*
  * Created with IntelliJ IDEA.

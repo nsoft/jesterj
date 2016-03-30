@@ -23,6 +23,7 @@ package org.jesterj.ingest.config;
 
 import com.copyright.easiertest.Mock;
 import com.copyright.easiertest.ObjectUnderTest;
+import org.jesterj.ingest.utils.AnnotationUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
