@@ -26,33 +26,23 @@ import org.jesterj.ingest.logging.JesterJAppender;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
-import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 /*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 3/19/16
  */
-public class SendToSolrCloudProcessor implements DocumentProcessor {
+public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> implements DocumentProcessor {
   private static final Logger log = LogManager.getLogger();
 
   private String zkHost;
   private int zkPort = 2181;
   private String collection;
-  private int batchSize = 100;
-  private int sendPartialBatchAfterMs = 5000;
-  private final ScheduledExecutorService sender = Executors.newScheduledThreadPool(1);
-  private ScheduledFuture scheduledSend;
-  private final ConcurrentHashMap<Document, SolrInputDocument> batch = new ConcurrentHashMap<>(batchSize);
   private String textContentField = "content";
   private String fieldsField;
 
@@ -63,70 +53,48 @@ public class SendToSolrCloudProcessor implements DocumentProcessor {
   }
 
   @Override
-  public Document[] processDocument(Document document) {
-    SolrInputDocument doc = converToSolrDoc(document);
-    synchronized (batch) {
-      if (batch.size() == batchSize) {
-        sendBatch();
-      } else {
-        batch.put(document, doc);
-        if (scheduledSend != null) {
-          scheduledSend.cancel(false);
-        }
-        scheduledSend = sender.schedule((Runnable) this::sendBatch, sendPartialBatchAfterMs, TimeUnit.MILLISECONDS);
-      }
-      log.info(Status.BATCHED.getMarker(), "{} queued in postition {} for sending to solr. " +
-          "Will be sent within {} milliseconds.", document.getId(), batch.size(), sendPartialBatchAfterMs);
+  protected void perDocumentFailure(Exception e) {
+    // something's wrong with the network all documents must be errored out:
+    for (Document doc : getBatch().keySet()) {
+      ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, doc.getId());
+      log.info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", doc.getId(), e.getMessage());
+      log.error("Error communicating with solr!", e);
     }
-    return new Document[0];
   }
 
-  private void sendBatch() {
-    // This really shouldn't be called outside of the synchronized block in process document, but just in case...
-    synchronized (batch) {
+  @Override
+  protected void individualFallbackOperation() {
+    // TODO: send in bisected batches to avoid massive traffic down due to one doc when batches are large
+    for (Document document : getBatch().keySet()) {
+      ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, document.getId());
       try {
-        solrClient.add(batch.values());
-        for (Document document : batch.keySet()) {
-          ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, document.getId());
-          log.info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
-        }
-      } catch (SolrServerException e) {
-        // we may have a single bad document... 
-        //noinspection ConstantConditions
-        if (exceptionIndicatesDocumentIssue(e)) {
-          // TODO: send in bisected batches to avoid massive traffic down due to one doc when batches are large
-          for (Document document : batch.keySet()) {
-            ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, document.getId());
-            try {
-              solrClient.add(batch.get(document));
-              log.info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
-            } catch (IOException | SolrServerException e1) {
-              log.info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", document.getId(), e1.getMessage());
-              log.error("Error sending to with solr!", e1);
-            }
-          }
-        }
-      } catch (IOException e) {
-        // something's wrong with the network all documents must be errored out:
-        for (Document doc : batch.keySet()) {
-          ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, doc.getId());
-          log.info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", doc.getId(), e.getMessage());
-          log.error("Error communicating with solr!", e);
-        }
-      } finally {
-        batch.clear();
-        ThreadContext.remove(JesterJAppender.JJ_INGEST_DOCID);
+        solrClient.add(getBatch().get(document));
+        log.info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
+      } catch (IOException | SolrServerException e1) {
+        log.info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", document.getId(), e1.getMessage());
+        log.error("Error sending to with solr!", e1);
       }
     }
   }
 
-  @SuppressWarnings("UnusedParameters")
-  private boolean exceptionIndicatesDocumentIssue(SolrServerException e) {
-    // TODO make this better
-    return true;
+  @Override
+  protected void batchOperation() throws SolrServerException, IOException {
+    solrClient.add(getBatch().values());
+    for (Document document : getBatch().keySet()) {
+      ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, document.getId());
+      log.info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
+    }
   }
 
-  private SolrInputDocument converToSolrDoc(Document document) {
+  @Override
+  @SuppressWarnings("UnusedParameters")
+  protected boolean exceptionIndicatesDocumentIssue(Exception e) {
+    // TODO make this better
+    return e instanceof SolrServerException;
+  }
+
+  @Override
+  protected SolrInputDocument convertDoc(Document document) {
     SolrInputDocument doc = new SolrInputDocument();
     for (String field : document.keySet()) {
       List<String> values = document.get(field);
@@ -153,17 +121,17 @@ public class SendToSolrCloudProcessor implements DocumentProcessor {
   }
 
 
-  public static class Builder extends NamedBuilder<SendToSolrCloudProcessor> {
+  public static class Builder extends BatchProcessor.Builder {
 
     SendToSolrCloudProcessor obj = new SendToSolrCloudProcessor();
 
     public Builder sendingBatchesOf(int batchSize) {
-      getObj().batchSize = batchSize;
+      super.sendingBatchesOf(batchSize);
       return this;
     }
 
     public Builder sendingPartialBatchesAfterMs(int ms) {
-      getObj().sendPartialBatchAfterMs = ms;
+      super.sendingPartialBatchesAfterMs(ms);
       return this;
     }
 
@@ -206,6 +174,7 @@ public class SendToSolrCloudProcessor implements DocumentProcessor {
     }
 
     public SendToSolrCloudProcessor build() {
+      getObj().setBatch(new ConcurrentHashMap<>(getObj().getBatchSize()));
       SendToSolrCloudProcessor tmp = getObj();
       setObj(new SendToSolrCloudProcessor());
       tmp.solrClient = new CloudSolrClient(String.format("%s:%s", tmp.zkHost, tmp.zkPort));
