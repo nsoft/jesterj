@@ -36,6 +36,7 @@ public class PlanImpl implements Plan {
   private LinkedHashMap<String, Step> steps;
   private String idField;
   private boolean active = false;
+  private String name;
 
   protected PlanImpl() {
   }
@@ -64,7 +65,7 @@ public class PlanImpl implements Plan {
     }
     for (int i = 0; i < this.getAllSteps().length; i++) {
       Step step = this.getAllSteps()[i];
-      if (stepName.equals(step.getStepName())) {
+      if (stepName.equals(step.getName())) {
         return step;
       }
     }
@@ -113,8 +114,13 @@ public class PlanImpl implements Plan {
     return false;
   }
 
+  @Override
+  public String getName() {
+    return name;
+  }
 
-  public static class Builder {
+
+  public static class Builder extends NamedBuilder<Plan> {
 
     PlanImpl obj = new PlanImpl();
     /**
@@ -171,20 +177,15 @@ public class PlanImpl implements Plan {
     }
 
     List<StepImpl.Builder> findScanners() {
-      List<StepImpl.Builder> scanners = new ArrayList<>();
-      for (String stepName : builders.keySet()) {
-        if (!predecessors.keySet().contains(stepName)) {
-          scanners.add(builders.get(stepName));
-        }
-      }
-      return scanners;
+      return builders.keySet().stream().filter(stepName ->
+          !predecessors.keySet().contains(stepName))
+          .map(stepName -> builders.get(stepName))
+          .collect(Collectors.toList());
     }
 
     public Plan build() {
       List<StepImpl.Builder> scanners = findScanners();
-      for (StepImpl.Builder scanner : scanners) {
-        buildStep(scanner);
-      }
+      scanners.forEach(this::buildStep);
       PlanImpl obj = getObj();
       this.obj = new PlanImpl();
       obj.steps = this.steps;
@@ -215,8 +216,13 @@ public class PlanImpl implements Plan {
         builder.addNextStep(steps.get(successor));
       }
       StepImpl step = builder.build();
-      String stepName = step.getStepName();
+      String stepName = step.getName();
       steps.put(stepName, step);
+    }
+
+    public Builder named(String name) {
+      getObj().name = name;
+      return this;
     }
 
     protected PlanImpl getObj() {

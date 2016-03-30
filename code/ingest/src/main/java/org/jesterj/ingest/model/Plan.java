@@ -21,7 +21,7 @@ package org.jesterj.ingest.model;
  * User: gus
  * Date: 9/28/14
  */
-public interface Plan extends JiniServiceProvider, Active {
+public interface Plan extends JiniServiceProvider, Active, Configurable {
 
   /**
    * Return every {@link Step} in the plan regardless of whether or not it will be executing when the plan is activated

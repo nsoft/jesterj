@@ -36,7 +36,7 @@ import java.util.concurrent.BlockingQueue;
  * the step must never add or offer to the getNext step, but always place the <code>Item</code> in the
  * <code>JavaSpace</code>
  */
-public interface Step extends Active, JiniServiceProvider, BlockingQueue<Document>, Runnable {
+public interface Step extends Active, JiniServiceProvider, BlockingQueue<Document>, Runnable, DeferredBuilding, Configurable {
 
   /**
    * Set the number of items to process concurrently.
@@ -82,13 +82,6 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Documen
     return plan.isHelping() && executableSteps[executableSteps.length - 1] == this;
   }
 
-  /**
-   * A name for this step to distinguish it from other steps in the UI. This value is generally supplied
-   * by the plan author. Every step in a plan must have a unique name.
-   *
-   * @return The user supplied name for this step
-   */
-  String getStepName();
 
   void sendToNext(Document doc);
 

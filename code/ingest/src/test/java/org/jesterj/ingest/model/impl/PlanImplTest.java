@@ -32,8 +32,8 @@ import org.junit.Test;
 
 import java.io.File;
 
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class PlanImplTest {
 
@@ -46,10 +46,10 @@ public class PlanImplTest {
     SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
     StepImpl.Builder dropStepBuilder = new StepImpl.Builder();
 
-    scannerBuilder.withRoot(new File("/Users/gus/foo/bar")).stepName(SCAN_FOO_BAR).batchSize(10);
+    scannerBuilder.withRoot(new File("/Users/gus/foo/bar")).named(SCAN_FOO_BAR).batchSize(10);
 
-    dropStepBuilder.stepName(LOG_AND_DROP).batchSize(10).withProcessor(
-        new LogAndDrop.Builder().withLogLevel(Level.ERROR).build()
+    dropStepBuilder.named(LOG_AND_DROP).batchSize(10).withProcessor(
+        new LogAndDrop.Builder().withLogLevel(Level.ERROR)
     );
 
     planBuilder
@@ -62,10 +62,10 @@ public class PlanImplTest {
     Step dropStep = plan.findStep(LOG_AND_DROP);
     assertNotNull(scanStep);
     assertNotNull(dropStep);
-    assertEquals(SCAN_FOO_BAR, scanStep.getStepName());
-    assertEquals(LOG_AND_DROP, dropStep.getStepName());
+    assertEquals(SCAN_FOO_BAR, scanStep.getName());
+    assertEquals(LOG_AND_DROP, dropStep.getName());
     Step foo = scanStep.getNext(new DocumentImpl(null, "foo", plan, Document.Operation.NEW, (Scanner) scanStep));
-    assertEquals(LOG_AND_DROP, foo.getStepName());
+    assertEquals(LOG_AND_DROP, foo.getName());
 
   }
 

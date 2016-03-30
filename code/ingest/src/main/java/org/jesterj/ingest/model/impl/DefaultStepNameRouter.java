@@ -30,9 +30,38 @@ import java.util.LinkedHashMap;
 public class DefaultStepNameRouter implements Router {
 
   public static final String JESTERJ_NEXT_STEP_NAME = "__JESTERJ_NEXT_STEP_NAME__";
+  private String name;
 
   @Override
   public Step route(Document doc, LinkedHashMap<String, Step> nextSteps) {
     return nextSteps.get(doc.getFirstValue(JESTERJ_NEXT_STEP_NAME));
+  }
+
+  @Override
+  public String getName() {
+    return name;
+  }
+
+  public static class Builder extends NamedBuilder<DefaultStepNameRouter> {
+    private DefaultStepNameRouter obj = new DefaultStepNameRouter();
+
+    public Builder named(String name) {
+      getObj().name = name;
+      return this;
+    }
+
+    protected DefaultStepNameRouter getObj() {
+      return obj;
+    }
+
+    private void setObj(DefaultStepNameRouter obj) {
+      this.obj = obj;
+    }
+
+    public DefaultStepNameRouter build() {
+      DefaultStepNameRouter object = getObj();
+      setObj(new DefaultStepNameRouter());
+      return object;
+    }
   }
 }

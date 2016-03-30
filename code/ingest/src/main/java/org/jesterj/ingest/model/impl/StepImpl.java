@@ -21,6 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.jesterj.ingest.logging.JesterJAppender;
+import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
@@ -35,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Spliterator;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -72,6 +74,8 @@ public class StepImpl implements Step {
   private DocumentProcessor processor = new DefaultWarningProcessor();
   protected Thread worker;
   private Plan plan;
+
+  private List<Runnable> deferred = new ArrayList<>();
 
   StepImpl() {
   }
@@ -281,9 +285,10 @@ public class StepImpl implements Step {
 
   protected final void pushToNextIfOk(Document document) {
     if (document.getStatus() == Status.PROCESSING) {
-      reportDocStatus(Status.PROCESSING, document, "{} finished processing {}", getStepName(), document.getId());
+      reportDocStatus(Status.PROCESSING, document, "{} finished processing {}", getName(), document.getId());
       Step next = getNext(document);
       if (next == null) {
+        reportDocStatus(Status.DROPPED, document, "No qualifying next step found by {} in {}", router, getName());
         return;
       }
       if (this.outputSpace == null) {
@@ -291,7 +296,7 @@ public class StepImpl implements Step {
         try {
           next.put(document);
         } catch (InterruptedException e) {
-          String message = "Exception while offering to " + next.getStepName();
+          String message = "Exception while offering to " + next.getName();
           reportException(document, e, message);
         }
       } else {
@@ -312,7 +317,7 @@ public class StepImpl implements Step {
       }
     } else {
       reportDocStatus(document.getStatus(), document,
-          "Document processing for {} terminated after {}", document.getId(), getStepName());
+          "Document processing for {} terminated after {}", document.getId(), getName());
     }
   }
 
@@ -359,7 +364,7 @@ public class StepImpl implements Step {
   }
 
   @Override
-  public String getStepName() {
+  public String getName() {
     return stepName;
   }
 
@@ -378,6 +383,15 @@ public class StepImpl implements Step {
     return inputSpace;
   }
 
+  public void executeDeferred() {
+    deferred.forEach(Runnable::run);
+  }
+
+  @Override
+  public void addDeferred(Runnable builderAction) {
+    deferred.add(builderAction);
+  }
+
   private class DocumentConsumer implements Consumer<Document> {
 
     @Override
@@ -394,7 +408,7 @@ public class StepImpl implements Step {
     }
   }
 
-  public static class Builder {
+  public static class Builder extends NamedBuilder<StepImpl> {
 
     private StepImpl obj;
 
@@ -430,18 +444,18 @@ public class StepImpl implements Step {
       return this;
     }
 
-    public Builder stepName(String stepName) {
+    public Builder named(String stepName) {
       getObject().stepName = stepName;
       return this;
     }
 
-    public Builder routingBy(Router router) {
-      getObject().router = router;
+    public Builder routingBy(ConfiguredBuildable<Router> router) {
+      getObject().addDeferred(router::build);
       return this;
     }
 
-    public Builder withProcessor(DocumentProcessor processor) {
-      getObject().processor = processor;
+    public Builder withProcessor(ConfiguredBuildable<? extends DocumentProcessor> processor) {
+      getObject().addDeferred(() -> getObject().processor = processor.build());
       return this;
     }
 
@@ -463,8 +477,9 @@ public class StepImpl implements Step {
      *
      * @return the immutable step instance.
      */
-    StepImpl build() {
+    public StepImpl build() {
       StepImpl object = getObject();
+      object.executeDeferred();
       int batchSize = object.batchSize;
       object.queue = new LinkedBlockingQueue<>(batchSize > 0 ? batchSize : 50);
       setObj(new StepImpl());
@@ -477,12 +492,12 @@ public class StepImpl implements Step {
      * @param step a fully built step
      */
     void addNextStep(Step step) {
-      getObject().nextSteps.put(step.getStepName(), step);
+      getObject().nextSteps.put(step.getName(), step);
     }
   }
 
   @Override
   public String toString() {
-    return getStepName();
+    return getName();
   }
 }

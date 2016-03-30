@@ -22,7 +22,7 @@ package org.jesterj.ingest.model;
  * Date: 9/28/14
  */
 
-public interface DocumentProcessor {
+public interface DocumentProcessor extends Configurable {
 
   /**
    * Mutate, validate or transmit an item (to a search index). Implementations must not throw any

@@ -70,7 +70,7 @@ public class DocumentImpl implements Document {
   public DocumentImpl(byte[] rawData, String id, Plan plan, Operation operation, Scanner source) {
     this.rawData = rawData;
     this.operation = operation;
-    this.sourceScannerName = source.getStepName();
+    this.sourceScannerName = source.getName();
     this.idField = plan.getDocIdField();
     this.delegate.put(idField, id);
     this.plan = plan;
@@ -272,7 +272,7 @@ public class DocumentImpl implements Document {
       this.statusMessage = document.getStatusMessage();
       this.data = new RawData();
       this.data.data = document.getRawData();
-      this.nextStepName = destination.getStepName();
+      this.nextStepName = destination.getName();
       this.operation = document.getOperation().toString();
       
     }

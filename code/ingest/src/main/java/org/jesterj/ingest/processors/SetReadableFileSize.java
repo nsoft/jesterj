@@ -16,12 +16,12 @@
 
 package org.jesterj.ingest.processors;
 
+import com.copyright.easiertest.SimpleProperty;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
-
-import com.copyright.easiertest.SimpleProperty;
+import org.jesterj.ingest.model.impl.NamedBuilder;
 
 /**
  * Sets readable file size field values, as follows:
@@ -33,7 +33,7 @@ import com.copyright.easiertest.SimpleProperty;
  * </ul>
  * If the size is over 1 GB, the size is returned as the number of whole GB, i.e. the size is
  * rounded down to the nearest GB boundary. Similarly for the 1 MB and 1 KB boundaries.
- * 
+ *
  * @author dgoldenberg
  */
 public class SetReadableFileSize implements DocumentProcessor {
@@ -42,6 +42,7 @@ public class SetReadableFileSize implements DocumentProcessor {
   private String numericAndUnitsField;
   private String unitsField;
   private String numericField;
+  private String name;
 
   @Override
   public Document[] processDocument(Document document) {
@@ -55,15 +56,16 @@ public class SetReadableFileSize implements DocumentProcessor {
       if (StringUtils.isNotBlank(getNumericAndUnitsField())) {
         document.put(getNumericAndUnitsField(), readableFileSize);
       }
+      String[] parts = readableFileSize.split(" ");
       if (StringUtils.isNotBlank(getUnitsField())) {
-        document.put(getUnitsField(), readableFileSize.split(" ")[1]);
+        document.put(getUnitsField(), parts[1]);
       }
       if (StringUtils.isNotBlank(getNumericField())) {
-        document.put(getNumericField(), readableFileSize.split(" ")[0]);
+        document.put(getNumericField(), parts[0]);
       }
     }
 
-    return new Document[] { document };
+    return new Document[]{document};
   }
 
   @SimpleProperty
@@ -86,13 +88,18 @@ public class SetReadableFileSize implements DocumentProcessor {
     return numericField;
   }
 
+  @Override
+  public String getName() {
+    return name;
+  }
+
   /**
    * Represents a builder which sets configuration properties on the
    * <code>SetReadableFileSize</code> processor.
-   * 
+   *
    * @author dgoldenberg
    */
-  public static class Builder {
+  public static class Builder extends NamedBuilder<SetReadableFileSize> {
 
     SetReadableFileSize obj = new SetReadableFileSize();
 
@@ -113,6 +120,11 @@ public class SetReadableFileSize implements DocumentProcessor {
 
     public Builder intoNumericField(String toField) {
       getObj().numericField = toField;
+      return this;
+    }
+
+    public Builder named(String name) {
+      getObj().name = name;
       return this;
     }
 

@@ -29,7 +29,7 @@ import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
 import org.jesterj.ingest.processors.CopyField;
 import org.jesterj.ingest.processors.SendToSolrCloudProcessor;
-import org.jesterj.ingest.processors.SimpleDateTimeReformater;
+import org.jesterj.ingest.processors.SimpleDateTimeReformatter;
 import org.jesterj.ingest.processors.TikaProcessor;
 import org.jesterj.ingest.scanners.SimpleFileWatchScanner;
 
@@ -62,11 +62,11 @@ import java.util.Properties;
  */
 public class Main {
 
-  private static final String ACCESSED = "format accessed date";
-  private static final String CREATED = "format created date";
-  private static final String MODIFIED = "format modified date";
-  private static final String SIZE_TO_INT = "size to int";
-  private static final String TIKA = "tika";
+  private static final String ACCESSED = "format_accessed_date";
+  private static final String CREATED = "format_created_date";
+  private static final String MODIFIED = "format_modified_date";
+  private static final String SIZE_TO_INT = "size_to_int_step";
+  private static final String TIKA = "tika_step";
   public static String JJ_DIR;
 
   public static IngestNode node;
@@ -154,50 +154,50 @@ public class Main {
       File testDocs = new File("/Users/gus/projects/solrsystem/jesterj/code/ingest/src/test/resources/test-data/");
 
       scanner
-          .stepName(SHAKESPEAR)
+          .named(SHAKESPEAR)
           .withRoot(testDocs)
           .scanFreqMS(100);
-      SimpleDateTimeReformater.Builder dateTimeReformatBuilder = new SimpleDateTimeReformater.Builder();
       formatCreated
-          .stepName(CREATED)
+          .named(CREATED)
           .withProcessor(
-              dateTimeReformatBuilder
+              new SimpleDateTimeReformatter.Builder()
+                  .named("format_created")
                   .from("created")
                   .into("created_dt")
-                  .build()
           );
       formatModified
-          .stepName(MODIFIED)
+          .named(MODIFIED)
           .withProcessor(
-              dateTimeReformatBuilder
+              new SimpleDateTimeReformatter.Builder()
+                  .named("format_modified")
                   .from("modified")
                   .into("modified_dt")
-                  .build()
           );
       formatAccessed
-          .stepName(ACCESSED)
+          .named(ACCESSED)
           .withProcessor(
-              dateTimeReformatBuilder
+              new SimpleDateTimeReformatter.Builder()
+                  .named("format_accessed")
                   .from("accessed")
                   .into("accessed_dt")
-                  .build()
           );
 
       renameFileszieToInteger
-          .stepName(SIZE_TO_INT)
+          .named(SIZE_TO_INT)
           .withProcessor(
               new CopyField.Builder()
+                  .named("copy_size_to_int")
                   .from("file_size")
                   .into("file_size_i")
                   .retainingOriginal(false)
-                  .build()
           );
       tikaBuilder
-          .stepName(TIKA)
-          .withProcessor(new TikaProcessor()
+          .named(TIKA)
+          .withProcessor(new TikaProcessor.Builder()
+              .named("tika")
           );
       sendToSolrBuilder
-          .stepName("solr sender")
+          .named("solr sender")
           .withProcessor(
               new SendToSolrCloudProcessor.Builder()
                   .withZookeperHost("localhost")
@@ -205,7 +205,6 @@ public class Main {
                   .usingCollection("jjtest")
                   .placingTextContentIn("_text_")
                   .withDocFieldsIn(".fields")
-                  .build()
           );
       planBuilder
           .addStep(null, scanner)

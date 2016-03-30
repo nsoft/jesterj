@@ -20,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
+import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -30,7 +31,7 @@ import java.util.List;
  * User: gus
  * Date: 3/20/16
  */
-public class SimpleDateTimeReformater implements DocumentProcessor {
+public class SimpleDateTimeReformatter implements DocumentProcessor {
 
   private static final Logger log = LogManager.getLogger();
 
@@ -38,6 +39,7 @@ public class SimpleDateTimeReformater implements DocumentProcessor {
   private String outputField;
   private DateTimeFormatter inputFormat;
   private DateTimeFormatter outputFormat = DateTimeFormatter.ISO_INSTANT; // default to what lucene likes
+  private String name;
 
   @Override
   public Document[] processDocument(Document document) {
@@ -73,9 +75,14 @@ public class SimpleDateTimeReformater implements DocumentProcessor {
     return new Document[]{document};
   }
 
-  public static class Builder {
+  @Override
+  public String getName() {
+    return name;
+  }
 
-    SimpleDateTimeReformater obj = new SimpleDateTimeReformater();
+  public static class Builder extends NamedBuilder<SimpleDateTimeReformatter> {
+
+    SimpleDateTimeReformatter obj = new SimpleDateTimeReformatter();
 
     public Builder from(String fromField) {
       getObj().inputField = fromField;
@@ -97,17 +104,22 @@ public class SimpleDateTimeReformater implements DocumentProcessor {
       return this;
     }
 
-    protected SimpleDateTimeReformater getObj() {
+    public Builder named(String name) {
+      getObj().name = name;
+      return this;
+    }
+
+    protected SimpleDateTimeReformatter getObj() {
       return obj;
     }
 
-    private void setObj(SimpleDateTimeReformater obj) {
+    private void setObj(SimpleDateTimeReformatter obj) {
       this.obj = obj;
     }
 
-    public SimpleDateTimeReformater build() {
-      SimpleDateTimeReformater object = getObj();
-      setObj(new SimpleDateTimeReformater());
+    public SimpleDateTimeReformatter build() {
+      SimpleDateTimeReformatter object = getObj();
+      setObj(new SimpleDateTimeReformatter());
       return object;
     }
 
