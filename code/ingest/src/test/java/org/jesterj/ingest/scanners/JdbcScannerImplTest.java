@@ -37,15 +37,6 @@ import org.junit.Test;
  */
 public class JdbcScannerImplTest {
 
-//  private static final String SQL = "SELECT " +
-//    "e.emp_no as empno, e.birth_date as birthdate, e.first_name as firstname, e.last_name as lastname, " +
-//    "e.gender as gender, e.hire_date as hiredate, " +
-//    "s.salary as salary " +
-//    "FROM employees as e " +
-//    "LEFT JOIN salaries as s " +
-//    "ON e.emp_no=e.emp_no " +
-//    "limit 3;";
-  
   private static final String SQL_2 = "SELECT " +
     "emp_no as empno, birth_date as birthdate, first_name as firstname, last_name as lastname, " +
     "gender as gender, hire_date as hiredate " +
@@ -83,7 +74,7 @@ public class JdbcScannerImplTest {
       .withJdbcUser("root")
       .withQueryTimeout(-1)
       .withSqlStatement(SQL_2)
-      .stepName("JDBC Scanner"); // .scanFreqMS(100);
+      .stepName("JDBC Scanner").scanFreqMS(1000);
 
     HashMap<String, Document> scannedDocs = new HashMap<>();
 
@@ -101,13 +92,12 @@ public class JdbcScannerImplTest {
     planBuilder
       .addStep(null, scannerBuilder)
       .addStep(new String[] { "JDBC Scanner" }, testStepBuilder)
-      .withIdField("empno"); // TODO if this is set wrong, generates lots of errors
+      .withIdField("empno");
+    
     Plan plan = planBuilder.build();
 
     plan.activate();
 
     Thread.sleep(5000);
-
-    plan.deactivate();
   }
 }

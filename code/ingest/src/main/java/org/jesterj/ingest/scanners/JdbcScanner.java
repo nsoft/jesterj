@@ -21,6 +21,9 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -54,8 +57,7 @@ public class JdbcScanner extends ScannerImpl {
 
   private String sqlStatement;
 
-  // TODO DG discuss
-  // May need to be set to Integer.MIN_VALUE for MySQL
+  // For MySQL, this may need to be set by user to Integer.MIN_VALUE:
   // http://stackoverflow.com/questions/2447324/streaming-large-result-sets-with-mysql
   // http://stackoverflow.com/questions/24098247/jdbc-select-batching-fetch-size-with-mysql
   // http://stackoverflow.com/questions/20899977/what-and-when-should-i-specify-setfetchsize
@@ -63,16 +65,19 @@ public class JdbcScanner extends ScannerImpl {
 
   private boolean autoCommit;
   private int queryTimeout = -1;
+  
+  private SqlUtils sqlUtils = new SqlUtils();
+  
+  // Use the ISO 8601 date format supported by Lucene, e.g. 2011-12-03T10:15:30Z
+  private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_INSTANT;
 
   @Override
   public Function<String, String> getIdFunction() {
-    // TODO DG
     return s -> s;
   }
 
   @Override
   public Consumer<Document> getDocumentTracker() {
-    // TODO DG
     return document -> {
     };
   }
@@ -83,21 +88,18 @@ public class JdbcScanner extends ScannerImpl {
 
       try (
         // Establish a connection and execute the query.
-        Connection conn = SqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
+        Connection conn = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
 
         Statement statement = createStatement(conn);
         ResultSet rs = statement.executeQuery(sqlStatement);) {
+        
         String[] columnNames = getColumnNames(rs);
         int docIdColumnIdx = getDocIdColumnIndex(columnNames, getPlan().getDocIdField());
 
-        // TODO DG - what about the 'watch' thing / incrementals
-        
         // For each row
         while (rs.next()) {
           String docId = rs.getString(docIdColumnIdx);
           Document doc = makeDoc(rs, columnNames, docId);
-
-          // TODO DG - surround with try/catch? option to halt on error?
           JdbcScanner.this.docFound(doc);
         }
 
@@ -121,19 +123,36 @@ public class JdbcScanner extends ScannerImpl {
    * @throws SQLException
    */
   Document makeDoc(ResultSet rs, String[] columnNames, String docId) throws SQLException {
+    // TODO DG - optional rawData field in the config
+    // blobField, clobField - not both
+    // set file_size if blob/clob there
+    
+    // TODO - deletion tracking. Configure a separate query to identify soft deletes.
+    // TODO - query Cassandra for whether the ID is in it, if so then it's an update
+    
     DocumentImpl doc = new DocumentImpl(
-      null, // TODO DG - rawData; anything here?
+      null,
       docId,
       getPlan(),
-      Document.Operation.NEW, // TODO DG - ?
+      Document.Operation.NEW,
       JdbcScanner.this);
 
+    // For each column value
     for (int i = 1; i <= columnNames.length; i++) {
-      String value = rs.getString(i); // TODO DG - what about Date/Timestamp
-      doc.put(columnNames[i - 1], value);
+      Object value = rs.getObject(i);
+      String strValue = null;
+      
+      if (value != null) {
+        // Take care of java.sql.Date, java.sql.Time, and java.sql.Timestamp
+        if (value instanceof Date) {
+          Instant instant = Instant.ofEpochMilli(((Date) value).getTime());
+          strValue = DATE_FORMATTER.format(instant);
+        } else {
+          strValue = value.toString();
+        }
+        doc.put(columnNames[i - 1], strValue);
+      }
     }
-
-    // TODO DG - Any system fields to set? e.g. "created", "modified" - ?
 
     return doc;
   }
@@ -156,15 +175,15 @@ public class JdbcScanner extends ScannerImpl {
     String[] names = new String[meta.getColumnCount()];
 
     for (int i = 0; i < names.length; i++) {
-      // NB: we're getting the label here (AS ...)
-      // If label not available, we'll get the plain col name
+      // NB: we're getting the label here, to support the SQL's "select a AS b".
+      // If label not available, we'll get the plain column name.
       names[i] = meta.getColumnLabel(i + 1);
     }
     return names;
   }
 
   // Gets the document ID column index
-  private int getDocIdColumnIndex(String[] columnNames, String docIdColumnName) {
+  private int getDocIdColumnIndex(String[] columnNames, String docIdColumnName) throws PersistenceException {
     int itemIdColNum = -1;
     if (docIdColumnName != null) {
       for (int i = 0; i < columnNames.length; i++) {
@@ -202,8 +221,8 @@ public class JdbcScanner extends ScannerImpl {
       }.getClass().getEnclosingMethod().getDeclaringClass();
     }
 
-    // TODO DG - how are the mandatory options distinguished
-    
+    // TODO DG - validate method
+
     public Builder withJdbcDriver(String jdbcDriver) {
       getObject().jdbcDriver = jdbcDriver;
       return this;

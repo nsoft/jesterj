@@ -51,14 +51,14 @@ public class SqlUtils {
    * @throws PersistenceException
    *           on JDBC/SQL error
    */
-  public static Connection createJdbcConnection(
+  public Connection createJdbcConnection(
     String jdbcDriver,
     String jdbcUrl,
     String jdbcUser,
     String jdbcPassword,
     boolean autoCommit)
-  
     throws ConfigurationException, PersistenceException {
+
     Connection connection = null;
 
     try {
@@ -75,7 +75,7 @@ public class SqlUtils {
       // Get a connection
       connection = DriverManager.getConnection(jdbcUrl, jdbcUser, jdbcPassword);
       connection.setAutoCommit(autoCommit);
-      
+
       log.debug("Successfully established JDBC connection to '{}'", jdbcUrl);
 
     } catch (SQLException ex) {

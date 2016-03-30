@@ -21,8 +21,7 @@ package org.jesterj.ingest.model.exception;
  * 
  * @author dgoldenberg
  */
-// TODO should this extend Exception ?
-public class JesterjException extends RuntimeException {
+public class JesterjException extends Exception {
 
   private static final long serialVersionUID = -2456418590249607090L;
 
