@@ -16,88 +16,82 @@
 
 package org.jesterj.ingest.scanners;
 
+import static com.copyright.easiertest.EasierMocks.prepareMocks;
+import static com.copyright.easiertest.EasierMocks.replay;
+import static com.copyright.easiertest.EasierMocks.reset;
+import static com.copyright.easiertest.EasierMocks.verify;
 import static org.junit.Assert.assertEquals;
 
-import java.util.HashMap;
-
 import org.jesterj.ingest.model.Document;
-import org.jesterj.ingest.model.Plan;
-import org.jesterj.ingest.model.impl.PlanImpl;
-import org.jesterj.ingest.model.impl.ScannerImpl;
-import org.jesterj.ingest.model.impl.StepImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import com.copyright.easiertest.Mock;
+import com.copyright.easiertest.ObjectUnderTest;
 
 /**
  * Tests the JDBC scanner.
  * 
  * @author dgoldenberg
  */
+@Ignore("Pending resolution of Issue #27")
 public class JdbcScannerImplTest {
 
-  private static final String SQL_2 = "SELECT " +
-    "emp_no as empno, birth_date as birthdate, first_name as firstname, last_name as lastname, " +
-    "gender as gender, hire_date as hiredate " +
-    "FROM employees " +
-    "limit 3;";
+  @ObjectUnderTest
+  private JdbcScanner obj;
+
+  @Mock
+  private Document mockDocument;
+  
+  public JdbcScannerImplTest() {
+    prepareMocks(this);
+  }
 
   @Before
   public void setUp() {
+    reset();
   }
 
   @After
   public void tearDown() {
+    verify();
   }
 
   @Test
   public void testBuild() {
+    replay();
+
     JdbcScanner.Builder builder = new JdbcScanner.Builder();
-    ScannerImpl build = builder.build();
-    assertEquals(JdbcScanner.class, build.getClass());
+    
+    builder
+      .batchSize(100)
+      .named("JDBC Scanner")
+      .withAutoCommit(true)
+      .withFetchSize(1000)
+      .withJdbcDriver("com.myco.jdbc.Driver")
+      .withJdbcPassword("password")
+      .withJdbcUrl("jdbc:myco://localhost/employees")
+      .withJdbcUser("user")
+      .withQueryTimeout(3600)
+      .withSqlStatement("select * from employees");
+    
+    JdbcScanner built = (JdbcScanner) builder.build();
+    
+    assertEquals("JDBC Scanner", built.getName());
+    assertEquals(true, built.isAutoCommit());
+    assertEquals(1000, built.getFetchSize());
+    assertEquals("com.myco.jdbc.Driver", built.getJdbcDriver());
+    assertEquals("password", built.getJdbcPassword());
+    assertEquals("jdbc:myco://localhost/employees", built.getJdbcUrl());
+    assertEquals("user", built.getJdbcUser());
+    assertEquals(3600, built.getQueryTimeout());
+    assertEquals("select * from employees", built.getSqlStatement());
   }
 
-  @Ignore("not ready yet")
   @Test
   public void testScan() throws InterruptedException {
-    PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-    JdbcScanner.Builder scannerBuilder = new JdbcScanner.Builder();
-    StepImpl.Builder testStepBuilder = new StepImpl.Builder();
-
-    scannerBuilder
-      .withAutoCommit(false)
-      .withFetchSize(Integer.MIN_VALUE)
-      .withJdbcDriver("com.mysql.jdbc.Driver")
-      .withJdbcPassword("root")
-      .withJdbcUrl("jdbc:mysql://localhost/employees?autoReconnect=true&useSSL=false")
-      .withJdbcUser("root")
-      .withQueryTimeout(-1)
-      .withSqlStatement(SQL_2)
-      .stepName("JDBC Scanner").scanFreqMS(1000);
-
-    HashMap<String, Document> scannedDocs = new HashMap<>();
-
-    testStepBuilder.stepName("test").batchSize(10).withProcessor(
-      document -> {
-        scannedDocs.put(document.getId(), document);
-        
-        System.out.println(">> ==============================");
-        System.out.println(">> DOC: " + document);
-        System.out.println(">> ==============================");
-        
-        return new Document[] { document };
-      });
-
-    planBuilder
-      .addStep(null, scannerBuilder)
-      .addStep(new String[] { "JDBC Scanner" }, testStepBuilder)
-      .withIdField("empno");
-    
-    Plan plan = planBuilder.build();
-
-    plan.activate();
-
-    Thread.sleep(5000);
+    // TODO
   }
 }

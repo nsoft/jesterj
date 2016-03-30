@@ -29,6 +29,7 @@ import java.util.function.Function;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.exception.ConfigurationException;
@@ -36,6 +37,8 @@ import org.jesterj.ingest.model.exception.PersistenceException;
 import org.jesterj.ingest.model.impl.DocumentImpl;
 import org.jesterj.ingest.model.impl.ScannerImpl;
 import org.jesterj.ingest.utils.SqlUtils;
+
+import com.copyright.easiertest.SimpleProperty;
 
 import net.jini.space.JavaSpace;
 
@@ -282,13 +285,13 @@ public class JdbcScanner extends ScannerImpl {
     }
 
     @Override
-    public JdbcScanner.Builder stepName(String stepName) {
-      super.stepName(stepName);
+    public JdbcScanner.Builder named(String stepName) {
+      super.named(stepName);
       return this;
     }
 
     @Override
-    public JdbcScanner.Builder routingBy(Router router) {
+    public JdbcScanner.Builder routingBy(ConfiguredBuildable<Router> router) {
       super.routingBy(router);
       return this;
     }
@@ -300,7 +303,7 @@ public class JdbcScanner extends ScannerImpl {
     }
 
     @Override
-    protected ScannerImpl build() {
+    public ScannerImpl build() {
       JdbcScanner tmp = obj;
       this.obj = new JdbcScanner();
       return tmp;
@@ -310,5 +313,45 @@ public class JdbcScanner extends ScannerImpl {
     protected JdbcScanner getObject() {
       return obj;
     }
+  }
+
+  @SimpleProperty
+  public String getJdbcDriver() {
+    return jdbcDriver;
+  }
+
+  @SimpleProperty
+  public String getJdbcUrl() {
+    return jdbcUrl;
+  }
+
+  @SimpleProperty
+  public String getJdbcUser() {
+    return jdbcUser;
+  }
+
+  @SimpleProperty
+  public String getJdbcPassword() {
+    return jdbcPassword;
+  }
+
+  @SimpleProperty
+  public String getSqlStatement() {
+    return sqlStatement;
+  }
+
+  @SimpleProperty
+  public int getFetchSize() {
+    return fetchSize;
+  }
+
+  @SimpleProperty
+  public boolean isAutoCommit() {
+    return autoCommit;
+  }
+
+  @SimpleProperty
+  public int getQueryTimeout() {
+    return queryTimeout;
   }
 }
