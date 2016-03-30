@@ -16,9 +16,12 @@
 
 package org.jesterj.ingest.model.impl;
 
+import org.jesterj.ingest.config.PropertyManager;
 import org.jesterj.ingest.model.Configurable;
 import org.jesterj.ingest.model.ConfiguredBuildable;
+import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.representer.Representer;
 
 /*
  * Created with IntelliJ IDEA.
@@ -26,6 +29,14 @@ import org.yaml.snakeyaml.Yaml;
  * Date: 3/26/16
  */
 public abstract class NamedBuilder<TYPE extends Configurable> implements ConfiguredBuildable<TYPE> {
+
+  private static final Representer propManager = new PropertyManager();
+  private static final DumperOptions OPTS = new DumperOptions();
+
+  static {
+    OPTS.setAllowReadOnlyProperties(true);
+  }
+  
   private TYPE obj;
 
   public abstract NamedBuilder<TYPE> named(String name);
@@ -39,11 +50,11 @@ public abstract class NamedBuilder<TYPE extends Configurable> implements Configu
   }
 
   public boolean isValid() {
-    return getObj().isValidName(getObj().getName());
+    return getObj().getName() != null && getObj().isValidName(getObj().getName());
   }
 
   public String toYaml(TYPE obj) {
-    return new Yaml().dump(obj);
+    return new Yaml(propManager, OPTS).dump(obj);
   }
 
   public ConfiguredBuildable<TYPE> fromYaml(String yaml) {

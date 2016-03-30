@@ -206,16 +206,6 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
 
   }
 
-//  @Override
-//  public int size() {
-//    throw new UnsupportedOperationException("Scanners are a push only source of documents. Queue methods are not supported for this type of step.");
-//  }
-
-  @Override
-  public boolean isEmpty() {
-    throw new UnsupportedOperationException("Scanners are a push only source of documents. Queue methods are not supported for this type of step.");
-  }
-
   @Override
   public boolean contains(Object o) {
     throw new UnsupportedOperationException("Scanners are a push only source of documents. Queue methods are not supported for this type of step.");
@@ -244,6 +234,11 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   @Override
   public int drainTo(Collection<? super Document> c, int maxElements) {
     throw new UnsupportedOperationException("Scanners are a push only source of documents. Queue methods are not supported for this type of step.");
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return true; // always empty as it has no queue. Throwing exception messes up debuggers and Yaml Serialization
   }
 
   @Override

@@ -94,6 +94,7 @@ public class SimpleFileWatchScannerImplTest {
     );
 
     planBuilder
+        .named("testScan")
         .addStep(null, scannerBuilder)
         .addStep(new String[]{SHAKESPEAR}, testStepBuilder)
         .withIdField("id");

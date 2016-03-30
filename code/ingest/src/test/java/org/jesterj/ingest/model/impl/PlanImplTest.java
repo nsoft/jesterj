@@ -53,6 +53,7 @@ public class PlanImplTest {
     );
 
     planBuilder
+        .named("testSimple2Step")
         .addStep(null, scannerBuilder)
         .addStep(new String[]{SCAN_FOO_BAR}, dropStepBuilder)
         .withIdField("id");

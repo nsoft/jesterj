@@ -25,6 +25,7 @@ import org.jesterj.ingest.forkjoin.JesterJForkJoinThreadFactory;
 import org.jesterj.ingest.logging.Cassandra;
 import org.jesterj.ingest.logging.JesterJAppender;
 import org.jesterj.ingest.logging.Markers;
+import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
 import org.jesterj.ingest.processors.CopyField;
@@ -34,6 +35,7 @@ import org.jesterj.ingest.processors.TikaProcessor;
 import org.jesterj.ingest.scanners.SimpleFileWatchScanner;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URL;
@@ -126,8 +128,8 @@ public class Main {
       ThreadContext.clearAll();
     }
 
-    String id = String.valueOf(parsedArgs.get("id"));
-    String password = String.valueOf(parsedArgs.get("password"));
+    String id = String.valueOf(parsedArgs.get("<id>"));
+    String password = String.valueOf(parsedArgs.get("<secret>"));
 
     Properties sysprops = System.getProperties();
     for (Object prop : sysprops.keySet()) {
@@ -206,7 +208,8 @@ public class Main {
                   .placingTextContentIn("_text_")
                   .withDocFieldsIn(".fields")
           );
-      planBuilder
+      Plan myplan = planBuilder
+          .named("myPlan")
           .addStep(null, scanner)
           .addStep(new String[]{SHAKESPEARE}, formatCreated)
           .addStep(new String[]{CREATED}, formatModified)
@@ -215,8 +218,13 @@ public class Main {
           .addStep(new String[]{SIZE_TO_INT}, tikaBuilder)
           .addStep(new String[]{TIKA}, sendToSolrBuilder)
           .withIdField("id")
-          .build()
-          .activate();
+          .build();
+
+      // For now for testing purposes, write our config
+      writeConfig(myplan, id);
+
+      myplan.activate();
+
     }
 
     //noinspection InfiniteLoopStatement
@@ -234,6 +242,30 @@ public class Main {
       }
     }
 
+  }
+
+  private static void writeConfig(Plan myplan, String groupId) {
+    // This ~/.jj/groups is going to be the default location for loadable configs
+    // if the commandline startup id matches the name of a directory in the groups directory
+    // that configuration will be loaded. 
+    String sep = System.getProperty("file.separator");
+    File jjConfigDir = new File(JJ_DIR, "groups" + sep + groupId + sep + myplan.getName());
+    if (jjConfigDir.exists() || jjConfigDir.mkdirs()) {
+      System.out.println("made directories");
+      PlanImpl.Builder tmpBuldier = new PlanImpl.Builder();
+      String yaml = tmpBuldier.toYaml(myplan);
+      System.out.println("created yaml string");
+      File file = new File(jjConfigDir, "config.jj");
+      try (FileOutputStream fis = new FileOutputStream(file)) {
+        fis.write(yaml.getBytes("UTF-8"));
+        System.out.println("created file");
+      } catch (IOException e) {
+        log.error("failed to write file", e);
+        throw new RuntimeException(e);
+      }
+    } else {
+      throw new RuntimeException("Failed to make config directories");
+    }
   }
 
   /**

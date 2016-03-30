@@ -16,6 +16,8 @@
 
 package org.jesterj.ingest.model;
 
+import org.jesterj.ingest.config.Transient;
+
 /*
  * Created with IntelliJ IDEA.
  * User: gus
@@ -36,6 +38,7 @@ public interface Plan extends JiniServiceProvider, Active, Configurable {
    *
    * @return a List of steps in the plan that will be executed
    */
+  @Transient
   Step[] getExecutableSteps();
 
 
@@ -46,6 +49,7 @@ public interface Plan extends JiniServiceProvider, Active, Configurable {
    * @return true if the first step is not the first executable step, or the last step is not the
    * last executable step.
    */
+  @Transient
   default boolean isHelping() {
     Step[] all = getAllSteps();
     Step[] exec = getExecutableSteps();

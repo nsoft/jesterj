@@ -17,6 +17,7 @@
 package org.jesterj.ingest.model.impl;
 
 import com.google.common.collect.ArrayListMultimap;
+import org.jesterj.ingest.config.Transient;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Step;
 
@@ -41,6 +42,7 @@ public class PlanImpl implements Plan {
   protected PlanImpl() {
   }
 
+  @Transient // temporarily will remove before closing #18
   @Override
   public Step[] getAllSteps() {
     return steps.values().toArray(new Step[steps.values().size()]);
@@ -84,6 +86,7 @@ public class PlanImpl implements Plan {
     this.active = false;
   }
 
+  @Transient
   @Override
   public synchronized boolean isActive() {
     return active;
@@ -184,6 +187,9 @@ public class PlanImpl implements Plan {
     }
 
     public Plan build() {
+      if (!isValid()) {
+        throw new RuntimeException("Invalid configuration, cannot build plan named " + getObj().getName());
+      }
       List<StepImpl.Builder> scanners = findScanners();
       scanners.forEach(this::buildStep);
       PlanImpl obj = getObj();
@@ -234,4 +240,5 @@ public class PlanImpl implements Plan {
       return this;
     }
   }
+
 }

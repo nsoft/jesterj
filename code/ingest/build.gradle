@@ -80,6 +80,7 @@ dependencies {
     compile 'net.jini:jsk-platform:2.2.2'
     compile 'docopt:docopt:0.6.1'
     testCompile 'junit:junit:4.11'
+//    testCompile 'org.easymock:easymock:3.4' // issue #27
     testCompile 'com.needhamsoftware:easier-mock:1.0'
     //runtime ':one-jar-boot:0.98' // uncomment for debugging stack traces into one-jar classes
 
@@ -91,7 +92,9 @@ task oneJar(type: OneJar, dependsOn: clean) {
     mainClass = 'org.jesterj.ingest.Main'
     archiveName = 'ingest-node.jar'
     useStable = false
+    //noinspection GroovyAssignabilityCheck
     manifest {
+        //noinspection GroovyAssignabilityCheck
         attributes 'One-Jar-URL-Factory': 'com.simontuffs.onejar.JarClassLoader$OneJarURLFactory'
     }
     oneJarConfiguration = configurations.oneJarLib
