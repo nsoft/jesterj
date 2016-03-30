@@ -31,12 +31,15 @@ Release 0.1 is intended to be the smallest functional unit. Plans and steps will
 in code etc and only run locally, only single node supported. Documents indexed will have fields for mod-time, 
 file name and file size.
 
+## Progress for 0.2
+ * Preliminary JDBC scanner
+
 ## TODO for 0.2
  * Serialized format for a plan/steps.
  * Cassandra stored hashcode based file scanner
  * Xpath extractor
  * JsonPath extractor
- * Database table scanner
+ * Database JDBC scanner
  * Cassandra based FTI
  * Source DB based FTI
  * Solr FTI plugin jar to mark documents searchable on commit
