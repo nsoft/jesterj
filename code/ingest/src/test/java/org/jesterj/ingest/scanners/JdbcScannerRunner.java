@@ -16,8 +16,6 @@
 
 package org.jesterj.ingest.scanners;
 
-import java.util.HashMap;
-
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
@@ -25,12 +23,14 @@ import org.jesterj.ingest.model.impl.NamedBuilder;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
 
+import java.util.HashMap;
+
 /**
  * Represents a simple command line utility to test the JDBC scanner.
  * 
  * @author dgoldenberg
  */
-public class JdbcScannerTester {
+public class JdbcScannerRunner {
 
   // Use the sample 'employees' database for MySQL:
   // https://dev.mysql.com/doc/employee/en/employees-installation.html
