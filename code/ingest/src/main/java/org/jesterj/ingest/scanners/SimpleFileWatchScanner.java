@@ -250,7 +250,7 @@ public class SimpleFileWatchScanner extends ScannerImpl {
     }
 
     @Override
-    public SimpleFileWatchScanner.Builder routingBy(ConfiguredBuildable<Router> router) {
+    public SimpleFileWatchScanner.Builder routingBy(ConfiguredBuildable<? extends Router> router) {
       super.routingBy(router);
       return this;
     }

@@ -50,7 +50,7 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Documen
    *
    * @return the getNext step
    */
-  Step getNext(Document d);
+  Step[] getNext(Document d);
 
   /**
    * Get all the steps to which a document might travel

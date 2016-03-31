@@ -30,7 +30,7 @@ import org.jesterj.ingest.model.Status;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /*
  * Created with IntelliJ IDEA.
@@ -63,13 +63,19 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
   }
 
   @Override
-  protected void individualFallbackOperation() {
+  protected void individualFallbackOperation(Exception e) {
     // TODO: send in bisected batches to avoid massive traffic down due to one doc when batches are large
     for (Document document : getBatch().keySet()) {
       ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, document.getId());
       try {
-        solrClient.add(getBatch().get(document));
-        log.info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
+        SolrInputDocument doc = getBatch().get(document);
+        if (doc instanceof Delete) {
+          solrClient.deleteById(getBatch().inverse().get(doc).getId());
+          log.info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());
+        } else {
+          solrClient.add(doc);
+          log.info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
+        }
       } catch (IOException | SolrServerException e1) {
         log.info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", document.getId(), e1.getMessage());
         log.error("Error sending to with solr!", e1);
@@ -79,10 +85,27 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
 
   @Override
   protected void batchOperation() throws SolrServerException, IOException {
-    solrClient.add(getBatch().values());
+    List<String> deletes = getBatch().keySet().stream()
+        .filter(doc -> doc.getOperation() == Document.Operation.DELETE)
+        .map(Document::getId)
+        .collect(Collectors.toList());
+    if (deletes.size() > 0) {
+      solrClient.deleteById(deletes);
+    }
+    List<SolrInputDocument> adds = getBatch().keySet().stream()
+        .filter(doc -> doc.getOperation() != Document.Operation.DELETE)
+        .map(doc -> getBatch().get(doc))
+        .collect(Collectors.toList());
+    if (adds.size() > 0) {
+      solrClient.add(adds);
+    }
     for (Document document : getBatch().keySet()) {
       ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, document.getId());
-      log.info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
+      if (document.getOperation() == Document.Operation.DELETE) {
+        log.info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());
+      } else {
+        log.info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
+      }
     }
   }
 
@@ -95,7 +118,12 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
 
   @Override
   protected SolrInputDocument convertDoc(Document document) {
-    SolrInputDocument doc = new SolrInputDocument();
+    SolrInputDocument doc;
+    if (document.getOperation() == Document.Operation.DELETE) {
+      doc = new Delete();
+    } else {
+      doc = new SolrInputDocument();
+    }
     for (String field : document.keySet()) {
       List<String> values = document.get(field);
       if (values.size() > 1) {
@@ -115,6 +143,9 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
     return doc;
   }
 
+  private static class Delete extends SolrInputDocument {
+  }
+  
   @Override
   public String getName() {
     return name;
@@ -174,7 +205,6 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
     }
 
     public SendToSolrCloudProcessor build() {
-      getObj().setBatch(new ConcurrentHashMap<>(getObj().getBatchSize()));
       SendToSolrCloudProcessor tmp = getObj();
       setObj(new SendToSolrCloudProcessor());
       tmp.solrClient = new CloudSolrClient(String.format("%s:%s", tmp.zkHost, tmp.zkPort));

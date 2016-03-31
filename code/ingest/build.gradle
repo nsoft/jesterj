@@ -58,6 +58,7 @@ configurations {
 dependencies {
     compile 'org.apache.tika:tika-parsers:1.12'
     compile 'org.apache.solr:solr-solrj:5.5.0'
+    compile 'org.elasticsearch:elasticsearch:2.2.1'
 
     compile 'com.google.guava:guava:18.0'
     compile 'com.google.code.findbugs:jsr305:3.0.0'

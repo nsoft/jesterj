@@ -16,17 +16,8 @@
 
 package org.jesterj.ingest.scanners;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
-import java.util.Date;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
+import com.copyright.easiertest.SimpleProperty;
+import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.ConfiguredBuildable;
@@ -38,9 +29,16 @@ import org.jesterj.ingest.model.impl.DocumentImpl;
 import org.jesterj.ingest.model.impl.ScannerImpl;
 import org.jesterj.ingest.utils.SqlUtils;
 
-import com.copyright.easiertest.SimpleProperty;
-
-import net.jini.space.JavaSpace;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Scans a JDBC source such as an RDBMS (e.g. MySQL). Obtains a connection through the specified
@@ -90,11 +88,11 @@ public class JdbcScanner extends ScannerImpl {
     return () -> {
 
       try (
-        // Establish a connection and execute the query.
-        Connection conn = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
+          // Establish a connection and execute the query.
+          Connection conn = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
 
-        Statement statement = createStatement(conn);
-        ResultSet rs = statement.executeQuery(sqlStatement);) {
+          Statement statement = createStatement(conn);
+          ResultSet rs = statement.executeQuery(sqlStatement)) {
         
         String[] columnNames = getColumnNames(rs);
         int docIdColumnIdx = getDocIdColumnIndex(columnNames, getPlan().getDocIdField());
@@ -143,8 +141,7 @@ public class JdbcScanner extends ScannerImpl {
     // For each column value
     for (int i = 1; i <= columnNames.length; i++) {
       Object value = rs.getObject(i);
-      String strValue = null;
-      
+      String strValue;
       if (value != null) {
         // Take care of java.sql.Date, java.sql.Time, and java.sql.Timestamp
         if (value instanceof Date) {
@@ -291,7 +288,7 @@ public class JdbcScanner extends ScannerImpl {
     }
 
     @Override
-    public JdbcScanner.Builder routingBy(ConfiguredBuildable<Router> router) {
+    public JdbcScanner.Builder routingBy(ConfiguredBuildable<? extends Router> router) {
       super.routingBy(router);
       return this;
     }

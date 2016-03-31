@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest.model.impl;
+package org.jesterj.ingest.routers;
 
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.Step;
+import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.util.LinkedHashMap;
 
@@ -27,14 +28,14 @@ import java.util.LinkedHashMap;
  * User: gus
  * Date: 3/18/16
  */
-public class DefaultStepNameRouter implements Router {
+public class RouteByStepName implements Router {
 
   public static final String JESTERJ_NEXT_STEP_NAME = "__JESTERJ_NEXT_STEP_NAME__";
   private String name;
 
   @Override
-  public Step route(Document doc, LinkedHashMap<String, Step> nextSteps) {
-    return nextSteps.get(doc.getFirstValue(JESTERJ_NEXT_STEP_NAME));
+  public Step[] route(Document doc, LinkedHashMap<String, Step> nextSteps) {
+    return new Step[]{nextSteps.get(doc.getFirstValue(JESTERJ_NEXT_STEP_NAME))};
   }
 
   @Override
@@ -42,25 +43,25 @@ public class DefaultStepNameRouter implements Router {
     return name;
   }
 
-  public static class Builder extends NamedBuilder<DefaultStepNameRouter> {
-    private DefaultStepNameRouter obj = new DefaultStepNameRouter();
+  public static class Builder extends NamedBuilder<RouteByStepName> {
+    private RouteByStepName obj = new RouteByStepName();
 
     public Builder named(String name) {
       getObj().name = name;
       return this;
     }
 
-    protected DefaultStepNameRouter getObj() {
+    protected RouteByStepName getObj() {
       return obj;
     }
 
-    private void setObj(DefaultStepNameRouter obj) {
+    private void setObj(RouteByStepName obj) {
       this.obj = obj;
     }
 
-    public DefaultStepNameRouter build() {
-      DefaultStepNameRouter object = getObj();
-      setObj(new DefaultStepNameRouter());
+    public RouteByStepName build() {
+      RouteByStepName object = getObj();
+      setObj(new RouteByStepName());
       return object;
     }
   }

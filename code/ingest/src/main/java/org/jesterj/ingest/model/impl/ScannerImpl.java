@@ -317,7 +317,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     }
 
     @Override
-    public StepImpl.Builder routingBy(ConfiguredBuildable<Router> router) {
+    public StepImpl.Builder routingBy(ConfiguredBuildable<? extends Router> router) {
       super.routingBy(router);
       return this;
     }

@@ -29,6 +29,7 @@ import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.processors.DefaultWarningProcessor;
+import org.jesterj.ingest.routers.RouteByStepName;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -70,7 +71,7 @@ public class StepImpl implements Step {
   private JavaSpace outputSpace;
   private JavaSpace inputSpace;
   private String stepName;
-  private Router router = new DefaultStepNameRouter();
+  private Router router = new RouteByStepName();
   private DocumentProcessor processor = new DefaultWarningProcessor();
   protected Thread worker;
   private Plan plan;
@@ -207,9 +208,9 @@ public class StepImpl implements Step {
   }
 
   @Override
-  public Step getNext(Document doc) {
+  public Step[] getNext(Document doc) {
     if (nextSteps.size() == 0) return null;
-    if (nextSteps.size() == 1) return nextSteps.values().iterator().next();
+    if (nextSteps.size() == 1) return new Step[]{nextSteps.values().iterator().next()};
     return router.route(doc, nextSteps);
   }
 
@@ -286,32 +287,34 @@ public class StepImpl implements Step {
   protected final void pushToNextIfOk(Document document) {
     if (document.getStatus() == Status.PROCESSING) {
       reportDocStatus(Status.PROCESSING, document, "{} finished processing {}", getName(), document.getId());
-      Step next = getNext(document);
+      Step[] next = getNext(document);
       if (next == null) {
         reportDocStatus(Status.DROPPED, document, "No qualifying next step found by {} in {}", router, getName());
         return;
       }
-      if (this.outputSpace == null) {
-        // local processing is our only option, do blocking put.
-        try {
-          next.put(document);
-        } catch (InterruptedException e) {
-          String message = "Exception while offering to " + next.getName();
-          reportException(document, e, message);
-        }
-      } else {
-        if (this.isFinalHelper()) {
-          // remote processing is our only option.
-          log.debug("todo: send to JavaSpace");
-          // todo: put in JavaSpace
-        } else {
-          // Try to process this item locally first with a non-blocking add, and
-          // if the getNext step is bogged down send it out for processing by helpers.
+      for (Step step : next) {
+        if (this.outputSpace == null) {
+          // local processing is our only option, do blocking put.
           try {
-            next.add(document);
-          } catch (IllegalStateException e) {
+            step.put(document);
+          } catch (InterruptedException e) {
+            String message = "Exception while offering to " + step.getName();
+            reportException(document, e, message);
+          }
+        } else {
+          if (this.isFinalHelper()) {
+            // remote processing is our only option.
             log.debug("todo: send to JavaSpace");
             // todo: put in JavaSpace
+          } else {
+            // Try to process this item locally first with a non-blocking add, and
+            // if the getNext step is bogged down send it out for processing by helpers.
+            try {
+              step.add(document);
+            } catch (IllegalStateException e) {
+              log.debug("todo: send to JavaSpace");
+              // todo: put in JavaSpace
+            }
           }
         }
       }
@@ -449,8 +452,8 @@ public class StepImpl implements Step {
       return this;
     }
 
-    public Builder routingBy(ConfiguredBuildable<Router> router) {
-      getObject().addDeferred(router::build);
+    public Builder routingBy(ConfiguredBuildable<? extends Router> router) {
+      getObject().addDeferred(() -> getObject().router = router.build());
       return this;
     }
 

@@ -29,9 +29,11 @@ import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
 import org.jesterj.ingest.processors.CopyField;
+import org.jesterj.ingest.processors.ElasticNodeSender;
 import org.jesterj.ingest.processors.SendToSolrCloudProcessor;
 import org.jesterj.ingest.processors.SimpleDateTimeReformatter;
 import org.jesterj.ingest.processors.TikaProcessor;
+import org.jesterj.ingest.routers.DuplicateToAll;
 import org.jesterj.ingest.scanners.SimpleFileWatchScanner;
 
 import java.io.File;
@@ -152,6 +154,7 @@ public class Main {
       StepImpl.Builder renameFileszieToInteger = new StepImpl.Builder();
       StepImpl.Builder tikaBuilder = new StepImpl.Builder();
       StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
+      StepImpl.Builder sendToElasticBuilder = new StepImpl.Builder();
 
       File testDocs = new File("/Users/gus/projects/solrsystem/jesterj/code/ingest/src/test/resources/test-data/");
 
@@ -195,6 +198,8 @@ public class Main {
           );
       tikaBuilder
           .named(TIKA)
+          .routingBy(new DuplicateToAll.Builder()
+              .named("duplicator"))
           .withProcessor(new TikaProcessor.Builder()
               .named("tika")
           );
@@ -208,6 +213,16 @@ public class Main {
                   .placingTextContentIn("_text_")
                   .withDocFieldsIn(".fields")
           );
+      sendToElasticBuilder
+          .named("elastic_sender")
+          .withProcessor(
+              new ElasticNodeSender.Builder()
+                  .named("elastic_node_processor")
+                  .usingCluster("elasticsearch")
+                  .nodeName("jj_elastic_client_node")
+                  .forIndex("shakespeare")
+                  .forObjectType("work")
+          );
       Plan myplan = planBuilder
           .named("myPlan")
           .addStep(null, scanner)
@@ -217,6 +232,7 @@ public class Main {
           .addStep(new String[]{ACCESSED}, renameFileszieToInteger)
           .addStep(new String[]{SIZE_TO_INT}, tikaBuilder)
           .addStep(new String[]{TIKA}, sendToSolrBuilder)
+//          .addStep(new String[]{TIKA}, sendToElasticBuilder) // not joining cluster for some reason?
           .withIdField("id")
           .build();
 

@@ -16,6 +16,7 @@
 
 package org.jesterj.ingest.processors;
 
+import org.apache.cassandra.utils.ConcurrentBiMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -25,7 +26,6 @@ import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -43,7 +43,8 @@ public abstract class BatchProcessor<T> implements DocumentProcessor {
   private int batchSize = 100;
   private int sendPartialBatchAfterMs = 5000;
   private ScheduledFuture scheduledSend;
-  private ConcurrentHashMap<Document, T> batch;
+
+  private final ConcurrentBiMap<Document, T> batch = new ConcurrentBiMap<>();
 
   public Document[] processDocument(Document document) {
     T doc = convertDoc(document);
@@ -72,7 +73,7 @@ public abstract class BatchProcessor<T> implements DocumentProcessor {
         // we may have a single bad document... 
         //noinspection ConstantConditions
         if (exceptionIndicatesDocumentIssue(e)) {
-          individualFallbackOperation();
+          individualFallbackOperation(e);
         } else {
           perDocumentFailure(e);
         }
@@ -85,7 +86,12 @@ public abstract class BatchProcessor<T> implements DocumentProcessor {
 
   protected abstract void perDocumentFailure(Exception e);
 
-  protected abstract void individualFallbackOperation();
+  /**
+   * If the bulk request fails it might be just one document that's causing a problem, try each document individually
+   *
+   * @param e the exception reported with the failure
+   */
+  protected abstract void individualFallbackOperation(Exception e);
 
   protected abstract void batchOperation() throws Exception;
 
@@ -94,16 +100,12 @@ public abstract class BatchProcessor<T> implements DocumentProcessor {
 
   protected abstract T convertDoc(Document document);
 
-  protected ConcurrentHashMap<Document, T> getBatch() {
+  protected ConcurrentBiMap<Document, T> getBatch() {
     return batch;
   }
 
   protected int getBatchSize() {
     return batchSize;
-  }
-
-  protected void setBatch(ConcurrentHashMap<Document, T> batch) {
-    this.batch = batch;
   }
 
   public static abstract class Builder extends NamedBuilder<BatchProcessor> {
