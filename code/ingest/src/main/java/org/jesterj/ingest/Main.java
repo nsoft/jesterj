@@ -93,7 +93,7 @@ public class Main {
 
   private static Logger log;
 
-  private static final String SHAKESPEARE = "Shakespear scanner";
+  private static final String SHAKESPEARE = "Shakespeare_scanner";
 
   public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
     System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
