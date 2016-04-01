@@ -35,12 +35,10 @@ public class JdbcScannerRunner {
   // Use the sample 'employees' database for MySQL:
   // https://dev.mysql.com/doc/employee/en/employees-installation.html
   // https://launchpad.net/test-db/
-  
+
   private static final String SQL_1 = "SELECT " +
-    "emp_no as empno, birth_date as birthdate, first_name as firstname, last_name as lastname, " +
-    "gender as gender, hire_date as hiredate " +
-    "FROM employees " +
-    "limit 3;";
+    "e.emp_no as empno, e.birth_date as birthdate, e.first_name as firstname, e.last_name as lastname, e.hire_date as hiredate, t.title as title " +
+    "FROM employees as e LEFT JOIN titles as t ON e.emp_no=t.emp_no limit 25;";
 
   public static void main(String[] args) throws InterruptedException {
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
@@ -49,6 +47,7 @@ public class JdbcScannerRunner {
 
     scannerBuilder
       .withAutoCommit(false)
+      .withContentColumn("title") // simplistic "content column"
       .withFetchSize(Integer.MIN_VALUE)
       .withJdbcDriver("com.mysql.jdbc.Driver")
       .withJdbcPassword("root")
@@ -80,7 +79,13 @@ public class JdbcScannerRunner {
               scannedDocs.put(document.getId(), document);
 
               System.out.println(">> ==============================");
-              System.out.println(">> DOC: " + document);
+              System.out.println(">> === DOC: ");
+              System.out.println(">> ID: " + document.getId());
+              System.out.println(document);
+              byte[] rawData = document.getRawData();
+              if (rawData != null) {
+                System.out.println(">> 'raw data': " + new String(rawData));
+              }
               System.out.println(">> ==============================");
 
               return new Document[] { document };
@@ -90,6 +95,7 @@ public class JdbcScannerRunner {
       });
 
     planBuilder
+      .named("JdbcScannerPlan")
       .addStep(null, scannerBuilder)
       .addStep(new String[] { "JDBC Scanner" }, testStepBuilder)
       .withIdField("empno");
@@ -99,7 +105,7 @@ public class JdbcScannerRunner {
     plan.activate();
 
     Thread.sleep(5000);
-    
+
     plan.deactivate();
   }
 
