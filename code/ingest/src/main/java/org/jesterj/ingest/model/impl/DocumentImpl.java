@@ -54,6 +54,12 @@ import java.util.Set;
  */
 public class DocumentImpl implements Document {
 
+  /**
+   * The 'file_size' field which holds the size of the original content for an input document as
+   * the framework first pulled it in.
+   */
+  public static final String FIELD_FILE_SIZE = "file_size";
+  
   // document id field.
   private final String idField;
 
@@ -74,8 +80,11 @@ public class DocumentImpl implements Document {
     this.idField = plan.getDocIdField();
     this.delegate.put(idField, id);
     this.plan = plan;
+    
+    if (this.rawData != null) {
+      this.delegate.put(FIELD_FILE_SIZE, String.valueOf(this.rawData.length));
+    }
   }
-
 
   @Override
   public Multiset<String> keys() {
