@@ -65,8 +65,8 @@ public class PlanImplTest {
     assertNotNull(dropStep);
     assertEquals(SCAN_FOO_BAR, scanStep.getName());
     assertEquals(LOG_AND_DROP, dropStep.getName());
-    Step foo = scanStep.getNext(new DocumentImpl(null, "foo", plan, Document.Operation.NEW, (Scanner) scanStep));
-    assertEquals(LOG_AND_DROP, foo.getName());
+    Step[] foo = scanStep.getNext(new DocumentImpl(null, "foo", plan, Document.Operation.NEW, (Scanner) scanStep));
+    assertEquals(LOG_AND_DROP, foo[0].getName());
 
   }
 
