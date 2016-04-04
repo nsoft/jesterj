@@ -29,6 +29,12 @@ import net.jini.core.entry.Entry;
 public interface Document extends ListMultimap<String, String> {
 
   /**
+   * The 'file_size' field which holds the size of the original content for an input document as
+   * the framework first pulled it in.
+   */
+  public static final String FIELD_FILE_SIZE = "file_size";
+  
+  /**
    * Get the raw bytes from which this item was constructed. This is usually only used by the first or
    * second step in the pipeline which converts the binary form into entries in this map.
    *

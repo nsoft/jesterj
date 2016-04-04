@@ -74,8 +74,11 @@ public class DocumentImpl implements Document {
     this.idField = plan.getDocIdField();
     this.delegate.put(idField, id);
     this.plan = plan;
+    
+    if (this.rawData != null) {
+      this.delegate.put(FIELD_FILE_SIZE, String.valueOf(this.rawData.length));
+    }
   }
-
 
   @Override
   public Multiset<String> keys() {
