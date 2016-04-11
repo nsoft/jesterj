@@ -17,6 +17,7 @@
 package org.jesterj.ingest.model.impl;
 
 import org.jesterj.ingest.config.PropertyManager;
+import org.jesterj.ingest.config.Required;
 import org.jesterj.ingest.model.Configurable;
 import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.yaml.snakeyaml.DumperOptions;
@@ -39,6 +40,7 @@ public abstract class NamedBuilder<TYPE extends Configurable> implements Configu
   
   private TYPE obj;
 
+  @Required
   public abstract NamedBuilder<TYPE> named(String name);
 
   protected TYPE getObj() {

@@ -14,14 +14,22 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest.model;
+package org.jesterj.ingest.config;
+
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+import static java.lang.annotation.ElementType.METHOD;
 
 /*
  * Created with IntelliJ IDEA.
  * User: gus
- * Date: 3/26/16
+ * Date: 4/5/16
  */
-
-public interface Buildable<T> {
-  T build();
+@Inherited // <-- this actually has no effect in standard java usage but AnnotationUtil allows us to use it this way.
+@Retention(RetentionPolicy.RUNTIME)
+@Target({METHOD})
+public @interface Required {
 }

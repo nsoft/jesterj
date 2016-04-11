@@ -95,167 +95,192 @@ public class Main {
 
   private static final String SHAKESPEARE = "Shakespeare_scanner";
 
-  public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
-    System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
-    initClassloader();
-    initRMI();
-    // Next check our args and die if they are FUBAR
-    Map<String, Object> parsedArgs = usage(args);
-
-    String cassandraHome = (String) parsedArgs.get("--cassandra-home");
-    File cassandraDir = null;
-    if (cassandraHome != null) {
-      cassandraHome = cassandraHome.replaceFirst("^~", System.getProperty("user.home"));
-      cassandraDir = new File(cassandraHome);
-      if (!cassandraDir.isDirectory()) {
-        System.err.println("\nERROR: --cassandra-home must specify a directory\n");
-        System.exit(1);
-      }
-    }
-    if (cassandraDir == null) {
-      cassandraDir = new File(JJ_DIR + "/cassandra");
-    }
-    Cassandra.start(cassandraDir);
-
-    // now we can see log4j2.xml
-    log = LogManager.getLogger();
-
-    log.info(Markers.LOG_MARKER, "Test regular log with marker");
-    log.info("Test regular log without marker");
-
+  public static void main(String[] args) {
     try {
-      ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, "file:///foo/bar.txt");
-      log.error(Markers.SET_DROPPED, "Test fti drop");
-    } finally {
-      ThreadContext.clearAll();
-    }
+      System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
 
-    String id = String.valueOf(parsedArgs.get("<id>"));
-    String password = String.valueOf(parsedArgs.get("<secret>"));
-
-    Properties sysprops = System.getProperties();
-    for (Object prop : sysprops.keySet()) {
-      log.trace(prop + "=" + sysprops.get(prop));
-    }
-
-    // This  does nothing useful yet, just for testing right now.
-
-    log.debug("Starting injester node...");
-    node = new IngestNode(id, password);
-    new Thread(node).start();
-
-    String property = System.getProperty("jj.example");
-    if ("run".equals(property)) {
-      PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-      SimpleFileWatchScanner.Builder scanner = new SimpleFileWatchScanner.Builder();
-      StepImpl.Builder formatCreated = new StepImpl.Builder();
-      StepImpl.Builder formatModified = new StepImpl.Builder();
-      StepImpl.Builder formatAccessed = new StepImpl.Builder();
-      StepImpl.Builder renameFileszieToInteger = new StepImpl.Builder();
-      StepImpl.Builder tikaBuilder = new StepImpl.Builder();
-      StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
-      StepImpl.Builder sendToElasticBuilder = new StepImpl.Builder();
-
-      File testDocs = new File("/Users/gus/projects/solrsystem/jesterj/code/ingest/src/test/resources/test-data/");
-
-      scanner
-          .named(SHAKESPEARE)
-          .withRoot(testDocs)
-          .scanFreqMS(100);
-      formatCreated
-          .named(CREATED)
-          .withProcessor(
-              new SimpleDateTimeReformatter.Builder()
-                  .named("format_created")
-                  .from("created")
-                  .into("created_dt")
-          );
-      formatModified
-          .named(MODIFIED)
-          .withProcessor(
-              new SimpleDateTimeReformatter.Builder()
-                  .named("format_modified")
-                  .from("modified")
-                  .into("modified_dt")
-          );
-      formatAccessed
-          .named(ACCESSED)
-          .withProcessor(
-              new SimpleDateTimeReformatter.Builder()
-                  .named("format_accessed")
-                  .from("accessed")
-                  .into("accessed_dt")
-          );
-
-      renameFileszieToInteger
-          .named(SIZE_TO_INT)
-          .withProcessor(
-              new CopyField.Builder()
-                  .named("copy_size_to_int")
-                  .from("file_size")
-                  .into("file_size_i")
-                  .retainingOriginal(false)
-          );
-      tikaBuilder
-          .named(TIKA)
-          .routingBy(new DuplicateToAll.Builder()
-              .named("duplicator"))
-          .withProcessor(new TikaProcessor.Builder()
-              .named("tika")
-          );
-      sendToSolrBuilder
-          .named("solr sender")
-          .withProcessor(
-              new SendToSolrCloudProcessor.Builder()
-                  .withZookeperHost("localhost")
-                  .atZookeeperPort(9983)
-                  .usingCollection("jjtest")
-                  .placingTextContentIn("_text_")
-                  .withDocFieldsIn(".fields")
-          );
-      sendToElasticBuilder
-          .named("elastic_sender")
-          .withProcessor(
-              new ElasticNodeSender.Builder()
-                  .named("elastic_node_processor")
-                  .usingCluster("elasticsearch")
-                  .nodeName("jj_elastic_client_node")
-                  .forIndex("shakespeare")
-                  .forObjectType("work")
-          );
-      Plan myplan = planBuilder
-          .named("myPlan")
-          .addStep(null, scanner)
-          .addStep(new String[]{SHAKESPEARE}, formatCreated)
-          .addStep(new String[]{CREATED}, formatModified)
-          .addStep(new String[]{MODIFIED}, formatAccessed)
-          .addStep(new String[]{ACCESSED}, renameFileszieToInteger)
-          .addStep(new String[]{SIZE_TO_INT}, tikaBuilder)
-          .addStep(new String[]{TIKA}, sendToSolrBuilder)
-//          .addStep(new String[]{TIKA}, sendToElasticBuilder) // not joining cluster for some reason?
-          .withIdField("id")
-          .build();
-
-      // For now for testing purposes, write our config
-      writeConfig(myplan, id);
-
-      myplan.activate();
-
-    }
-
-    //noinspection InfiniteLoopStatement
-    while (true) {
-      try {
-        Thread.sleep(5000);
-      } catch (InterruptedException e) {
-
-        // Yeah, I know this isn't going to do anything right now.. Placeholder to remind me to implement a real
-        // graceful shutdown... also keeps IDE from complaining stop() isn't used.
-
-        e.printStackTrace();
-        Cassandra.stop();
-        System.exit(0);
+      // set up log ouput dir
+      String logdir = System.getProperty("jj.log.dir");
+      if (logdir == null) {
+        System.setProperty("jj.log.dir", JJ_DIR + "/logs");
+      } else {
+        if (!(new File(logdir).canWrite())) {
+          System.out.println("Cannot write to log dir," + logdir + " switching to default...");
+        }
       }
+      System.out.println("logs will be written to: " + System.getProperty("jj.log.dir"));
+
+      initClassloader();
+      initRMI();
+
+      // Next check our args and die if they are FUBAR
+      Map<String, Object> parsedArgs = usage(args);
+
+      String cassandraHome = (String) parsedArgs.get("--cassandra-home");
+      File cassandraDir = null;
+      if (cassandraHome != null) {
+        cassandraHome = cassandraHome.replaceFirst("^~", System.getProperty("user.home"));
+        cassandraDir = new File(cassandraHome);
+        if (!cassandraDir.isDirectory()) {
+          System.err.println("\nERROR: --cassandra-home must specify a directory\n");
+          System.exit(1);
+        }
+      }
+      if (cassandraDir == null) {
+        cassandraDir = new File(JJ_DIR + "/cassandra");
+      }
+      Cassandra.start(cassandraDir);
+
+      // now we are allowed to look at log4j2.xml
+      log = LogManager.getLogger();
+
+      log.info(Markers.LOG_MARKER, "Test regular log with marker");
+      log.info("Test regular log without marker");
+
+      try {
+        ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, "file:///foo/bar.txt");
+        log.error(Markers.SET_DROPPED, "Test fti drop");
+      } finally {
+        ThreadContext.clearAll();
+      }
+
+      String id = String.valueOf(parsedArgs.get("<id>"));
+      String password = String.valueOf(parsedArgs.get("<secret>"));
+
+      Properties sysprops = System.getProperties();
+      for (Object prop : sysprops.keySet()) {
+        log.trace(prop + "=" + sysprops.get(prop));
+      }
+
+      // This  does nothing useful yet, just for testing right now.
+
+      log.debug("Starting injester node...");
+      node = new IngestNode(id, password);
+      new Thread(node).start();
+
+      String property = System.getProperty("jj.example");
+      if ("run".equals(property)) {
+        PlanImpl.Builder planBuilder = new PlanImpl.Builder();
+        SimpleFileWatchScanner.Builder scanner = new SimpleFileWatchScanner.Builder();
+        StepImpl.Builder formatCreated = new StepImpl.Builder();
+        StepImpl.Builder formatModified = new StepImpl.Builder();
+        StepImpl.Builder formatAccessed = new StepImpl.Builder();
+        StepImpl.Builder renameFileszieToInteger = new StepImpl.Builder();
+        StepImpl.Builder tikaBuilder = new StepImpl.Builder();
+        StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
+        StepImpl.Builder sendToElasticBuilder = new StepImpl.Builder();
+
+        File testDocs = new File("/Users/gus/projects/solrsystem/jesterj/code/ingest/src/test/resources/test-data/");
+
+        scanner
+            .named(SHAKESPEARE)
+            .withRoot(testDocs)
+            .scanFreqMS(100);
+        formatCreated
+            .named(CREATED)
+            .withProcessor(
+                new SimpleDateTimeReformatter.Builder()
+                    .named("format_created")
+                    .from("created")
+                    .into("created_dt")
+            );
+        formatModified
+            .named(MODIFIED)
+            .withProcessor(
+                new SimpleDateTimeReformatter.Builder()
+                    .named("format_modified")
+                    .from("modified")
+                    .into("modified_dt")
+            );
+        formatAccessed
+            .named(ACCESSED)
+            .withProcessor(
+                new SimpleDateTimeReformatter.Builder()
+                    .named("format_accessed")
+                    .from("accessed")
+                    .into("accessed_dt")
+            );
+
+        renameFileszieToInteger
+            .named(SIZE_TO_INT)
+            .withProcessor(
+                new CopyField.Builder()
+                    .named("copy_size_to_int")
+                    .from("file_size")
+                    .into("file_size_i")
+                    .retainingOriginal(false)
+            );
+        tikaBuilder
+            .named(TIKA)
+            .routingBy(new DuplicateToAll.Builder()
+                .named("duplicator"))
+            .withProcessor(new TikaProcessor.Builder()
+                .named("tika")
+            );
+        sendToSolrBuilder
+            .named("solr sender")
+            .withProcessor(
+                new SendToSolrCloudProcessor.Builder()
+                    .withZookeperHost("localhost")
+                    .atZookeeperPort(9983)
+                    .usingCollection("jjtest")
+                    .placingTextContentIn("_text_")
+                    .withDocFieldsIn(".fields")
+            );
+        String home = Main.JJ_DIR + System.getProperty("file.separator") + "jj_elastic_client_node";
+
+        sendToElasticBuilder
+            .named("elastic_sender")
+            .withProcessor(
+                new ElasticNodeSender.Builder()
+                    .named("elastic_node_processor")
+                    .usingCluster("elasticsearch")
+                    .nodeName("jj_elastic_client_node")
+                    .locatedInDir(home)
+                    .forIndex("shakespeare")
+                    .forObjectType("work")
+//            .withProcessor(
+//                new ElasticTransportClientSender.Builder()
+//                    .named("elastic_node_processor")
+//                    .forIndex("shakespeare")
+//                    .forObjectType("work")
+            );
+        Plan myplan = planBuilder
+            .named("myPlan")
+            .addStep(null, scanner)
+            .addStep(new String[]{SHAKESPEARE}, formatCreated)
+            .addStep(new String[]{CREATED}, formatModified)
+            .addStep(new String[]{MODIFIED}, formatAccessed)
+            .addStep(new String[]{ACCESSED}, renameFileszieToInteger)
+            .addStep(new String[]{SIZE_TO_INT}, tikaBuilder)
+            .addStep(new String[]{TIKA}, sendToSolrBuilder)
+            .addStep(new String[]{TIKA}, sendToElasticBuilder) // not joining cluster for some reason?
+            .withIdField("id")
+            .build();
+
+        // For now for testing purposes, write our config
+        writeConfig(myplan, id);
+
+        myplan.activate();
+
+      }
+
+      //noinspection InfiniteLoopStatement
+      while (true) {
+        try {
+          Thread.sleep(5000);
+        } catch (InterruptedException e) {
+
+          // Yeah, I know this isn't going to do anything right now.. Placeholder to remind me to implement a real
+          // graceful shutdown... also keeps IDE from complaining stop() isn't used.
+
+          e.printStackTrace();
+          Cassandra.stop();
+          System.exit(0);
+        }
+      }
+    } catch (Exception e) {
+      log.fatal("CRASH and BURNED:", e);
     }
 
   }

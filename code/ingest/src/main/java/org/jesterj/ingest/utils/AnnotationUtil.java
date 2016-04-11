@@ -24,6 +24,7 @@ package org.jesterj.ingest.utils;
  */
 
 import java.lang.annotation.Annotation;
+import java.lang.annotation.Inherited;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
@@ -46,33 +47,40 @@ public class AnnotationUtil {
    */
   public void runIfMethodAnnotated(Method meth, Runnable r, boolean runIfPresent,
                                    Class<? extends Annotation> annotation) {
-    Set<Class> classes = new HashSet<>();
-    Class<?> clazz = meth.getDeclaringClass();
-    collectInterfaces(classes, clazz);
-    while (clazz != Object.class) {
-      classes.add(clazz);
-      clazz = clazz.getSuperclass();
-    }
-
-    // now iterate all superclasses and interfaces looking for a method with identical signature that has 
-    // the annotation in question.
-    boolean found = false;
-    for (Class<?> c : classes) {
-      try {
-        Method m = c.getMethod(meth.getName(), meth.getParameterTypes());
-        Annotation[] declaredAnnotations = m.getDeclaredAnnotations();
-        for (Annotation a : declaredAnnotations) {
-          found |= annotation == a.annotationType();
-          if (runIfPresent && found) {
-            r.run();
-            return;
-          }
-        }
-      } catch (NoSuchMethodException ignored) {
+    if (!annotation.isAnnotationPresent(Inherited.class)) {
+      boolean annotationPresent = meth.isAnnotationPresent(annotation);
+      if (runIfPresent && annotationPresent || !runIfPresent && !annotationPresent) {
+        r.run();
       }
-    }
-    if (!runIfPresent && !found) {
-      r.run();
+    } else {
+      Set<Class> classes = new HashSet<>();
+      Class<?> clazz = meth.getDeclaringClass();
+      collectInterfaces(classes, clazz);
+      while (clazz != Object.class) {
+        classes.add(clazz);
+        clazz = clazz.getSuperclass();
+      }
+
+      // now iterate all superclasses and interfaces looking for a method with identical signature that has 
+      // the annotation in question.
+      boolean found = false;
+      for (Class<?> c : classes) {
+        try {
+          Method m = c.getMethod(meth.getName(), meth.getParameterTypes());
+          Annotation[] declaredAnnotations = m.getDeclaredAnnotations();
+          for (Annotation a : declaredAnnotations) {
+            found |= annotation == a.annotationType();
+            if (runIfPresent && found) {
+              r.run();
+              return;
+            }
+          }
+        } catch (NoSuchMethodException ignored) {
+        }
+      }
+      if (!runIfPresent && !found) {
+        r.run();
+      }
     }
   }
 

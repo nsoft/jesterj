@@ -5,13 +5,26 @@
     <Console name="STDOUT" target="SYSTEM_OUT">
       <PatternLayout pattern="%d{ISO8601} %p %t %c %m%n" />
     </Console>
+    <RollingFile name="FILE" fileName="${sys:jj.log.dir}/jj.log" filePattern="${sys:jj.log.dir}/jj.log.%i"
+      immediateFlush="true">
+      <PatternLayout>
+        <pattern>%d{ISO8601} %p %t %c %m%n</pattern>
+      </PatternLayout>
+      <SizeBasedTriggeringPolicy size="50 MB" />
+      <DefaultRolloverStrategy max="20" />
+    </RollingFile>
     <JesterJAppender name="CASSANDRA">
       <PatternLayout pattern="%m%n" />
+      <filters>
+        <MarkerFilter marker="JJ_FTI" onMatch="ACCEPT" onMismatch="DENY" />
+      </filters>
     </JesterJAppender>
+
   </appenders>
 
   <loggers>
     <logger level="debug" name="org.jesterj" additivity="false">
+      <appender-ref ref="FILE" />
       <appender-ref ref="STDOUT" />
       <appender-ref ref="CASSANDRA" />
     </logger>

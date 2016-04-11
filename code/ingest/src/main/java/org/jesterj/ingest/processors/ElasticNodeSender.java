@@ -19,49 +19,34 @@ package org.jesterj.ingest.processors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionWriteResponse;
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeBuilder;
-import org.jesterj.ingest.Main;
+import org.jesterj.ingest.config.Required;
 import org.jesterj.ingest.logging.JesterJAppender;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Status;
+import org.jesterj.ingest.utils.AnnotationUtil;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 /*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 3/30/16
  */
-public class ElasticNodeSender extends BatchProcessor<ActionRequest> {
+public class ElasticNodeSender extends ElasticSender {
   private static final Logger log = LogManager.getLogger();
-
-  private String name;
 
   private String nodeName = "My beautiful node";
   private String clusterName = "my-cluster";
-  private String indexName;
-  private String objectType;
 
   private Settings settings;
   private Node node;
-
-  private Client client;
+  private String home;
 
 
   @Override
@@ -74,78 +59,6 @@ public class ElasticNodeSender extends BatchProcessor<ActionRequest> {
     }
   }
 
-  @Override
-  protected void individualFallbackOperation(Exception e) {
-    Map<ActionFuture, ActionRequest> futures = new HashMap<>();
-    for (ActionRequest request : getBatch().values()) {
-      if (request instanceof UpdateRequest) {
-        futures.put(client.update((UpdateRequest) request), request);
-      } else if (request instanceof DeleteRequest) {
-        futures.put(client.delete((DeleteRequest) request), request);
-      } else if (request instanceof IndexRequest) {
-        futures.put(client.index((IndexRequest) request), request);
-      } else {
-        throw new IllegalStateException("Should only have generated index, update and delete " +
-            "actions, but found" + request.getClass());
-      }
-    }
-
-    for (ActionFuture individualRetry : futures.keySet()) {
-      ActionRequest request = futures.get(individualRetry);
-      Document document = getBatch().inverse().get(request);
-      ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, document.getId());
-      try {
-        ActionWriteResponse resp = (ActionWriteResponse) individualRetry.actionGet();
-        if (resp instanceof UpdateResponse) {
-          UpdateResponse ursp = (UpdateResponse) resp;
-          if (!ursp.isCreated()) {
-            log.info(Status.ERROR.getMarker(), "{} could not be updated in elastic because of some reason that" +
-                "the elastic api won't tell us about!", document.getId());
-          }
-        } else if (resp instanceof DeleteResponse) {
-          DeleteResponse drsp = (DeleteResponse) resp;
-          if (!drsp.isFound()) {
-            log.info(Status.SEARCHABLE.getMarker(), "{} already deleted or never indexed... " +
-                "Our work is done here!", document.getId());
-          }
-        } else if (resp instanceof IndexResponse) {
-          IndexResponse irsp = (IndexResponse) resp;
-          if (!irsp.isCreated()) {
-            log.info(Status.ERROR.getMarker(), "{} could not be created in elastic because of some reason that" +
-                "the elastic api won't tell us about!", document.getId());
-          }
-        } else {
-          throw new IllegalStateException("Should only have generated index, update and delete " +
-              "actions, but found" + resp.getClass());
-        }
-      } catch (Exception ex) {
-        log.info(Status.ERROR.getMarker(), "{} could not be sent to elastic because of {}",
-            document.getId(), ex.getMessage());
-        log.error("Error sending to elastic!", e);
-      }
-    }
-  }
-
-  @Override
-  protected void batchOperation() throws Exception {
-    BulkRequestBuilder builder = client.prepareBulk();
-    for (ActionRequest request : getBatch().values()) {
-      if (request instanceof UpdateRequest) {
-        builder.add((UpdateRequest) request);
-      } else if (request instanceof DeleteRequest) {
-        builder.add((DeleteRequest) request);
-      } else if (request instanceof IndexRequest) {
-        builder.add((IndexRequest) request);
-      } else {
-        throw new IllegalStateException("Should only have generated index, update and delete " +
-            "actions, but found" + request.getClass());
-      }
-    }
-    BulkResponse bulkResponse = builder.get();
-    if (bulkResponse.hasFailures()) {
-      throw new ESBulkFail();
-    }
-  }
 
   @Override
   protected boolean exceptionIndicatesDocumentIssue(Exception e) {
@@ -154,35 +67,14 @@ public class ElasticNodeSender extends BatchProcessor<ActionRequest> {
   }
 
   @Override
-  protected ActionRequest convertDoc(Document document) {
-    if (Document.Operation.NEW == document.getOperation()) {
-      IndexRequest indexRequest = new IndexRequest(indexName, objectType, document.getId());
-      indexRequest.source(document.asMap());
-      getBatch().put(document, indexRequest);
-      return indexRequest;
-    }
-    if (Document.Operation.UPDATE == document.getOperation()) {
-      UpdateRequest updateRequest = new UpdateRequest(indexName, objectType, document.getId());
-      updateRequest.doc(document.asMap());
-      getBatch().put(document, updateRequest);
-      return updateRequest;
-    }
-    if (Document.Operation.DELETE == document.getOperation()) {
-      DeleteRequest deleteRequest = new DeleteRequest(indexName, objectType, document.getId());
-      getBatch().put(document, deleteRequest);
-      return deleteRequest;
-    }
-    throw new UnsupportedOperationException("Operation was:" + document.getOperation());
-  }
-
-  @Override
   public String getName() {
     return name;
   }
 
-  public static class Builder extends BatchProcessor.Builder {
+  public static class Builder extends ElasticSender.Builder {
 
     private ElasticNodeSender obj = new ElasticNodeSender();
+    private AnnotationUtil util = new AnnotationUtil();
 
     @Override
     protected ElasticNodeSender getObj() {
@@ -190,15 +82,32 @@ public class ElasticNodeSender extends BatchProcessor<ActionRequest> {
     }
 
     @Override
+    public boolean isValid() {
+      return super.isValid()
+          && getObj() != null
+          && getObj().nodeName != null
+          && getObj().home != null
+          && getObj().indexName != null
+          && getObj().clusterName != null;
+    }
+
+    @Override
     public ElasticNodeSender build() {
+      if (!isValid()) {
+        List<String> required = new ArrayList<>();
+        Method[] methods = getClass().getMethods();
+        for (Method meth : methods) {
+          util.runIfMethodAnnotated(meth, () -> required.add(meth.getName()), true, Required.class);
+        }
+        throw new IllegalStateException("Required parameters have not all been set on the builder. Required Parameters are:" + required);
+      }
       ElasticNodeSender obj = getObj();
-      String home = Main.JJ_DIR + System.getProperty("file.separator") + obj.nodeName;
       //noinspection ResultOfMethodCallIgnored
-      new File(home).mkdirs();
+      new File(obj.home).mkdirs();
       obj.settings = Settings.settingsBuilder()
+          .put("http.enabled", false)
           .put("node.name", obj.nodeName)
-          // TODO this should be cusomizable too
-          .put("path.home", home)
+          .put("path.home", obj.home)
           .build();
       obj.node = new NodeBuilder()
           .data(false)
@@ -207,37 +116,44 @@ public class ElasticNodeSender extends BatchProcessor<ActionRequest> {
           .settings(obj.settings)
           .clusterName(obj.clusterName)
           .build().start();
-      obj.client = obj.node.client();
+      obj.setClient(obj.node.client());
       return obj;
     }
 
     @Override
     public Builder named(String name) {
-      getObj().name = name;
+      super.named(name);
       return this;
     }
 
+    @Required
     public Builder usingCluster(String clusterName) {
       getObj().clusterName = clusterName;
       return this;
     }
 
+    @Required
     public Builder nodeName(String nodeName) {
       getObj().nodeName = nodeName;
       return this;
     }
 
+    @Required
+    public Builder locatedInDir(String home) {
+      getObj().home = home;
+      return this;
+    }
+
+    @Required
     public Builder forIndex(String indexName) {
-      getObj().indexName = indexName;
+      super.forIndex(indexName);
       return this;
     }
 
     public Builder forObjectType(String objectType) {
-      getObj().objectType = objectType;
+      super.forObjectType(objectType);
       return this;
     }
   }
 
-  private static class ESBulkFail extends RuntimeException {
-  }
 }
