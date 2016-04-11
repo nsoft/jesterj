@@ -16,19 +16,11 @@
 
 package org.jesterj.ingest.scanners;
 
-import com.copyright.easiertest.SimpleProperty;
-import net.jini.space.JavaSpace;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.jesterj.ingest.model.ConfiguredBuildable;
-import org.jesterj.ingest.model.Document;
-import org.jesterj.ingest.model.Router;
-import org.jesterj.ingest.model.exception.ConfigurationException;
-import org.jesterj.ingest.model.exception.PersistenceException;
-import org.jesterj.ingest.model.impl.DocumentImpl;
-import org.jesterj.ingest.model.impl.ScannerImpl;
-import org.jesterj.ingest.utils.SqlUtils;
-
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -39,6 +31,24 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.io.IOUtils;
+import org.jesterj.ingest.model.ConfiguredBuildable;
+import org.jesterj.ingest.model.Document;
+import org.jesterj.ingest.model.Router;
+import org.jesterj.ingest.model.exception.ConfigurationException;
+import org.jesterj.ingest.model.exception.PersistenceException;
+import org.jesterj.ingest.model.impl.DocumentImpl;
+import org.jesterj.ingest.model.impl.ScannerImpl;
+import org.jesterj.ingest.utils.SqlUtils;
+
+import com.copyright.easiertest.SimpleProperty;
+import com.google.common.io.CharStreams;
+
+import net.jini.space.JavaSpace;
 
 /**
  * Scans a JDBC source such as an RDBMS (e.g. MySQL). Obtains a connection through the specified
@@ -66,9 +76,12 @@ public class JdbcScanner extends ScannerImpl {
 
   private boolean autoCommit;
   private int queryTimeout = -1;
-  
+
+  // The (optional) name for the column that contains the document content
+  private String contentColumn;
+
   private SqlUtils sqlUtils = new SqlUtils();
-  
+
   // Use the ISO 8601 date format supported by Lucene, e.g. 2011-12-03T10:15:30Z
   private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_INSTANT;
 
@@ -88,12 +101,12 @@ public class JdbcScanner extends ScannerImpl {
     return () -> {
 
       try (
-          // Establish a connection and execute the query.
-          Connection conn = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
+        // Establish a connection and execute the query.
+        Connection conn = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
 
-          Statement statement = createStatement(conn);
-          ResultSet rs = statement.executeQuery(sqlStatement)) {
-        
+        Statement statement = createStatement(conn);
+        ResultSet rs = statement.executeQuery(sqlStatement)) {
+
         String[] columnNames = getColumnNames(rs);
         int docIdColumnIdx = getDocIdColumnIndex(columnNames, getPlan().getDocIdField());
 
@@ -124,15 +137,13 @@ public class JdbcScanner extends ScannerImpl {
    * @throws SQLException
    */
   Document makeDoc(ResultSet rs, String[] columnNames, String docId) throws SQLException {
-    // TODO DG - optional rawData field in the config
-    // blobField, clobField - not both
-    // set file_size if blob/clob there
-    
     // TODO - deletion tracking. Configure a separate query to identify soft deletes.
     // TODO - query Cassandra for whether the ID is in it, if so then it's an update
-    
+
+    byte[] rawBytes = getContentBytes(rs);
+
     DocumentImpl doc = new DocumentImpl(
-      null,
+      rawBytes,
       docId,
       getPlan(),
       Document.Operation.NEW,
@@ -140,21 +151,70 @@ public class JdbcScanner extends ScannerImpl {
 
     // For each column value
     for (int i = 1; i <= columnNames.length; i++) {
-      Object value = rs.getObject(i);
-      String strValue;
-      if (value != null) {
-        // Take care of java.sql.Date, java.sql.Time, and java.sql.Timestamp
-        if (value instanceof Date) {
-          Instant instant = Instant.ofEpochMilli(((Date) value).getTime());
-          strValue = DATE_FORMATTER.format(instant);
-        } else {
-          strValue = value.toString();
+      // Skip over the content column; if any is specified, we've already processed it as raw bytes.
+      if (!columnNames[i - 1].equals(contentColumn)) {
+        Object value = rs.getObject(i);
+        String strValue;
+        if (value != null) {
+          // Take care of java.sql.Date, java.sql.Time, and java.sql.Timestamp
+          if (value instanceof Date) {
+            strValue = convertDateToString(value);
+          } else {
+            strValue = value.toString();
+          }
+          doc.put(columnNames[i - 1], strValue);
         }
-        doc.put(columnNames[i - 1], strValue);
       }
     }
 
     return doc;
+  }
+
+  private byte[] getContentBytes(ResultSet rs) throws SQLException {
+    byte[] rawBytes = null;
+
+    // If the content column was specified
+    if (StringUtils.isNotBlank(contentColumn)) {
+      // Get its value.
+      Object content = rs.getObject(contentColumn);
+
+      if (content != null) {
+        // Clob
+        if (content instanceof Clob) {
+          Clob clob = (Clob) content;
+          try (Reader reader = clob.getCharacterStream()) {
+            rawBytes = CharStreams.toString(reader).getBytes();
+          } catch (IOException ex) {
+            String msg = String.format("I/O error while reading value of content column '%s'.", contentColumn);
+            log.error(msg, ex);
+          }
+        }
+        // Blob
+        else if (content instanceof Blob) {
+          Blob blob = (Blob) content;
+          try (InputStream stream = blob.getBinaryStream()) {
+            rawBytes = IOUtils.toByteArray(stream);
+          } catch (IOException ex) {
+            String msg = String.format("I/O error while reading value of content column '%s'.", contentColumn);
+            log.error(msg, ex);
+          }
+        }
+        // Date (unlikely, but)
+        else if (content instanceof Date) {
+          rawBytes = convertDateToString(content).getBytes();
+        }
+        // Anything else
+        else {
+          rawBytes = content.toString().getBytes();
+        }
+      }
+    }
+    return rawBytes;
+  }
+
+  private static String convertDateToString(Object value) {
+    Instant instant = Instant.ofEpochMilli(((Date) value).getTime());
+    return DATE_FORMATTER.format(instant);
   }
 
   // Creates a statement to execute
@@ -245,6 +305,11 @@ public class JdbcScanner extends ScannerImpl {
 
     public Builder withSqlStatement(String sqlStatement) {
       getObject().sqlStatement = sqlStatement;
+      return this;
+    }
+
+    public Builder withContentColumn(String contentColumn) {
+      getObject().contentColumn = contentColumn;
       return this;
     }
 
@@ -350,5 +415,10 @@ public class JdbcScanner extends ScannerImpl {
   @SimpleProperty
   public int getQueryTimeout() {
     return queryTimeout;
+  }
+
+  @SimpleProperty
+  public String getContentColumn() {
+    return contentColumn;
   }
 }
