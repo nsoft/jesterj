@@ -32,7 +32,8 @@ in code etc and only run locally, only single node supported. Documents indexed 
 file name and file size.
 
 ## Progress for 0.2
- * Preliminary JDBC scanner
+ * JDBC scanner
+ * Node and Transport style senders for Elastic
 
 ## TODO for 0.2
  * Serialized format for a plan/steps.
