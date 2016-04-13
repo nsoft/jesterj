@@ -27,6 +27,8 @@ import org.jesterj.ingest.model.Status;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
 
 /*
  * Created with IntelliJ IDEA.
@@ -35,7 +37,6 @@ import java.net.UnknownHostException;
  */
 public class ElasticTransportClientSender extends ElasticSender {
   private static final Logger log = LogManager.getLogger();
-
 
   @Override
   protected void perDocumentFailure(Exception e) {
@@ -62,6 +63,7 @@ public class ElasticTransportClientSender extends ElasticSender {
   public static class Builder extends ElasticSender.Builder {
 
     private ElasticTransportClientSender obj = new ElasticTransportClientSender();
+    private Map<String, String> hosts = new HashMap<>();
 
     @Override
     protected ElasticTransportClientSender getObj() {
@@ -72,13 +74,40 @@ public class ElasticTransportClientSender extends ElasticSender {
     public ElasticTransportClientSender build() {
       ElasticTransportClientSender obj = getObj();
       try {
-        obj.setClient(TransportClient.builder().build()
-            .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("localhost"), 9300)));
+        TransportClient transportClient = TransportClient.builder().build();
+        for (Map.Entry<String, String> host : hosts.entrySet()) {
+          int port = Integer.valueOf(host.getValue());
+          transportClient.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(host.getKey()), port));
+        }
+        obj.setClient(transportClient);
       } catch (UnknownHostException e) {
         log.error("Could not find elastic!", e);
         throw new RuntimeException(e);
       }
       return obj;
+    }
+
+    @Override
+    public boolean isValid() {
+      boolean nullHost = false;
+      boolean nonIntegerPort = false;
+      for (Map.Entry<String, String> host : hosts.entrySet()) {
+        try {
+          log.trace("{}:{}", host.getKey(), Integer.valueOf(host.getValue()));
+        } catch (NumberFormatException nfe) {
+          nonIntegerPort = true;
+          log.error("Non-numeric port {} for host:{} in processor named {}",
+              host.getValue(), host.getKey(), obj.getName());
+        }
+        if (host.getKey() == null) {
+          nullHost = true;
+          log.error("Null host in list of hosts for transportClient in processor named {}", obj.getName());
+        }
+      }
+      if (hosts.size() == 0) {
+        log.error("No hosts supplied for processor named {}", obj.getName());
+      }
+      return super.isValid() && !nonIntegerPort && !nullHost;
     }
 
     @Override
@@ -94,6 +123,11 @@ public class ElasticTransportClientSender extends ElasticSender {
 
     public Builder forObjectType(String objectType) {
       super.forObjectType(objectType);
+      return this;
+    }
+
+    public Builder withServer(String host, Object port) {
+      this.hosts.put(host, String.valueOf(port));
       return this;
     }
   }

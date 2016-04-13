@@ -68,7 +68,7 @@ public class Cassandra {
 
   public static void start(File cassandraDir) {
 
-    System.out.println("Booting to run cassandra");
+    System.out.println("Booting internal cassandra");
     try {
       if (!cassandraDir.exists() && !cassandraDir.mkdirs()) {
         throw new RuntimeException("could not create" + cassandraDir);

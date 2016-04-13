@@ -29,7 +29,7 @@ import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
 import org.jesterj.ingest.processors.CopyField;
-import org.jesterj.ingest.processors.ElasticNodeSender;
+import org.jesterj.ingest.processors.ElasticTransportClientSender;
 import org.jesterj.ingest.processors.SendToSolrCloudProcessor;
 import org.jesterj.ingest.processors.SimpleDateTimeReformatter;
 import org.jesterj.ingest.processors.TikaProcessor;
@@ -158,8 +158,8 @@ public class Main {
       node = new IngestNode(id, password);
       new Thread(node).start();
 
-      String property = System.getProperty("jj.example");
-      if ("run".equals(property)) {
+      String example = System.getProperty("jj.example");
+      if (example != null) {
         PlanImpl.Builder planBuilder = new PlanImpl.Builder();
         SimpleFileWatchScanner.Builder scanner = new SimpleFileWatchScanner.Builder();
         StepImpl.Builder formatCreated = new StepImpl.Builder();
@@ -231,32 +231,38 @@ public class Main {
 
         sendToElasticBuilder
             .named("elastic_sender")
-            .withProcessor(
-                new ElasticNodeSender.Builder()
-                    .named("elastic_node_processor")
-                    .usingCluster("elasticsearch")
-                    .nodeName("jj_elastic_client_node")
-                    .locatedInDir(home)
-                    .forIndex("shakespeare")
-                    .forObjectType("work")
 //            .withProcessor(
-//                new ElasticTransportClientSender.Builder()
+//                new ElasticNodeSender.Builder()
 //                    .named("elastic_node_processor")
+//                    .usingCluster("elasticsearch")
+//                    .nodeName("jj_elastic_client_node")
+//                    .locatedInDir(home)
 //                    .forIndex("shakespeare")
 //                    .forObjectType("work")
+            .withProcessor(
+                new ElasticTransportClientSender.Builder()
+                    .named("elastic_node_processor")
+                    .forIndex("shakespeare")
+                    .forObjectType("work")
+                    .withServer("localhost", 9300)
+                //.withServer("es.example.com", "9300")  // can have multiple servers
             );
-        Plan myplan = planBuilder
+        planBuilder
             .named("myPlan")
+            .withIdField("id")
             .addStep(null, scanner)
             .addStep(new String[]{SHAKESPEARE}, formatCreated)
             .addStep(new String[]{CREATED}, formatModified)
             .addStep(new String[]{MODIFIED}, formatAccessed)
             .addStep(new String[]{ACCESSED}, renameFileszieToInteger)
-            .addStep(new String[]{SIZE_TO_INT}, tikaBuilder)
-            .addStep(new String[]{TIKA}, sendToSolrBuilder)
-            .addStep(new String[]{TIKA}, sendToElasticBuilder) // not joining cluster for some reason?
-            .withIdField("id")
-            .build();
+            .addStep(new String[]{SIZE_TO_INT}, tikaBuilder);
+        if ("solr".equals(example) || "both".equals(example)) {
+          planBuilder.addStep(new String[]{TIKA}, sendToSolrBuilder);
+        }
+        if ("elastic".equals(example) || "both".equals(example)) {
+          planBuilder.addStep(new String[]{TIKA}, sendToElasticBuilder);
+        }
+        Plan myplan = planBuilder.build();
 
         // For now for testing purposes, write our config
         writeConfig(myplan, id);
