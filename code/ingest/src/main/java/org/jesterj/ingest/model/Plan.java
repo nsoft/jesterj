@@ -30,7 +30,7 @@ public interface Plan extends JiniServiceProvider, Active, Configurable {
    *
    * @return All steps
    */
-  Step[] getAllSteps();
+  Step[] getSteps();
 
   /**
    * Get the subset of steps that will execute when the plan is activated. This should be a continuous set of steps
@@ -51,7 +51,7 @@ public interface Plan extends JiniServiceProvider, Active, Configurable {
    */
   @Transient
   default boolean isHelping() {
-    Step[] all = getAllSteps();
+    Step[] all = getSteps();
     Step[] exec = getExecutableSteps();
     return (all[0] != exec[0] || all[all.length - 1] != exec[exec.length - 1]);
   }

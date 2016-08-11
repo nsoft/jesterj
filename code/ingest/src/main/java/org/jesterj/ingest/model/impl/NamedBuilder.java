@@ -36,6 +36,7 @@ public abstract class NamedBuilder<TYPE extends Configurable> implements Configu
 
   static {
     OPTS.setAllowReadOnlyProperties(true);
+    OPTS.setIndent(2);
   }
   
   private TYPE obj;
@@ -56,7 +57,7 @@ public abstract class NamedBuilder<TYPE extends Configurable> implements Configu
   }
 
   public String toYaml(TYPE obj) {
-    return new Yaml(propManager, OPTS).dump(obj);
+    return new Yaml(propManager, OPTS).dumpAsMap(obj);
   }
 
   public ConfiguredBuildable<TYPE> fromYaml(String yaml) {

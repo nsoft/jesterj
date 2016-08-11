@@ -20,6 +20,7 @@ import com.sun.nio.file.SensitivityWatchEventModifier;
 import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jesterj.ingest.config.Transient;
 import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
@@ -70,17 +71,20 @@ public class SimpleFileWatchScanner extends ScannerImpl {
   protected SimpleFileWatchScanner() {
   }
 
+  @Transient
   @Override
   public Function<String, String> getIdFunction() {
     return s -> s;
   }
 
+  @Transient
   @Override
   public Consumer<Document> getDocumentTracker() {
     return document -> {
     };
   }
 
+  @Transient
   @Override
   public Runnable getScanOperation() {
     return () -> {

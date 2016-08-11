@@ -20,6 +20,7 @@ import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
+import org.jesterj.ingest.config.Transient;
 import org.jesterj.ingest.logging.JesterJAppender;
 import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.jesterj.ingest.model.Document;
@@ -274,6 +275,7 @@ public class StepImpl implements Step {
     this.active = false;
   }
 
+  @Transient
   @Override
   public boolean isActive() {
     return this.active;

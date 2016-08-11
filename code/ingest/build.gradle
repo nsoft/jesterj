@@ -19,6 +19,7 @@ apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'gradle-one-jar'
 apply plugin: 'jacoco'
+apply plugin: 'maven-publish'
 
 idea {
     module {
@@ -54,6 +55,16 @@ configurations {
     oneJarLib
 }
 
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId 'org.jesterj'
+            artifactId 'injest'
+            version '0.2-SNAPSHOT'
+            from components.java
+        }
+    }
+}
 
 dependencies {
     compile 'org.apache.tika:tika-parsers:1.12'
@@ -86,6 +97,11 @@ dependencies {
     //runtime ':one-jar-boot:0.98' // uncomment for debugging stack traces into one-jar classes
 
     oneJarLib files('onejar/one-jar-boot-0.98.jar')
+    compile files('onejar/one-jar-boot-0.98.jar')
+    compile('org.reflections:reflections:0.9.10') {
+        exclude group: 'org.javassist'
+    }
+    compile 'org.javassist:javassist:3.20.0-GA' // substitute a version that handles java 8
 
 }
 

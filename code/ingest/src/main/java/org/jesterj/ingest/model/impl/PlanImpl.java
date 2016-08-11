@@ -42,9 +42,8 @@ public class PlanImpl implements Plan {
   protected PlanImpl() {
   }
 
-  @Transient // temporarily will remove before closing #18
   @Override
-  public Step[] getAllSteps() {
+  public Step[] getSteps() {
     return steps.values().toArray(new Step[steps.values().size()]);
   }
 
@@ -65,8 +64,8 @@ public class PlanImpl implements Plan {
     if (stepName == null) {
       return null;
     }
-    for (int i = 0; i < this.getAllSteps().length; i++) {
-      Step step = this.getAllSteps()[i];
+    for (int i = 0; i < this.getSteps().length; i++) {
+      Step step = this.getSteps()[i];
       if (stepName.equals(step.getName())) {
         return step;
       }
