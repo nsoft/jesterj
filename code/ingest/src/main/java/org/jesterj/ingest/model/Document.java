@@ -26,13 +26,15 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import net.jini.core.entry.Entry;
 
-public interface Document extends ListMultimap<String, String> {
+import java.io.Serializable;
+
+public interface Document extends ListMultimap<String, String>, Serializable {
 
   /**
    * The 'file_size' field which holds the size of the original content for an input document as
    * the framework first pulled it in.
    */
-  public static final String FIELD_FILE_SIZE = "file_size";
+  String FIELD_FILE_SIZE = "file_size";
   
   /**
    * Get the raw bytes from which this item was constructed. This is usually only used by the first or
@@ -86,14 +88,6 @@ public interface Document extends ListMultimap<String, String> {
    */
   void setStatusMessage(String message);
 
-  /**
-   * The plan that is processing this item. This method must be called before get source is called or an
-   * illegal state exception will occur
-   *
-   * @param plan The plan processing this item
-   */
-  void setPlan(Plan plan);
-
   Entry toEntry(Step next);
 
   ArrayListMultimap<String, String> getDelegate();
@@ -111,7 +105,7 @@ public interface Document extends ListMultimap<String, String> {
 
   String getFirstValue(String fieldName);
 
-  enum Operation {
+  enum Operation implements Serializable {
     NEW,
     UPDATE,
     DELETE

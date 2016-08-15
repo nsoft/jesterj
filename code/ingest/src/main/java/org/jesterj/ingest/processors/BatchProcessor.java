@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
  * User: gus
  * Date: 3/30/16
  */
-public abstract class BatchProcessor<T> implements DocumentProcessor {
+abstract class BatchProcessor<T> implements DocumentProcessor {
   private static final Logger log = LogManager.getLogger();
 
   private final ScheduledExecutorService sender = Executors.newScheduledThreadPool(1);
@@ -44,65 +44,84 @@ public abstract class BatchProcessor<T> implements DocumentProcessor {
   private int sendPartialBatchAfterMs = 5000;
   private ScheduledFuture scheduledSend;
 
-  private final ConcurrentBiMap<Document, T> batch = new ConcurrentBiMap<>();
+  private final Object batchLock = new Object();
+
+  private ConcurrentBiMap<Document, T> batch;
+
+  {
+    // lock on monitor to ensure initialization "happens before" any access.
+    synchronized (batchLock) {
+      batch = new ConcurrentBiMap<>();
+    }
+  }
 
   public Document[] processDocument(Document document) {
     T doc = convertDoc(document);
-    synchronized (getBatch()) {
-      if (getBatch().size() == batchSize) {
-        sendBatch();
-      } else {
-        getBatch().put(document, doc);
-        if (scheduledSend != null) {
-          scheduledSend.cancel(false);
-        }
-        scheduledSend = sender.schedule((Runnable) this::sendBatch, sendPartialBatchAfterMs, TimeUnit.MILLISECONDS);
+    ConcurrentBiMap<Document, T> oldBatch = null;
+    int size;
+    synchronized (batchLock) {
+      if (this.batch.size() >= batchSize) {
+        oldBatch = takeBatch();
       }
-      log.info(Status.BATCHED.getMarker(), "{} queued in postition {} for sending to solr. " +
-          "Will be sent within {} milliseconds.", document.getId(), getBatch().size(), sendPartialBatchAfterMs);
+      size = this.batch.size();
+      this.batch.put(document, doc);
     }
+    if (oldBatch != null) {
+      sendBatch(oldBatch);
+    }
+    if (scheduledSend != null) {
+      scheduledSend.cancel(false);
+    }
+    scheduledSend = sender.schedule(() -> sendBatch(takeBatch()), sendPartialBatchAfterMs, TimeUnit.MILLISECONDS);
+
+    log.info(Status.BATCHED.getMarker(), "{} queued in postition {} for sending to solr. " +
+        "Will be sent within {} milliseconds.", document.getId(), size, sendPartialBatchAfterMs);
+
     return new Document[0];
   }
 
-  private void sendBatch() {
-    // This really shouldn't be called outside of the synchronized block in process document, but just in case...
-    synchronized (getBatch()) {
-      try {
-        batchOperation();
-      } catch (Exception e) {
-        // we may have a single bad document... 
-        //noinspection ConstantConditions
-        if (exceptionIndicatesDocumentIssue(e)) {
-          individualFallbackOperation(e);
-        } else {
-          perDocumentFailure(e);
-        }
-      } finally {
-        getBatch().clear();
-        ThreadContext.remove(JesterJAppender.JJ_INGEST_DOCID);
-      }
+  private ConcurrentBiMap<Document, T> takeBatch() {
+    synchronized (batchLock) {
+      ConcurrentBiMap<Document, T> oldBatch = this.batch;
+      this.batch = new ConcurrentBiMap<>();
+      return oldBatch;
     }
   }
 
-  protected abstract void perDocumentFailure(Exception e);
+  private void sendBatch(ConcurrentBiMap<Document, T> oldBatch) {
+    // This really shouldn't be called outside of the synchronized block in process document, but just in case...
+    try {
+      batchOperation(oldBatch);
+    } catch (Exception e) {
+      // we may have a single bad document... 
+      //noinspection ConstantConditions
+      if (exceptionIndicatesDocumentIssue(e)) {
+        individualFallbackOperation(oldBatch, e);
+      } else {
+        perDocumentFailure(oldBatch, e);
+      }
+    } finally {
+      ThreadContext.remove(JesterJAppender.JJ_INGEST_DOCID);
+    }
+  }
+
+  protected abstract void perDocumentFailure(ConcurrentBiMap<Document, T> oldBatch, Exception e);
 
   /**
    * If the bulk request fails it might be just one document that's causing a problem, try each document individually
    *
-   * @param e the exception reported with the failure
+   * @param oldBatch The batch for which to handle failures. This will have been detached from this object and will
+   *                 become eligible for garbage collection after this method returns, so do not add objects to it.
+   * @param e        the exception reported with the failure
    */
-  protected abstract void individualFallbackOperation(Exception e);
+  protected abstract void individualFallbackOperation(ConcurrentBiMap<Document, T> oldBatch, Exception e);
 
-  protected abstract void batchOperation() throws Exception;
+  protected abstract void batchOperation(ConcurrentBiMap<Document, T> documentTConcurrentBiMap) throws Exception;
 
   @SuppressWarnings("UnusedParameters")
   protected abstract boolean exceptionIndicatesDocumentIssue(Exception e);
 
   protected abstract T convertDoc(Document document);
-
-  protected ConcurrentBiMap<Document, T> getBatch() {
-    return batch;
-  }
 
   protected int getBatchSize() {
     return batchSize;

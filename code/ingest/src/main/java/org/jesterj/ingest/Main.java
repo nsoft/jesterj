@@ -117,169 +117,167 @@ public class Main {
       System.out.println("logs will be written to: " + System.getProperty("jj.log.dir"));
 
       initClassloader();
-      Thread contextClassLoaderFix = new Thread(new Runnable() {
-        @Override
-        public void run() {
+      Thread contextClassLoaderFix = new Thread(() -> {
+        try {
+
+          initRMI();
+
+          // Next check our args and die if they are FUBAR
+          Map<String, Object> parsedArgs = usage(args);
+
+          String cassandraHome = (String) parsedArgs.get("--cassandra-home");
+          File cassandraDir = null;
+          if (cassandraHome != null) {
+            cassandraHome = cassandraHome.replaceFirst("^~", System.getProperty("user.home"));
+            cassandraDir = new File(cassandraHome);
+            if (!cassandraDir.isDirectory()) {
+              System.err.println("\nERROR: --cassandra-home must specify a directory\n");
+              System.exit(1);
+            }
+          }
+          if (cassandraDir == null) {
+            cassandraDir = new File(JJ_DIR + "/cassandra");
+          }
+          Cassandra.start(cassandraDir);
+
+          // now we are allowed to look at log4j2.xml
+          log = LogManager.getLogger();
+
+          log.info(Markers.LOG_MARKER, "Test regular log with marker");
+          log.info("Test regular log without marker");
+
           try {
+            ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, "file:///foo/bar.txt");
+            log.error(Markers.SET_DROPPED, "Test fti drop");
+          } finally {
+            ThreadContext.clearAll();
+          }
 
-            initRMI();
+          String id = String.valueOf(parsedArgs.get("<id>"));
+          String password = String.valueOf(parsedArgs.get("<secret>"));
 
-            // Next check our args and die if they are FUBAR
-            Map<String, Object> parsedArgs = usage(args);
+          Properties sysprops = System.getProperties();
+          for (Object prop : sysprops.keySet()) {
+            log.trace(prop + "=" + sysprops.get(prop));
+          }
 
-            String cassandraHome = (String) parsedArgs.get("--cassandra-home");
-            File cassandraDir = null;
-            if (cassandraHome != null) {
-              cassandraHome = cassandraHome.replaceFirst("^~", System.getProperty("user.home"));
-              cassandraDir = new File(cassandraHome);
-              if (!cassandraDir.isDirectory()) {
-                System.err.println("\nERROR: --cassandra-home must specify a directory\n");
-                System.exit(1);
-              }
+          // This  does nothing useful yet, just for testing right now.
+
+          log.debug("Starting injester node...");
+          node = new IngestNode(id, password);
+          new Thread(node).start();
+
+          ClassLoader onejarLoader = null;
+          String javaConfig = System.getProperty("jj.javaConfig");
+          if (javaConfig != null) {
+            File file = new File(javaConfig);
+            if (!file.exists()) {
+              System.err.println("File not found:" + file);
+              System.exit(1);
             }
-            if (cassandraDir == null) {
-              cassandraDir = new File(JJ_DIR + "/cassandra");
-            }
-            Cassandra.start(cassandraDir);
-
-            // now we are allowed to look at log4j2.xml
-            log = LogManager.getLogger();
-
-            log.info(Markers.LOG_MARKER, "Test regular log with marker");
-            log.info("Test regular log without marker");
 
             try {
-              ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, "file:///foo/bar.txt");
-              log.error(Markers.SET_DROPPED, "Test fti drop");
-            } finally {
-              ThreadContext.clearAll();
+              File jarfile = new File(javaConfig);
+              URL url = jarfile.toURI().toURL();
+
+              ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
+              onejarLoader = systemClassLoader;
+
+              // This relies on us wrapping onejar's loader in a URL loader so we can add stuff.
+              URLClassLoader classLoader = (URLClassLoader) systemClassLoader;
+              Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+              method.setAccessible(true);
+              method.invoke(classLoader, url);
+            } catch (Exception ex) {
+              ex.printStackTrace();
             }
 
-            String id = String.valueOf(parsedArgs.get("<id>"));
-            String password = String.valueOf(parsedArgs.get("<secret>"));
+            // Unfortunately this classpath scan adds quite a bit to startup time.... It seems to scan all the
+            // Jdk classes (but not classes loaded by onejar, thank goodness) It only works with URLClassLoaders
+            // but perhaps we can provide a temporary sub-class 
+            Reflections reflections = new Reflections(new ConfigurationBuilder().addUrls(ClasspathHelper.forClassLoader(onejarLoader)));
+            ArrayList<Class> planProducers = new ArrayList<>(reflections.getTypesAnnotatedWith(JavaPlanConfig.class));
+            System.out.println(javaConfig);
+            System.out.println(planProducers);
 
-            Properties sysprops = System.getProperties();
-            for (Object prop : sysprops.keySet()) {
-              log.trace(prop + "=" + sysprops.get(prop));
-            }
+            Class config = planProducers.get(0);
+            PlanProvider provider = (PlanProvider) config.newInstance();
+            provider.getPlan().activate();
+          }
 
-            // This  does nothing useful yet, just for testing right now.
+          String example = System.getProperty("jj.example");
+          if (example != null) {
+            PlanImpl.Builder planBuilder = new PlanImpl.Builder();
+            SimpleFileWatchScanner.Builder scanner = new SimpleFileWatchScanner.Builder();
+            StepImpl.Builder formatCreated = new StepImpl.Builder();
+            StepImpl.Builder formatModified = new StepImpl.Builder();
+            StepImpl.Builder formatAccessed = new StepImpl.Builder();
+            StepImpl.Builder renameFileszieToInteger = new StepImpl.Builder();
+            StepImpl.Builder tikaBuilder = new StepImpl.Builder();
+            StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
+            StepImpl.Builder sendToElasticBuilder = new StepImpl.Builder();
 
-            log.debug("Starting injester node...");
-            node = new IngestNode(id, password);
-            new Thread(node).start();
+            File testDocs = new File("/Users/gus/projects/solrsystem/jesterj/code/ingest/src/test/resources/test-data/");
 
-            ClassLoader onejarLoader = null;
-            String javaConfig = System.getProperty("jj.javaConfig");
-            if (javaConfig != null) {
-              File file = new File(javaConfig);
-              if (!file.exists()) {
-                System.err.println("File not found:" + file);
-                System.exit(1);
-              }
+            scanner
+                .named(SHAKESPEARE)
+                .withRoot(testDocs)
+                .scanFreqMS(100);
+            formatCreated
+                .named(CREATED)
+                .withProcessor(
+                    new SimpleDateTimeReformatter.Builder()
+                        .named("format_created")
+                        .from("created")
+                        .into("created_dt")
+                );
+            formatModified
+                .named(MODIFIED)
+                .withProcessor(
+                    new SimpleDateTimeReformatter.Builder()
+                        .named("format_modified")
+                        .from("modified")
+                        .into("modified_dt")
+                );
+            formatAccessed
+                .named(ACCESSED)
+                .withProcessor(
+                    new SimpleDateTimeReformatter.Builder()
+                        .named("format_accessed")
+                        .from("accessed")
+                        .into("accessed_dt")
+                );
 
-              try {
-                File jarfile = new File(javaConfig);
-                URL url = jarfile.toURI().toURL();
+            renameFileszieToInteger
+                .named(SIZE_TO_INT)
+                .withProcessor(
+                    new CopyField.Builder()
+                        .named("copy_size_to_int")
+                        .from("file_size")
+                        .into("file_size_i")
+                        .retainingOriginal(false)
+                );
+            tikaBuilder
+                .named(TIKA)
+                .routingBy(new DuplicateToAll.Builder()
+                    .named("duplicator"))
+                .withProcessor(new TikaProcessor.Builder()
+                    .named("tika")
+                );
+            sendToSolrBuilder
+                .named("solr sender")
+                .withProcessor(
+                    new SendToSolrCloudProcessor.Builder()
+                        .withZookeperHost("localhost")
+                        .atZookeeperPort(9983)
+                        .usingCollection("jjtest")
+                        .placingTextContentIn("_text_")
+                        .withDocFieldsIn(".fields")
+                );
+//            String home = Main.JJ_DIR + System.getProperty("file.separator") + "jj_elastic_client_node";
 
-                ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
-                onejarLoader = systemClassLoader;
-
-                // This relies on us wrapping onejar's loader in a URL loader so we can add stuff.
-                URLClassLoader classLoader = (URLClassLoader) systemClassLoader;
-                Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-                method.setAccessible(true);
-                method.invoke(classLoader, url);
-              } catch (Exception ex) {
-                ex.printStackTrace();
-              }
-
-              // Unfortunately this classpath scan adds quite a bit to startup time.... It seems to scan all the
-              // Jdk classes (but not classes loaded by onejar, thank goodness) It only works with URLClassLoaders
-              // but perhaps we can provide a temporary sub-class 
-              Reflections reflections = new Reflections(new ConfigurationBuilder().addUrls(ClasspathHelper.forClassLoader(onejarLoader)));
-              ArrayList<Class> planProducers = new ArrayList<>(reflections.getTypesAnnotatedWith(JavaPlanConfig.class));
-              System.out.println(javaConfig);
-              System.out.println(planProducers);
-
-              Class config = planProducers.get(0);
-              PlanProvider provider = (PlanProvider) config.newInstance();
-              provider.getPlan().activate();
-            }
-
-            String example = System.getProperty("jj.example");
-            if (example != null) {
-              PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-              SimpleFileWatchScanner.Builder scanner = new SimpleFileWatchScanner.Builder();
-              StepImpl.Builder formatCreated = new StepImpl.Builder();
-              StepImpl.Builder formatModified = new StepImpl.Builder();
-              StepImpl.Builder formatAccessed = new StepImpl.Builder();
-              StepImpl.Builder renameFileszieToInteger = new StepImpl.Builder();
-              StepImpl.Builder tikaBuilder = new StepImpl.Builder();
-              StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
-              StepImpl.Builder sendToElasticBuilder = new StepImpl.Builder();
-
-              File testDocs = new File("/Users/gus/projects/solrsystem/jesterj/code/ingest/src/test/resources/test-data/");
-
-              scanner
-                  .named(SHAKESPEARE)
-                  .withRoot(testDocs)
-                  .scanFreqMS(100);
-              formatCreated
-                  .named(CREATED)
-                  .withProcessor(
-                      new SimpleDateTimeReformatter.Builder()
-                          .named("format_created")
-                          .from("created")
-                          .into("created_dt")
-                  );
-              formatModified
-                  .named(MODIFIED)
-                  .withProcessor(
-                      new SimpleDateTimeReformatter.Builder()
-                          .named("format_modified")
-                          .from("modified")
-                          .into("modified_dt")
-                  );
-              formatAccessed
-                  .named(ACCESSED)
-                  .withProcessor(
-                      new SimpleDateTimeReformatter.Builder()
-                          .named("format_accessed")
-                          .from("accessed")
-                          .into("accessed_dt")
-                  );
-
-              renameFileszieToInteger
-                  .named(SIZE_TO_INT)
-                  .withProcessor(
-                      new CopyField.Builder()
-                          .named("copy_size_to_int")
-                          .from("file_size")
-                          .into("file_size_i")
-                          .retainingOriginal(false)
-                  );
-              tikaBuilder
-                  .named(TIKA)
-                  .routingBy(new DuplicateToAll.Builder()
-                      .named("duplicator"))
-                  .withProcessor(new TikaProcessor.Builder()
-                      .named("tika")
-                  );
-              sendToSolrBuilder
-                  .named("solr sender")
-                  .withProcessor(
-                      new SendToSolrCloudProcessor.Builder()
-                          .withZookeperHost("localhost")
-                          .atZookeeperPort(9983)
-                          .usingCollection("jjtest")
-                          .placingTextContentIn("_text_")
-                          .withDocFieldsIn(".fields")
-                  );
-              String home = Main.JJ_DIR + System.getProperty("file.separator") + "jj_elastic_client_node";
-
-              sendToElasticBuilder
-                  .named("elastic_sender")
+            sendToElasticBuilder
+                .named("elastic_sender")
 //            .withProcessor(
 //                new ElasticNodeSender.Builder()
 //                    .named("elastic_node_processor")
@@ -288,63 +286,63 @@ public class Main {
 //                    .locatedInDir(home)
 //                    .forIndex("shakespeare")
 //                    .forObjectType("work")
-                  .withProcessor(
-                      new ElasticTransportClientSender.Builder()
-                          .named("elastic_node_processor")
-                          .forIndex("shakespeare")
-                          .forObjectType("work")
-                          .withServer("localhost", 9300)
-                      //.withServer("es.example.com", "9300")  // can have multiple servers
-                  );
-              planBuilder
-                  .named("myPlan")
-                  .withIdField("id")
-                  .addStep(null, scanner)
-                  .addStep(new String[]{SHAKESPEARE}, formatCreated)
-                  .addStep(new String[]{CREATED}, formatModified)
-                  .addStep(new String[]{MODIFIED}, formatAccessed)
-                  .addStep(new String[]{ACCESSED}, renameFileszieToInteger)
-                  .addStep(new String[]{SIZE_TO_INT}, tikaBuilder);
-              if ("solr".equals(example) || "both".equals(example)) {
-                planBuilder.addStep(new String[]{TIKA}, sendToSolrBuilder);
-              }
-              if ("elastic".equals(example) || "both".equals(example)) {
-                planBuilder.addStep(new String[]{TIKA}, sendToElasticBuilder);
-              }
-              Plan myplan = planBuilder.build();
-
-              // For now for testing purposes, write our config
-              //writeConfig(myplan, id);
-
-              myplan.activate();
-
+                .withProcessor(
+                    new ElasticTransportClientSender.Builder()
+                        .named("elastic_node_processor")
+                        .forIndex("shakespeare")
+                        .forObjectType("work")
+                        .withServer("localhost", 9300)
+                    //.withServer("es.example.com", "9300")  // can have multiple servers
+                );
+            planBuilder
+                .named("myPlan")
+                .withIdField("id")
+                .addStep(null, scanner)
+                .addStep(new String[]{SHAKESPEARE}, formatCreated)
+                .addStep(new String[]{CREATED}, formatModified)
+                .addStep(new String[]{MODIFIED}, formatAccessed)
+                .addStep(new String[]{ACCESSED}, renameFileszieToInteger)
+                .addStep(new String[]{SIZE_TO_INT}, tikaBuilder);
+            if ("solr".equals(example) || "both".equals(example)) {
+              planBuilder.addStep(new String[]{TIKA}, sendToSolrBuilder);
             }
-
-            //noinspection InfiniteLoopStatement
-            while (true) {
-              try {
-                Thread.sleep(5000);
-              } catch (InterruptedException e) {
-
-                // Yeah, I know this isn't going to do anything right now.. Placeholder to remind me to implement a real
-                // graceful shutdown... also keeps IDE from complaining stop() isn't used.
-
-                e.printStackTrace();
-                Cassandra.stop();
-                System.exit(0);
-              }
+            if ("elastic".equals(example) || "both".equals(example)) {
+              planBuilder.addStep(new String[]{TIKA}, sendToElasticBuilder);
             }
-          } catch (Exception e) {
-            log.fatal("CRASH and BURNED:", e);
+            Plan myplan = planBuilder.build();
+
+            // For now for testing purposes, write our config
+            //writeConfig(myplan, id);
+
+            myplan.activate();
+
           }
 
+          //noinspection InfiniteLoopStatement
+          while (true) {
+            try {
+              Thread.sleep(5000);
+            } catch (InterruptedException e) {
+
+              // Yeah, I know this isn't going to do anything right now.. Placeholder to remind me to implement a real
+              // graceful shutdown... also keeps IDE from complaining stop() isn't used.
+
+              e.printStackTrace();
+              Cassandra.stop();
+              System.exit(0);
+            }
+          }
+        } catch (Exception e) {
+          log.fatal("CRASH and BURNED:", e);
         }
+
       });
       // unfortunately due to the hackery necessary to get things playing nice with one-jar, the contextClassLoader
       // is now out of sync with the system class loader, which messess up the Reflections library. So hack on hack...
       Field _f_contextClassLoader = Thread.class.getDeclaredField("contextClassLoader");
       _f_contextClassLoader.setAccessible(true);
       _f_contextClassLoader.set(contextClassLoaderFix, ClassLoader.getSystemClassLoader());
+      contextClassLoaderFix.setDaemon(false); // keep the JVM running please
       contextClassLoaderFix.start();
     } catch (Exception e) {
       log.fatal("CRASH and BURNED:", e);
@@ -378,11 +376,8 @@ public class Main {
   /**
    * Set up security policy that allows RMI and JINI code to work. Also seems to be
    * helpful for running embedded cassandra. TODO: Minimize the permissions granted.
-   *
-   * @throws NoSuchFieldException
-   * @throws IllegalAccessException
    */
-  private static void initRMI() throws NoSuchFieldException, IllegalAccessException {
+  private static void initRMI() {
     // must do this before any jini code
     String policyFile = System.getProperty("java.security.policy");
     if (policyFile == null) {
@@ -409,8 +404,8 @@ public class Main {
    * Initialize the classloader. This method fixes up an issue with OneJar's classloaders. Nothing in or before
    * this method should touch logging, or 3rd party jars that logging that might try to setup log4j.
    *
-   * @throws NoSuchFieldException
-   * @throws IllegalAccessException
+   * @throws NoSuchFieldException if the system class loader field has changed in this version of java and is not "scl"
+   * @throws IllegalAccessException if we are unable to set the system class loader 
    */
   private static void initClassloader() throws NoSuchFieldException, IllegalAccessException {
     // for river

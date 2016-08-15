@@ -93,7 +93,6 @@ public class ElasticSenderTest {
   public void testBatchOperation() throws Exception {
     expect(obj.getClient()).andReturn(mockClient);
     expect(mockClient.prepareBulk()).andReturn(mockBulkReq);
-    expect(obj.getBatch()).andReturn(mockBatch).anyTimes();
     ArrayList<ActionRequest> values = new ArrayList<>();
     values.add(mockUpdate);
     values.add(mockDelete);
@@ -109,14 +108,13 @@ public class ElasticSenderTest {
     expect(mockBatch.keySet()).andReturn(docs);
     expect(docMock.getId()).andReturn("foo");
     replay();
-    obj.batchOperation();
+    obj.batchOperation(mockBatch);
   }
 
   @Test(expected = ElasticSender.ESBulkFail.class)
   public void testBatchOperationHasFailures() throws Exception {
     expect(obj.getClient()).andReturn(mockClient);
     expect(mockClient.prepareBulk()).andReturn(mockBulkReq);
-    expect(obj.getBatch()).andReturn(mockBatch).anyTimes();
     ArrayList<ActionRequest> values = new ArrayList<>();
     values.add(mockUpdate);
     values.add(mockDelete);
@@ -128,14 +126,13 @@ public class ElasticSenderTest {
     expect(mockBulkReq.get()).andReturn(mockBulkResp);
     expect(mockBulkResp.hasFailures()).andReturn(true);
     replay();
-    obj.batchOperation();
+    obj.batchOperation(mockBatch);
   }
 
   @Test(expected = IllegalStateException.class)
   public void testBatchOperationWrongObj() throws Exception {
     expect(obj.getClient()).andReturn(mockClient);
     expect(mockClient.prepareBulk()).andReturn(mockBulkReq);
-    expect(obj.getBatch()).andReturn(mockBatch).anyTimes();
     ArrayList<ActionRequest> values = new ArrayList<>();
     values.add(new ActionRequest() {
       @Override
@@ -147,7 +144,7 @@ public class ElasticSenderTest {
     values.add(mockIndex);
     expect(mockBatch.values()).andReturn(values);
     replay();
-    obj.batchOperation();
+    obj.batchOperation(mockBatch);
   }
 
 
@@ -157,8 +154,6 @@ public class ElasticSenderTest {
     expect(obj.getIndexName()).andReturn("foo");
     expect(obj.getObjectType()).andReturn("bar");
     expect(docMock.getId()).andReturn("foobar");
-    expect(obj.getBatch()).andReturn(mockBatch);
-    expect(mockBatch.put(eq(docMock), isA(DeleteRequest.class))).andReturn(mockDelete);
     replay();
     obj.convertDoc(docMock);
   }
@@ -169,8 +164,6 @@ public class ElasticSenderTest {
     expect(obj.getIndexName()).andReturn("foo");
     expect(obj.getObjectType()).andReturn("bar");
     expect(docMock.getId()).andReturn("foobar");
-    expect(obj.getBatch()).andReturn(mockBatch);
-    expect(mockBatch.put(eq(docMock), isA(UpdateRequest.class))).andReturn(mockUpdate);
     expect(docMock.asMap()).andReturn(new HashMap<>());
     replay();
     obj.convertDoc(docMock);
@@ -182,8 +175,6 @@ public class ElasticSenderTest {
     expect(obj.getIndexName()).andReturn("foo");
     expect(obj.getObjectType()).andReturn("bar");
     expect(docMock.getId()).andReturn("foobar");
-    expect(obj.getBatch()).andReturn(mockBatch);
-    expect(mockBatch.put(eq(docMock), isA(IndexRequest.class))).andReturn(mockIndex);
     expect(docMock.asMap()).andReturn(new HashMap<>());
     replay();
     obj.convertDoc(docMock);
@@ -192,7 +183,6 @@ public class ElasticSenderTest {
   @Test
   public void testRetryIndividualDocs() {
     ElasticSender.ESBulkFail e = new ElasticSender.ESBulkFail();
-    expect(obj.getBatch()).andReturn(mockBatch);
     Collection<ActionRequest> actionRequests = new ArrayList<>();
     actionRequests.add(mockUpdate);
     actionRequests.add(mockIndex);
@@ -203,13 +193,13 @@ public class ElasticSenderTest {
     expect(mockClient.update(mockUpdate)).andReturn(futureMockUpdate);
     expect(mockClient.delete(mockDelete)).andReturn(futureMockDelete);
     //noinspection unchecked
-    obj.handleRetryResult(eq(e), isA(HashMap.class), eq(futureMockDelete));
+    obj.handleRetryResult(eq(e), isA(HashMap.class), eq(futureMockDelete), eq(mockBatch));
     //noinspection unchecked
-    obj.handleRetryResult(eq(e), isA(HashMap.class), eq(futureMockUpdate));
+    obj.handleRetryResult(eq(e), isA(HashMap.class), eq(futureMockUpdate), eq(mockBatch));
     //noinspection unchecked
-    obj.handleRetryResult(eq(e), isA(HashMap.class), eq(futureMockIndex));
+    obj.handleRetryResult(eq(e), isA(HashMap.class), eq(futureMockIndex), eq(mockBatch));
     replay();
-    obj.individualFallbackOperation(e);
+    obj.individualFallbackOperation(mockBatch, e);
   }
 
   @Test
@@ -218,14 +208,13 @@ public class ElasticSenderTest {
     Map<ActionFuture, ActionRequest> actionFutureActionRequestMap = new HashMap<>();
     actionFutureActionRequestMap.put(futureMockIndex, mockIndex);
     expect(futureMockIndex.actionGet()).andReturn(mockIndexResponse);
-    expect(obj.getBatch()).andReturn(mockBatch);
     Map<ActionRequest, Document> actionRequestDocumentMap = new HashMap<>();
     actionRequestDocumentMap.put(mockIndex, docMock);
     expect(mockBatch.inverse()).andReturn(actionRequestDocumentMap);
     expect(docMock.getId()).andReturn("foo");
     obj.checkResponse(docMock, mockIndexResponse);
     replay();
-    obj.handleRetryResult(e, actionFutureActionRequestMap, futureMockIndex);
+    obj.handleRetryResult(e, actionFutureActionRequestMap, futureMockIndex, mockBatch);
   }
 
   @Test
@@ -234,13 +223,12 @@ public class ElasticSenderTest {
     Map<ActionFuture, ActionRequest> actionFutureActionRequestMap = new HashMap<>();
     actionFutureActionRequestMap.put(futureMockIndex, mockIndex);
     expect(futureMockIndex.actionGet()).andThrow(new RuntimeException());
-    expect(obj.getBatch()).andReturn(mockBatch);
     Map<ActionRequest, Document> actionRequestDocumentMap = new HashMap<>();
     actionRequestDocumentMap.put(mockIndex, docMock);
     expect(mockBatch.inverse()).andReturn(actionRequestDocumentMap);
     expect(docMock.getId()).andReturn("foo");
     replay();
-    obj.handleRetryResult(e, actionFutureActionRequestMap, futureMockIndex);
+    obj.handleRetryResult(e, actionFutureActionRequestMap, futureMockIndex, mockBatch);
   }
 
   @Test
@@ -281,7 +269,7 @@ public class ElasticSenderTest {
     tester.testBean(new ElasticSender() {
 
       @Override
-      protected void perDocumentFailure(Exception e) {
+      protected void perDocumentFailure(ConcurrentBiMap<Document, ActionRequest> oldBatch, Exception e) {
       }
 
       @Override

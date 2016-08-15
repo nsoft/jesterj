@@ -22,6 +22,8 @@ package org.jesterj.ingest.model;/*
 
 import org.apache.logging.log4j.Marker;
 
+import java.io.Serializable;
+
 import static org.jesterj.ingest.logging.Markers.SET_DEAD;
 import static org.jesterj.ingest.logging.Markers.SET_DIRTY;
 import static org.jesterj.ingest.logging.Markers.SET_DROPPED;
@@ -34,7 +36,7 @@ import static org.jesterj.ingest.logging.Markers.SET_SEARCHABLE;
 /**
  * The conceptual states available for indexed resources.
  */
-public enum Status {
+public enum Status implements Serializable {
   /**
    * Resource requires re-indexing. Scanners will look for this state when deciding whether to create
    * an document for processing.

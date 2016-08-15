@@ -16,6 +16,7 @@
 
 package org.jesterj.ingest.processors;
 
+import org.apache.cassandra.utils.ConcurrentBiMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -53,9 +54,9 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
   }
 
   @Override
-  protected void perDocumentFailure(Exception e) {
+  protected void perDocumentFailure(ConcurrentBiMap<Document, SolrInputDocument> oldBatch, Exception e) {
     // something's wrong with the network all documents must be errored out:
-    for (Document doc : getBatch().keySet()) {
+    for (Document doc : oldBatch.keySet()) {
       ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, doc.getId());
       log.info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", doc.getId(), e.getMessage());
       log.error("Error communicating with solr!", e);
@@ -63,14 +64,14 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
   }
 
   @Override
-  protected void individualFallbackOperation(Exception e) {
+  protected void individualFallbackOperation(ConcurrentBiMap<Document, SolrInputDocument> oldBatch, Exception e) {
     // TODO: send in bisected batches to avoid massive traffic down due to one doc when batches are large
-    for (Document document : getBatch().keySet()) {
+    for (Document document : oldBatch.keySet()) {
       ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, document.getId());
       try {
-        SolrInputDocument doc = getBatch().get(document);
+        SolrInputDocument doc = oldBatch.get(document);
         if (doc instanceof Delete) {
-          solrClient.deleteById(getBatch().inverse().get(doc).getId());
+          solrClient.deleteById(oldBatch.inverse().get(doc).getId());
           log.info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());
         } else {
           solrClient.add(doc);
@@ -84,22 +85,22 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
   }
 
   @Override
-  protected void batchOperation() throws SolrServerException, IOException {
-    List<String> deletes = getBatch().keySet().stream()
+  protected void batchOperation(ConcurrentBiMap<Document, SolrInputDocument> oldBatch) throws SolrServerException, IOException {
+    List<String> deletes = oldBatch.keySet().stream()
         .filter(doc -> doc.getOperation() == Document.Operation.DELETE)
         .map(Document::getId)
         .collect(Collectors.toList());
     if (deletes.size() > 0) {
       solrClient.deleteById(deletes);
     }
-    List<SolrInputDocument> adds = getBatch().keySet().stream()
+    List<SolrInputDocument> adds = oldBatch.keySet().stream()
         .filter(doc -> doc.getOperation() != Document.Operation.DELETE)
-        .map(doc -> getBatch().get(doc))
+        .map(oldBatch::get)
         .collect(Collectors.toList());
     if (adds.size() > 0) {
       solrClient.add(adds);
     }
-    for (Document document : getBatch().keySet()) {
+    for (Document document : oldBatch.keySet()) {
       ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, document.getId());
       if (document.getOperation() == Document.Operation.DELETE) {
         log.info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());

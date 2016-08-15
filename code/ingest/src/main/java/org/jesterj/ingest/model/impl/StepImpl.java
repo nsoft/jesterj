@@ -31,11 +31,16 @@ import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.processors.DefaultWarningProcessor;
 import org.jesterj.ingest.routers.RouteByStepName;
+import org.jesterj.ingest.utils.Cloner;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,6 +49,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /*
@@ -74,8 +80,9 @@ public class StepImpl implements Step {
   private String stepName;
   private Router router = new RouteByStepName();
   private DocumentProcessor processor = new DefaultWarningProcessor();
-  protected Thread worker;
+  Thread worker;
   private Plan plan;
+  private Cloner<Document> cloner = new Cloner<>();
 
   private List<Runnable> deferred = new ArrayList<>();
 
@@ -286,7 +293,8 @@ public class StepImpl implements Step {
     pushToNextIfOk(doc);
   }
 
-  protected final void pushToNextIfOk(Document document) {
+  private void pushToNextIfOk(Document document) {
+    log.trace("starting push to next if ok {} for {}", getName(), document.getId());
     if (document.getStatus() == Status.PROCESSING) {
       reportDocStatus(Status.PROCESSING, document, "{} finished processing {}", getName(), document.getId());
       Step[] next = getNext(document);
@@ -294,41 +302,70 @@ public class StepImpl implements Step {
         reportDocStatus(Status.DROPPED, document, "No qualifying next step found by {} in {}", router, getName());
         return;
       }
-      for (Step step : next) {
-        if (this.outputSpace == null) {
-          // local processing is our only option, do blocking put.
+      if (next.length == 1) {
+        // for single step no need to clone
+        pushToStep(document, next[0]);
+      } else {
+        log.info("Distributing doc {} to {} ", document.getId(), Arrays.stream(next).map(Step::getName).collect(Collectors.toList()));
+        Deque<Document> clones = new ArrayDeque<>(next.length);
+        //noinspection ForLoopReplaceableByForEach
+        for (int i = 0; i < next.length; i++) {
+          // clone before attempting to push just in case mutable state in the delegate mutates to cause exception
+          // part way through. This would indicate some form of bad design, but let's be safe anyway.
           try {
-            step.put(document);
-          } catch (InterruptedException e) {
-            String message = "Exception while offering to " + step.getName();
-            reportException(document, e, message);
+            clones.add(getCloner().cloneObj(document));
+          } catch (IOException | ClassNotFoundException e) {
+            reportException(document, e, "Failed to clone document when sending to multiple steps");
           }
-        } else {
-          if (this.isFinalHelper()) {
-            // remote processing is our only option.
-            log.debug("todo: send to JavaSpace");
-            // todo: put in JavaSpace
-          } else {
-            // Try to process this item locally first with a non-blocking add, and
-            // if the getNext step is bogged down send it out for processing by helpers.
-            try {
-              step.add(document);
-            } catch (IllegalStateException e) {
-              log.debug("todo: send to JavaSpace");
-              // todo: put in JavaSpace
-            }
-          }
+        }
+        // Ok, so we have our copies, now distribute...
+        for (Step aNext : next) {
+          pushToStep(clones.pop(), aNext);
         }
       }
     } else {
       reportDocStatus(document.getStatus(), document,
           "Document processing for {} terminated after {}", document.getId(), getName());
     }
+    log.trace("completing push to next if ok {} for {}", getName(), document.getId());
+  }
+
+  private void pushToStep(Document document, Step step) {
+    if (this.outputSpace == null) {
+      // local processing is our only option, do blocking put.
+      try {
+        log.trace("starting put ( {} into {} )", getName(), step.getName());
+        step.put(document);
+        log.trace("completed put ( {} into {} )", getName(), step.getName());
+      } catch (InterruptedException e) {
+        String message = "Exception while offering to " + step.getName();
+        reportException(document, e, message);
+      }
+    } else {
+      log.error("This code path (javaspaces) not yet supported");
+      System.err.println("This code path (javaspaces) not yet supported");
+      System.exit(2);
+//      if (this.isFinalHelper)) {
+//        // remote processing is our only option.
+//        log.debug("todo: send to JavaSpace");
+//        // todo: put in JavaSpace
+//      } else {
+//        // Try to process this item locally first with a non-blocking add, and
+//        // if the getNext step is bogged down send it out for processing by helpers.
+//        try {
+//          step.add(document);
+//        } catch (IllegalStateException e) {
+//          log.debug("todo: send to JavaSpace");
+//          // todo: put in JavaSpace
+//        }
+//      }
+    }
   }
 
   private void reportDocStatus(Status status, Document document, String message, Object... messageParams) {
     try {
       ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, document.getId());
+      document.setStatus(status);
       log.info(status.getMarker(), message, messageParams);
     } finally {
       ThreadContext.clearAll();
@@ -337,34 +374,43 @@ public class StepImpl implements Step {
 
   @Override
   public void run() {
-    //noinspection InfiniteLoopStatement
-    while (true) {
-      while (!this.active) {
+    try {
+      //noinspection InfiniteLoopStatement
+      while (true) {
+        while (!this.active) {
+          log.info("inactive: {}", getName());
+          try {
+            Thread.sleep(500);
+          } catch (InterruptedException e) {
+            // ignore
+          }
+        }
+        log.info("active: {}", getName());
+        ArrayList<Document> temp = null;
+        synchronized (queueLock) {
+          if (peek() != null) {
+            temp = new ArrayList<>();
+            temp.addAll(queue);
+            clear();
+          }
+        }
+        if (temp != null) {
+          temp.forEach(new DocumentConsumer());
+          continue;
+        }
+
         try {
+          // if we don't have work make sure we let others do their work.
           Thread.sleep(500);
         } catch (InterruptedException e) {
           // ignore
         }
       }
-      ArrayList<Document> temp = null;
-      synchronized (queueLock) {
-        if (peek() != null) {
-          temp = new ArrayList<>();
-          temp.addAll(queue);
-          clear();
-        }
-      }
-      if (temp != null) {
-        temp.parallelStream().forEach(new DocumentConsumer());
-        continue;
-      }
-
-      try {
-        // if we don't have work make sure we let others do their work.
-        Thread.sleep(25);
-      } catch (InterruptedException e) {
-        // ignore
-      }
+    } catch (Throwable t) {
+      t.printStackTrace();
+      log.error(t);
+      System.out.println("Thread for " + getName() + " died. This should not happen and is always a bug in JesterJ. Shutting down. Please open a bug report at http://www.jesterj.org");
+      System.exit(2);
     }
   }
 
@@ -377,6 +423,7 @@ public class StepImpl implements Step {
     return log;
   }
 
+  @SuppressWarnings("WeakerAccess")
   protected void reportException(Document doc, Exception e, String message) {
     StringWriter buff = new StringWriter();
     e.printStackTrace(new PrintWriter(buff));
@@ -397,18 +444,22 @@ public class StepImpl implements Step {
     deferred.add(builderAction);
   }
 
+  public Cloner<Document> getCloner() {
+    return cloner;
+  }
+
   private class DocumentConsumer implements Consumer<Document> {
 
     @Override
     public void accept(Document document) {
       try {
-        for (Document documentResult : StepImpl.this.processor.processDocument(document)) {
+        Document[] documents = StepImpl.this.processor.processDocument(document);
+        for (Document documentResult : documents) {
           pushToNextIfOk(documentResult);
         }
-      } catch (Error e) {
+      } catch (Exception e) {
+        StepImpl.this.reportException(document, e, e.getMessage());
         throw e;
-      } catch (Throwable t) {
-        t.printStackTrace();
       }
     }
   }

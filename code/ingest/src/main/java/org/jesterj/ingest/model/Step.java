@@ -82,7 +82,6 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Documen
     return plan.isHelping() && executableSteps[executableSteps.length - 1] == this;
   }
 
-
   void sendToNext(Document doc);
 
 }

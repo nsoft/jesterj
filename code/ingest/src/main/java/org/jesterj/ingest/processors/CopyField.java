@@ -36,7 +36,6 @@ public class CopyField implements DocumentProcessor {
 
   @Override
   public Document[] processDocument(Document document) {
-
     List<String> values = document.get(getFrom());
     document.putAll(getInto(), values);
     if (!isRetainOriginal()) {

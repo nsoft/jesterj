@@ -63,7 +63,6 @@ public class DocumentImpl implements Document {
   private byte[] rawData;
   private Status status = Status.PROCESSING;
   private String statusMessage = "";
-  private Plan plan;
   private Operation operation;
   private String sourceScannerName;
 
@@ -73,11 +72,27 @@ public class DocumentImpl implements Document {
     this.sourceScannerName = source.getName();
     this.idField = plan.getDocIdField();
     this.delegate.put(idField, id);
-    this.plan = plan;
-    
+
     if (this.rawData != null) {
       this.delegate.put(FIELD_FILE_SIZE, String.valueOf(this.rawData.length));
     }
+  }
+
+  /**
+   * Copy constructor. Creates a deep copy of raw data, so may be memory intensive.
+   *
+   * @param doc The original document to be copied.
+   */
+  public DocumentImpl(Document doc) {
+    byte[] duplicate = new byte[doc.getRawData().length];
+    System.arraycopy(doc.getRawData(), 0, duplicate, 0, doc.getRawData().length);
+    this.rawData = duplicate;
+    this.operation = doc.getOperation();
+    this.delegate = ArrayListMultimap.create(doc.getDelegate());
+    this.sourceScannerName = doc.getSourceScannerName();
+    this.idField = doc.getIdField();
+    this.status = doc.getStatus();
+    this.statusMessage = doc.getStatusMessage();
   }
 
   @Override
@@ -92,7 +107,7 @@ public class DocumentImpl implements Document {
 
   @Override
   public boolean put(@Nonnull java.lang.String key, @Nonnull java.lang.String value) {
-    if (plan.getDocIdField().equals(key)) {
+    if (getIdField().equals(key)) {
       ArrayList<String> values = new ArrayList<>();
       values.add(value);
       List<String> prev = replaceValues(this.idField, values);
@@ -215,11 +230,6 @@ public class DocumentImpl implements Document {
   }
 
   @Override
-  public void setPlan(Plan plan) {
-    this.plan = plan;
-  }
-
-  @Override
   public Entry toEntry(Step next) {
     return new DocumentEntry(this, next);
   }
@@ -253,6 +263,7 @@ public class DocumentImpl implements Document {
   public String getFirstValue(String fieldName) {
     return get(fieldName).get(0);
   }
+
 
   /**
    * A serializable form of an item that can be placed in a JavaSpace. The nextStepName is the property on which 
@@ -292,7 +303,6 @@ public class DocumentImpl implements Document {
         "delegate=" + delegate +
         ", status=" + status +
         ", statusMessage='" + statusMessage + '\'' +
-        ", plan=" + plan +
         ", operation=" + operation +
         ", sourceScannerName='" + sourceScannerName + '\'' +
         ", idField='" + idField + '\'' +

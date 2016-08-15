@@ -16,9 +16,11 @@
 
 package org.jesterj.ingest.processors;
 
+import org.apache.cassandra.utils.ConcurrentBiMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
+import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.jesterj.ingest.logging.JesterJAppender;
@@ -39,9 +41,9 @@ public class ElasticTransportClientSender extends ElasticSender {
   private static final Logger log = LogManager.getLogger();
 
   @Override
-  protected void perDocumentFailure(Exception e) {
+  protected void perDocumentFailure(ConcurrentBiMap<Document, ActionRequest> oldBatch, Exception e) {
     // something's wrong with the network etc all documents must be errored out:
-    for (Document doc : getBatch().keySet()) {
+    for (Document doc : oldBatch.keySet()) {
       ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, doc.getId());
       log.info(Status.ERROR.getMarker(), "{} could not be sent to elastic because of {}", doc.getId(), e.getMessage());
       log.error("Error communicating with elastic!", e);

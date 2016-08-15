@@ -17,6 +17,7 @@
 package org.jesterj.ingest.processors;
 
 import com.copyright.easiertest.SimpleProperty;
+import org.apache.cassandra.utils.ConcurrentBiMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -51,9 +52,9 @@ public abstract class ElasticSender extends BatchProcessor<ActionRequest> {
   protected String name;
 
   @Override
-  protected void individualFallbackOperation(Exception e) {
+  protected void individualFallbackOperation(ConcurrentBiMap<Document, ActionRequest> oldBatch, Exception e) {
     Map<ActionFuture, ActionRequest> futures = new HashMap<>();
-    for (ActionRequest request : getBatch().values()) {
+    for (ActionRequest request : oldBatch.values()) {
       if (request instanceof UpdateRequest) {
         futures.put(getClient().update((UpdateRequest) request), request);
       } else if (request instanceof DeleteRequest) {
@@ -67,13 +68,13 @@ public abstract class ElasticSender extends BatchProcessor<ActionRequest> {
     }
 
     for (ActionFuture individualRetry : futures.keySet()) {
-      handleRetryResult(e, futures, individualRetry);
+      handleRetryResult(e, futures, individualRetry, oldBatch);
     }
   }
 
-  void handleRetryResult(Exception e, Map<ActionFuture, ActionRequest> futures, ActionFuture individualRetry) {
+  void handleRetryResult(Exception e, Map<ActionFuture, ActionRequest> futures, ActionFuture individualRetry, ConcurrentBiMap<Document, ActionRequest> oldBatch) {
     ActionRequest request = futures.get(individualRetry);
-    Document document = getBatch().inverse().get(request);
+    Document document = oldBatch.inverse().get(request);
     String id = document.getId();
     ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, id);
     try {
@@ -101,9 +102,9 @@ public abstract class ElasticSender extends BatchProcessor<ActionRequest> {
   }
 
   @Override
-  protected void batchOperation() throws Exception {
+  protected void batchOperation(ConcurrentBiMap<Document, ActionRequest> oldBatch) throws Exception {
     BulkRequestBuilder builder = getClient().prepareBulk();
-    for (ActionRequest request : getBatch().values()) {
+    for (ActionRequest request : oldBatch.values()) {
       if (request instanceof UpdateRequest) {
         builder.add((UpdateRequest) request);
       } else if (request instanceof DeleteRequest) {
@@ -119,7 +120,7 @@ public abstract class ElasticSender extends BatchProcessor<ActionRequest> {
     if (bulkResponse.hasFailures()) {
       throw new ESBulkFail();
     } else {
-      for (Document doc : getBatch().keySet()) {
+      for (Document doc : oldBatch.keySet()) {
         log.info("Successfully sent {} to elastic", doc.getId());
       }
     }
@@ -132,19 +133,15 @@ public abstract class ElasticSender extends BatchProcessor<ActionRequest> {
       case NEW: {
         IndexRequest indexRequest = new IndexRequest(getIndexName(), getObjectType(), document.getId());
         indexRequest.source(document.asMap());
-        getBatch().put(document, indexRequest);
         return indexRequest;
       }
       case UPDATE: {
         UpdateRequest updateRequest = new UpdateRequest(getIndexName(), getObjectType(), document.getId());
         updateRequest.doc(document.asMap());
-        getBatch().put(document, updateRequest);
         return updateRequest;
       }
       case DELETE: {
-        DeleteRequest deleteRequest = new DeleteRequest(getIndexName(), getObjectType(), document.getId());
-        getBatch().put(document, deleteRequest);
-        return deleteRequest;
+        return new DeleteRequest(getIndexName(), getObjectType(), document.getId());
       }
     }
     throw new UnsupportedOperationException("Operation was:" + operation);
