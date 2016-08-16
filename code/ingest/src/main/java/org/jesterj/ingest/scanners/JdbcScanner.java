@@ -16,6 +16,22 @@
 
 package org.jesterj.ingest.scanners;
 
+import com.copyright.easiertest.SimpleProperty;
+import com.google.common.io.CharStreams;
+import net.jini.space.JavaSpace;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.io.IOUtils;
+import org.jesterj.ingest.model.ConfiguredBuildable;
+import org.jesterj.ingest.model.Document;
+import org.jesterj.ingest.model.Router;
+import org.jesterj.ingest.model.exception.ConfigurationException;
+import org.jesterj.ingest.model.exception.PersistenceException;
+import org.jesterj.ingest.model.impl.DocumentImpl;
+import org.jesterj.ingest.model.impl.ScannerImpl;
+import org.jesterj.ingest.utils.SqlUtils;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -32,29 +48,11 @@ import java.util.Date;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.pdfbox.io.IOUtils;
-import org.jesterj.ingest.model.ConfiguredBuildable;
-import org.jesterj.ingest.model.Document;
-import org.jesterj.ingest.model.Router;
-import org.jesterj.ingest.model.exception.ConfigurationException;
-import org.jesterj.ingest.model.exception.PersistenceException;
-import org.jesterj.ingest.model.impl.DocumentImpl;
-import org.jesterj.ingest.model.impl.ScannerImpl;
-import org.jesterj.ingest.utils.SqlUtils;
-
-import com.copyright.easiertest.SimpleProperty;
-import com.google.common.io.CharStreams;
-
-import net.jini.space.JavaSpace;
-
 /**
  * Scans a JDBC source such as an RDBMS (e.g. MySQL). Obtains a connection through the specified
  * JDBC driver and extracts rows using the specified SQL statement; converts extracted rows to
  * documents and passes the documents downstream.
- * 
+ *
  * @author dgoldenberg
  */
 public class JdbcScanner extends ScannerImpl {
@@ -65,8 +63,9 @@ public class JdbcScanner extends ScannerImpl {
   private String jdbcUrl;
   private String jdbcUser;
   private String jdbcPassword;
-
   private String sqlStatement;
+  private String table;
+  private transient volatile boolean ready;
 
   // For MySQL, this may need to be set by user to Integer.MIN_VALUE:
   // http://stackoverflow.com/questions/2447324/streaming-large-result-sets-with-mysql
@@ -97,15 +96,29 @@ public class JdbcScanner extends ScannerImpl {
   }
 
   @Override
+  public void activate() {
+    ready = true;
+    super.activate();
+  }
+
+  @Override
+  public void deactivate() {
+    ready = false;
+    super.deactivate();
+  }
+
+  @Override
   public Runnable getScanOperation() {
     return () -> {
 
-      try (
-        // Establish a connection and execute the query.
-        Connection conn = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
-
-        Statement statement = createStatement(conn);
-        ResultSet rs = statement.executeQuery(sqlStatement)) {
+      log.info("connecting to database {}", jdbcUrl);
+      // Establish a connection and execute the query.
+      this.ready = false;
+      scanStarted();
+      try (Connection conn = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
+           Statement statement = createStatement(conn);
+           ResultSet rs = statement.executeQuery(sqlStatement)) {
+        log.info("Successfully queried database {}", jdbcUrl);
 
         String[] columnNames = getColumnNames(rs);
         int docIdColumnIdx = getDocIdColumnIndex(columnNames, getPlan().getDocIdField());
@@ -113,6 +126,7 @@ public class JdbcScanner extends ScannerImpl {
         // For each row
         while (rs.next()) {
           String docId = rs.getString(docIdColumnIdx);
+          docId = jdbcUrl + "/" + table + "/" + docId;
           Document doc = makeDoc(rs, columnNames, docId);
           JdbcScanner.this.docFound(doc);
         }
@@ -120,21 +134,19 @@ public class JdbcScanner extends ScannerImpl {
       } catch (ConfigurationException | PersistenceException | SQLException ex) {
         log.error("JDBC scanner error.", ex);
       }
-
+      scanFinished();
+      this.ready = true;
     };
   }
 
   /**
    * Creates a document from a result set row.
-   * 
-   * @param rs
-   *          the result set
-   * @param columnNames
-   *          the column names
-   * @param docId
-   *          the document ID to use
+   *
+   * @param rs          the result set
+   * @param columnNames the column names
+   * @param docId       the document ID to use
    * @return the document instance
-   * @throws SQLException
+   * @throws SQLException if the connection to the database has a problem
    */
   Document makeDoc(ResultSet rs, String[] columnNames, String docId) throws SQLException {
     // TODO - deletion tracking. Configure a separate query to identify soft deletes.
@@ -143,16 +155,18 @@ public class JdbcScanner extends ScannerImpl {
     byte[] rawBytes = getContentBytes(rs);
 
     DocumentImpl doc = new DocumentImpl(
-      rawBytes,
-      docId,
-      getPlan(),
-      Document.Operation.NEW,
-      JdbcScanner.this);
+        rawBytes,
+        docId,
+        getPlan(),
+        Document.Operation.NEW,
+        JdbcScanner.this);
 
     // For each column value
     for (int i = 1; i <= columnNames.length; i++) {
       // Skip over the content column; if any is specified, we've already processed it as raw bytes.
-      if (!columnNames[i - 1].equals(contentColumn)) {
+      // similarly skip over the ID field as well.
+      String columnName = columnNames[i - 1];
+      if (!columnName.equals(contentColumn) && !columnName.equals(doc.getIdField())) {
         Object value = rs.getObject(i);
         String strValue;
         if (value != null) {
@@ -162,7 +176,7 @@ public class JdbcScanner extends ScannerImpl {
           } else {
             strValue = value.toString();
           }
-          doc.put(columnNames[i - 1], strValue);
+          doc.put(columnName, strValue);
         }
       }
     }
@@ -254,16 +268,21 @@ public class JdbcScanner extends ScannerImpl {
       }
       if (itemIdColNum == -1) {
         throw new PersistenceException(
-          String.format("The document ID column could not be found in the SQL result set. docIdColumn: '%s', SQL: %s, columns: %s.",
-            docIdColumnName, sqlStatement, String.join(", ", columnNames)));
+            String.format("The document ID column could not be found in the SQL result set. docIdColumn: '%s', SQL: %s, columns: %s.",
+                docIdColumnName, sqlStatement, String.join(", ", (CharSequence[]) columnNames)));
       }
     }
     return itemIdColNum;
   }
 
+  @Override
+  public boolean isReady() {
+    return ready;
+  }
+
   /**
    * Handles configuration parameters for the JDBC scanner.
-   * 
+   *
    * @author dgoldenberg
    */
   public static class Builder extends ScannerImpl.Builder {
@@ -305,6 +324,11 @@ public class JdbcScanner extends ScannerImpl {
 
     public Builder withSqlStatement(String sqlStatement) {
       getObject().sqlStatement = sqlStatement;
+      return this;
+    }
+
+    public Builder representingTable(String table) {
+      getObject().table = table;
       return this;
     }
 
@@ -366,6 +390,14 @@ public class JdbcScanner extends ScannerImpl {
 
     @Override
     public ScannerImpl build() {
+      if (obj.jdbcDriver == null
+          || obj.jdbcPassword == null
+          || obj.jdbcUser == null
+          || obj.jdbcUrl == null
+          || obj.table == null) {
+        throw new IllegalStateException("jdbc driver, password, user, url, and the table being represented " +
+            "must be supplied");
+      }
       JdbcScanner tmp = obj;
       this.obj = new JdbcScanner();
       return tmp;

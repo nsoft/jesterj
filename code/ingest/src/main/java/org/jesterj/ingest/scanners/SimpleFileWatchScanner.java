@@ -49,12 +49,6 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 1/27/16
- */
-
 /**
  * Scanner for local filesystems. This scanner operates in a two phase process. First a full walk of the filesystem
  * is performed, and then further changes are detected by a {@link WatchService}. No persistent
@@ -67,6 +61,7 @@ public class SimpleFileWatchScanner extends ScannerImpl {
   private File rootDir;
   LinkedHashMap<File, WatchService> watchers = new LinkedHashMap<>();
   private final Object watcherLock = new Object();
+  private transient volatile boolean ready;
 
   protected SimpleFileWatchScanner() {
   }
@@ -89,17 +84,21 @@ public class SimpleFileWatchScanner extends ScannerImpl {
   public Runnable getScanOperation() {
     return () -> {
       // set up our watcher if needed
+      scanStarted();
       synchronized (watcherLock) {
         if (watchers.size() == 0) {
+          this.ready = false; // ensure initial walk completes before new scans are started.
           try {
             Files.walkFileTree(rootDir.toPath(), new RootWalker());
           } catch (IOException e) {
             log.error("failed to walk filesystem!", e);
             throw new RuntimeException(e);
           }
+          this.ready = true;
         }
       }
-      // Process pending events
+      // Process pending events. Not very likely to have concurrent scans, and even so, it doesn't
+      // seem likely to cause problems.
       for (File dir : watchers.keySet()) {
         WatchService watcher = watchers.get(dir);
         for (WatchKey key; (key = watcher.poll()) != null; ) {
@@ -139,7 +138,13 @@ public class SimpleFileWatchScanner extends ScannerImpl {
           key.reset();
         }
       }
+      scanFinished();
     };
+  }
+
+  @Override
+  public boolean isReady() {
+    return ready;
   }
 
   private class RootWalker extends SimpleFileVisitor<Path> {

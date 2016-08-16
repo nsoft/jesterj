@@ -29,10 +29,9 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 
@@ -54,27 +53,39 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
 
   // can be used to avoid starting a scan while one is still running. This is not required however
   // and can be ignored if desired.
-  protected final AtomicBoolean activeScan = new AtomicBoolean(false);
-  
-  private final ScheduledExecutorService scheduler =
-      Executors.newScheduledThreadPool(1);
+  protected final AtomicInteger activeScans = new AtomicInteger(0);
+
+  private final ExecutorService exec =
+      Executors.newCachedThreadPool();
 
   // don't want multiple scans initiated simultaneously. If the scanning mechanism
   // wants to distribute work among threads it may, but that should be done in the scan operation.
   private final ExecutorService scanExec = Executors.newSingleThreadExecutor();
+  private long nanoInterval;
 
   protected ScannerImpl() {
   }
 
 
   public void run() {
-    ScheduledFuture<?> scanner = null;
+    nanoInterval = interval * 1000000;
+    Future<?> scanner = null;
+    long last = 0;
+    if (isActive()) {
+      scanner = exec.submit(getScanOperation());
+      last = System.nanoTime();
+    }
     while (this.isActive()) {
-      scanner = scheduler.schedule(getScanOperation(), interval, TimeUnit.MILLISECONDS);
       try {
-        Thread.sleep(interval);
+        Thread.sleep(25);
+        if (isReady() && longerAgoThanInterval(last)) {
+          scanner = exec.submit(getScanOperation());
+          last = System.nanoTime();
+        }
       } catch (InterruptedException e) {
-        scanner.cancel(true);
+        if (scanner != null) {
+          scanner.cancel(true);
+        }
         e.printStackTrace();
       }
     }
@@ -83,11 +94,8 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     }
   }
 
-  @Override
-  public void deactivate() {
-    super.deactivate();
-    worker.interrupt();
-    worker = null;
+  boolean longerAgoThanInterval(long last) {
+    return last + nanoInterval < System.nanoTime();
   }
 
   /**
@@ -272,16 +280,16 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     return log;
   }
 
-  public boolean isActiveScan() {
-    return activeScan.get();
+  public boolean getActiveScans() {
+    return activeScans.get() > 0;
   }
 
   public void scanStarted() {
-    activeScan.set(true);
+    activeScans.incrementAndGet();
   }
 
   public void scanFinished() {
-    activeScan.set(false);
+    activeScans.decrementAndGet();
   }
 
   public static abstract class Builder extends StepImpl.Builder {
@@ -325,6 +333,12 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     @Override
     protected abstract ScannerImpl getObject();
 
+    /**
+     * The scanning frequency. 25ms is the minimum. Smaller intervals will be treated as 25ms
+     *
+     * @param interval a number of milliseconds >= 25
+     * @return This builder object for further configuration.
+     */
     public Builder scanFreqMS(long interval) {
       getObject().interval = interval;
       return this;

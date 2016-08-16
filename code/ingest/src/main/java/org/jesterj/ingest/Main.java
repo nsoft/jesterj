@@ -167,160 +167,21 @@ public class Main {
           node = new IngestNode(id, password);
           new Thread(node).start();
 
-          ClassLoader onejarLoader = null;
           String javaConfig = System.getProperty("jj.javaConfig");
           if (javaConfig != null) {
-            File file = new File(javaConfig);
-            if (!file.exists()) {
-              System.err.println("File not found:" + file);
-              System.exit(1);
+            log.info("Looking for configuration class in {}", javaConfig);
+            runJavaConfig(javaConfig);
+          } else {
+            String example = System.getProperty("jj.example");
+            if (example != null) {
+              runExample(example);
             }
-
-            try {
-              File jarfile = new File(javaConfig);
-              URL url = jarfile.toURI().toURL();
-
-              ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
-              onejarLoader = systemClassLoader;
-
-              // This relies on us wrapping onejar's loader in a URL loader so we can add stuff.
-              URLClassLoader classLoader = (URLClassLoader) systemClassLoader;
-              Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-              method.setAccessible(true);
-              method.invoke(classLoader, url);
-            } catch (Exception ex) {
-              ex.printStackTrace();
-            }
-
-            // Unfortunately this classpath scan adds quite a bit to startup time.... It seems to scan all the
-            // Jdk classes (but not classes loaded by onejar, thank goodness) It only works with URLClassLoaders
-            // but perhaps we can provide a temporary sub-class 
-            Reflections reflections = new Reflections(new ConfigurationBuilder().addUrls(ClasspathHelper.forClassLoader(onejarLoader)));
-            ArrayList<Class> planProducers = new ArrayList<>(reflections.getTypesAnnotatedWith(JavaPlanConfig.class));
-            System.out.println(javaConfig);
-            System.out.println(planProducers);
-
-            Class config = planProducers.get(0);
-            PlanProvider provider = (PlanProvider) config.newInstance();
-            provider.getPlan().activate();
-          }
-
-          String example = System.getProperty("jj.example");
-          if (example != null) {
-            PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-            SimpleFileWatchScanner.Builder scanner = new SimpleFileWatchScanner.Builder();
-            StepImpl.Builder formatCreated = new StepImpl.Builder();
-            StepImpl.Builder formatModified = new StepImpl.Builder();
-            StepImpl.Builder formatAccessed = new StepImpl.Builder();
-            StepImpl.Builder renameFileszieToInteger = new StepImpl.Builder();
-            StepImpl.Builder tikaBuilder = new StepImpl.Builder();
-            StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
-            StepImpl.Builder sendToElasticBuilder = new StepImpl.Builder();
-
-            File testDocs = new File("/Users/gus/projects/solrsystem/jesterj/code/ingest/src/test/resources/test-data/");
-
-            scanner
-                .named(SHAKESPEARE)
-                .withRoot(testDocs)
-                .scanFreqMS(100);
-            formatCreated
-                .named(CREATED)
-                .withProcessor(
-                    new SimpleDateTimeReformatter.Builder()
-                        .named("format_created")
-                        .from("created")
-                        .into("created_dt")
-                );
-            formatModified
-                .named(MODIFIED)
-                .withProcessor(
-                    new SimpleDateTimeReformatter.Builder()
-                        .named("format_modified")
-                        .from("modified")
-                        .into("modified_dt")
-                );
-            formatAccessed
-                .named(ACCESSED)
-                .withProcessor(
-                    new SimpleDateTimeReformatter.Builder()
-                        .named("format_accessed")
-                        .from("accessed")
-                        .into("accessed_dt")
-                );
-
-            renameFileszieToInteger
-                .named(SIZE_TO_INT)
-                .withProcessor(
-                    new CopyField.Builder()
-                        .named("copy_size_to_int")
-                        .from("file_size")
-                        .into("file_size_i")
-                        .retainingOriginal(false)
-                );
-            tikaBuilder
-                .named(TIKA)
-                .routingBy(new DuplicateToAll.Builder()
-                    .named("duplicator"))
-                .withProcessor(new TikaProcessor.Builder()
-                    .named("tika")
-                );
-            sendToSolrBuilder
-                .named("solr sender")
-                .withProcessor(
-                    new SendToSolrCloudProcessor.Builder()
-                        .withZookeperHost("localhost")
-                        .atZookeeperPort(9983)
-                        .usingCollection("jjtest")
-                        .placingTextContentIn("_text_")
-                        .withDocFieldsIn(".fields")
-                );
-//            String home = Main.JJ_DIR + System.getProperty("file.separator") + "jj_elastic_client_node";
-
-            sendToElasticBuilder
-                .named("elastic_sender")
-//            .withProcessor(
-//                new ElasticNodeSender.Builder()
-//                    .named("elastic_node_processor")
-//                    .usingCluster("elasticsearch")
-//                    .nodeName("jj_elastic_client_node")
-//                    .locatedInDir(home)
-//                    .forIndex("shakespeare")
-//                    .forObjectType("work")
-                .withProcessor(
-                    new ElasticTransportClientSender.Builder()
-                        .named("elastic_node_processor")
-                        .forIndex("shakespeare")
-                        .forObjectType("work")
-                        .withServer("localhost", 9300)
-                    //.withServer("es.example.com", "9300")  // can have multiple servers
-                );
-            planBuilder
-                .named("myPlan")
-                .withIdField("id")
-                .addStep(null, scanner)
-                .addStep(new String[]{SHAKESPEARE}, formatCreated)
-                .addStep(new String[]{CREATED}, formatModified)
-                .addStep(new String[]{MODIFIED}, formatAccessed)
-                .addStep(new String[]{ACCESSED}, renameFileszieToInteger)
-                .addStep(new String[]{SIZE_TO_INT}, tikaBuilder);
-            if ("solr".equals(example) || "both".equals(example)) {
-              planBuilder.addStep(new String[]{TIKA}, sendToSolrBuilder);
-            }
-            if ("elastic".equals(example) || "both".equals(example)) {
-              planBuilder.addStep(new String[]{TIKA}, sendToElasticBuilder);
-            }
-            Plan myplan = planBuilder.build();
-
-            // For now for testing purposes, write our config
-            //writeConfig(myplan, id);
-
-            myplan.activate();
-
           }
 
           //noinspection InfiniteLoopStatement
           while (true) {
             try {
+              System.out.print(".");
               Thread.sleep(5000);
             } catch (InterruptedException e) {
 
@@ -347,6 +208,156 @@ public class Main {
     } catch (Exception e) {
       log.fatal("CRASH and BURNED:", e);
     }
+  }
+
+  static void runExample(String example) {
+    PlanImpl.Builder planBuilder = new PlanImpl.Builder();
+    SimpleFileWatchScanner.Builder scanner = new SimpleFileWatchScanner.Builder();
+    StepImpl.Builder formatCreated = new StepImpl.Builder();
+    StepImpl.Builder formatModified = new StepImpl.Builder();
+    StepImpl.Builder formatAccessed = new StepImpl.Builder();
+    StepImpl.Builder renameFileszieToInteger = new StepImpl.Builder();
+    StepImpl.Builder tikaBuilder = new StepImpl.Builder();
+    StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
+    StepImpl.Builder sendToElasticBuilder = new StepImpl.Builder();
+
+    File testDocs = new File("/Users/gus/projects/solrsystem/jesterj/code/ingest/src/test/resources/test-data/");
+
+    scanner
+        .named(SHAKESPEARE)
+        .withRoot(testDocs)
+        .scanFreqMS(100);
+    formatCreated
+        .named(CREATED)
+        .withProcessor(
+            new SimpleDateTimeReformatter.Builder()
+                .named("format_created")
+                .from("created")
+                .into("created_dt")
+        );
+    formatModified
+        .named(MODIFIED)
+        .withProcessor(
+            new SimpleDateTimeReformatter.Builder()
+                .named("format_modified")
+                .from("modified")
+                .into("modified_dt")
+        );
+    formatAccessed
+        .named(ACCESSED)
+        .withProcessor(
+            new SimpleDateTimeReformatter.Builder()
+                .named("format_accessed")
+                .from("accessed")
+                .into("accessed_dt")
+        );
+
+    renameFileszieToInteger
+        .named(SIZE_TO_INT)
+        .withProcessor(
+            new CopyField.Builder()
+                .named("copy_size_to_int")
+                .from("file_size")
+                .into("file_size_i")
+                .retainingOriginal(false)
+        );
+    tikaBuilder
+        .named(TIKA)
+        .routingBy(new DuplicateToAll.Builder()
+            .named("duplicator"))
+        .withProcessor(new TikaProcessor.Builder()
+            .named("tika")
+        );
+    sendToSolrBuilder
+        .named("solr sender")
+        .withProcessor(
+            new SendToSolrCloudProcessor.Builder()
+                .withZookeperHost("localhost")
+                .atZookeeperPort(9983)
+                .usingCollection("jjtest")
+                .placingTextContentIn("_text_")
+                .withDocFieldsIn(".fields")
+        );
+//            String home = Main.JJ_DIR + System.getProperty("file.separator") + "jj_elastic_client_node";
+
+    sendToElasticBuilder
+        .named("elastic_sender")
+//            .withProcessor(
+//                new ElasticNodeSender.Builder()
+//                    .named("elastic_node_processor")
+//                    .usingCluster("elasticsearch")
+//                    .nodeName("jj_elastic_client_node")
+//                    .locatedInDir(home)
+//                    .forIndex("shakespeare")
+//                    .forObjectType("work")
+        .withProcessor(
+            new ElasticTransportClientSender.Builder()
+                .named("elastic_node_processor")
+                .forIndex("shakespeare")
+                .forObjectType("work")
+                .withServer("localhost", 9300)
+            //.withServer("es.example.com", "9300")  // can have multiple servers
+        );
+    planBuilder
+        .named("myPlan")
+        .withIdField("id")
+        .addStep((String) null, scanner)
+        .addStep(SHAKESPEARE, formatCreated)
+        .addStep(CREATED, formatModified)
+        .addStep(MODIFIED, formatAccessed)
+        .addStep(ACCESSED, renameFileszieToInteger)
+        .addStep(SIZE_TO_INT, tikaBuilder);
+    if ("solr".equals(example) || "both".equals(example)) {
+      planBuilder.addStep(TIKA, sendToSolrBuilder);
+    }
+    if ("elastic".equals(example) || "both".equals(example)) {
+      planBuilder.addStep(TIKA, sendToElasticBuilder);
+    }
+    Plan myplan = planBuilder.build();
+
+    // For now for testing purposes, write our config
+    //writeConfig(myplan, id);
+
+    myplan.activate();
+  }
+
+  static void runJavaConfig(String javaConfig) throws InstantiationException, IllegalAccessException {
+    ClassLoader onejarLoader = null;
+    File file = new File(javaConfig);
+    if (!file.exists()) {
+      System.err.println("File not found:" + file);
+      System.exit(1);
+    }
+
+    try {
+      File jarfile = new File(javaConfig);
+      URL url = jarfile.toURI().toURL();
+
+      ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
+      onejarLoader = systemClassLoader;
+
+      // This relies on us wrapping onejar's loader in a URL loader so we can add stuff.
+      URLClassLoader classLoader = (URLClassLoader) systemClassLoader;
+      Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+      method.setAccessible(true);
+      method.invoke(classLoader, url);
+    } catch (Exception ex) {
+      ex.printStackTrace();
+    }
+
+    // Unfortunately this classpath scan adds quite a bit to startup time.... It seems to scan all the
+    // Jdk classes (but not classes loaded by onejar, thank goodness) It only works with URLClassLoaders
+    // but perhaps we can provide a temporary sub-class 
+    Reflections reflections = new Reflections(new ConfigurationBuilder().addUrls(ClasspathHelper.forClassLoader(onejarLoader)));
+    ArrayList<Class> planProducers = new ArrayList<>(reflections.getTypesAnnotatedWith(JavaPlanConfig.class));
+
+    log.info("Found the following @JavaPlanConfig classes (first in list will be used):{}", planProducers);
+
+    Class config = planProducers.get(0);
+    PlanProvider provider = (PlanProvider) config.newInstance();
+    Plan plan = provider.getPlan();
+    log.info("Activating Plan: {}", plan.getName());
+    plan.activate();
   }
 
   private static void writeConfig(Plan myplan, String groupId) {
@@ -404,8 +415,8 @@ public class Main {
    * Initialize the classloader. This method fixes up an issue with OneJar's classloaders. Nothing in or before
    * this method should touch logging, or 3rd party jars that logging that might try to setup log4j.
    *
-   * @throws NoSuchFieldException if the system class loader field has changed in this version of java and is not "scl"
-   * @throws IllegalAccessException if we are unable to set the system class loader 
+   * @throws NoSuchFieldException   if the system class loader field has changed in this version of java and is not "scl"
+   * @throws IllegalAccessException if we are unable to set the system class loader
    */
   private static void initClassloader() throws NoSuchFieldException, IllegalAccessException {
     // for river

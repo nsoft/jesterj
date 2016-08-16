@@ -23,6 +23,7 @@ package org.jesterj.ingest.model;
  */
 
 
+
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -50,13 +51,16 @@ public interface Scanner extends Step {
    * be a String identifier, and the second argument  will be the document object. Subsequent arguments are
    * unrestricted. The default implementation is a no-op.
    *
-   * @return a {@link java.util.function.Consumer} that consumes data about a document and has the side effect of persisting a record that
-   * the document was scanned.
+   * @return a {@link java.util.function.Consumer} that consumes data about a document and has the side effect of 
+   * persisting a record that the document was scanned.
    */
   Consumer<Document> getDocumentTracker();
 
   /**
    * A callback that calls docFound() on the scanner when a document is found that needs to be indexed.
+   * The call back should call {@link org.jesterj.ingest.model.impl.ScannerImpl#scanStarted()} when it starts 
+   * doing work, and {@link org.jesterj.ingest.model.impl.ScannerImpl#scanFinished()}
+   * when it has completed any work for which concurrency might be relevant.
    * <p>
    * return a {@link Runnable} object that locates documents.
    */
@@ -72,5 +76,13 @@ public interface Scanner extends Step {
    * @return the scan interval. Defaults to 30 minutes
    */
   long getInterval();
+
+  /**
+   * True if a new scan may be started. Implementations may choose not to start a new scan until the
+   * old one has completed. This value is independent of {@link #isActive()}.
+   *
+   * @return true if a new scan should be started
+   */
+  boolean isReady();
 
 }

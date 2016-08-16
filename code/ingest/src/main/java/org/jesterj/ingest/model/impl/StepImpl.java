@@ -80,7 +80,7 @@ public class StepImpl implements Step {
   private String stepName;
   private Router router = new RouteByStepName();
   private DocumentProcessor processor = new DefaultWarningProcessor();
-  Thread worker;
+  private Thread worker;
   private Plan plan;
   private Cloner<Document> cloner = new Cloner<>();
 
@@ -269,7 +269,9 @@ public class StepImpl implements Step {
 
   @Override
   public void activate() {
+    log.info("Starting {} ", getName());
     if (worker == null || !worker.isAlive()) {
+      log.info("Starting new thread for {} ", getName());
       worker = new Thread(this);
       worker.setDaemon(true);
       worker.start();
@@ -280,6 +282,15 @@ public class StepImpl implements Step {
   @Override
   public void deactivate() {
     this.active = false;
+    try {
+      worker.join(1000);
+      if (worker.isAlive()) {
+        log.warn("{} was slow shutting down, interrupting..", getName());
+        worker.interrupt();
+      }
+    } catch (InterruptedException e) {
+      // ignore
+    }
   }
 
   @Transient
@@ -343,7 +354,7 @@ public class StepImpl implements Step {
       }
     } else {
       log.error("This code path (javaspaces) not yet supported");
-      System.err.println("This code path (javaspaces) not yet supported");
+      System.err.println("This code path (java spaces) not yet supported");
       System.exit(2);
 //      if (this.isFinalHelper)) {
 //        // remote processing is our only option.
@@ -378,14 +389,14 @@ public class StepImpl implements Step {
       //noinspection InfiniteLoopStatement
       while (true) {
         while (!this.active) {
-          log.info("inactive: {}", getName());
+          log.trace("inactive: {}", getName());
           try {
             Thread.sleep(500);
           } catch (InterruptedException e) {
             // ignore
           }
         }
-        log.info("active: {}", getName());
+        log.trace("active: {}", getName());
         ArrayList<Document> temp = null;
         synchronized (queueLock) {
           if (peek() != null) {
@@ -409,7 +420,9 @@ public class StepImpl implements Step {
     } catch (Throwable t) {
       t.printStackTrace();
       log.error(t);
-      System.out.println("Thread for " + getName() + " died. This should not happen and is always a bug in JesterJ. Shutting down. Please open a bug report at http://www.jesterj.org");
+      System.out.println("Thread for " + getName() + " died. This should not happen and is always a bug in JesterJ " +
+          "unless you killed the process with Ctrl-C or similar. This node is Shutting down. If the process was not " +
+          "killed, and you got this message during normal running, please open a bug report at http://www.jesterj.org");
       System.exit(2);
     }
   }

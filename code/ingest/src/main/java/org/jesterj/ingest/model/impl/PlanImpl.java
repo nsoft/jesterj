@@ -178,6 +178,11 @@ public class PlanImpl implements Plan {
       return this;
     }
 
+    public Builder addStep(String predecessor, StepImpl.Builder step) {
+      addStep(new String[]{predecessor}, step);
+      return this;
+    }
+
     List<StepImpl.Builder> findScanners() {
       return builders.keySet().stream().filter(stepName ->
           !predecessors.keySet().contains(stepName))
