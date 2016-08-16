@@ -18,3 +18,4 @@ nbactions.xml
 # gradle stuff
 .gradle/
 build/
+out/
