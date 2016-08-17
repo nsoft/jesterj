@@ -472,7 +472,6 @@ public class StepImpl implements Step {
         }
       } catch (Exception e) {
         StepImpl.this.reportException(document, e, e.getMessage());
-        throw e;
       }
     }
   }
