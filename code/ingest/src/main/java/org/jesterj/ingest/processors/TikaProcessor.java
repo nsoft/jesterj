@@ -40,18 +40,24 @@ public class TikaProcessor implements DocumentProcessor {
 
   private static final Logger log = LogManager.getLogger();
   private String name;
+  private String suffix;
 
   @Override
   public Document[] processDocument(Document document) {
     byte[] rawData = document.getRawData();
+    if (rawData == null) {
+      log.debug("Skipping document without data in " + getName());
+      return new Document[]{document};
+    }
     try {
       Tika tika = new Tika();
+      tika.setMaxStringLength(document.getRawData().length);
       Metadata metadata = new Metadata();
       try (ByteArrayInputStream bais = new ByteArrayInputStream(rawData)) {
         String textContent = tika.parseToString(bais, metadata);
         document.setRawData(textContent.getBytes(Charset.forName("UTF-8")));
         for (String name : metadata.names()) {
-          document.put(name, metadata.get(name));
+          document.put(sanitize(name) + plusSuffix(), metadata.get(name));
         }
       } catch (IOException | TikaException e) {
         log.warn("Tika processing failure!", e);
@@ -70,6 +76,23 @@ public class TikaProcessor implements DocumentProcessor {
     return new Document[]{document};
   }
 
+  private String plusSuffix() {
+    return suffix == null ? "" : suffix;
+  }
+
+  private String sanitize(String dirty) {
+    StringBuilder clean = new StringBuilder(dirty.length());
+    for (char c : dirty.toCharArray()) {
+      if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+        clean.append(c);
+      } else {
+        clean.append('_');
+      }
+    }
+    return clean.toString();
+  }
+  
+
   @Override
   public String getName() {
     return name;
@@ -85,6 +108,11 @@ public class TikaProcessor implements DocumentProcessor {
 
     public Builder named(String name) {
       getObj().name = name;
+      return this;
+    }
+
+    public Builder appendingSuffix(String suffix) {
+      getObj().suffix = suffix;
       return this;
     }
 
