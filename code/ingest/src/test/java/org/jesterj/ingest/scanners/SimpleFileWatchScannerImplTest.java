@@ -42,6 +42,7 @@ public class SimpleFileWatchScannerImplTest {
 
   private static final String SHAKESPEAR = "Shakespear scanner";
 
+
   @Before
   public void setUp() {
   }
@@ -68,7 +69,9 @@ public class SimpleFileWatchScannerImplTest {
 
     HashMap<String, Document> scannedDocs = new HashMap<>();
 
-    testStepBuilder.named("test").batchSize(10).withProcessor(
+    testStepBuilder.named("test")
+        .batchSize(10)
+        .withProcessor(
         new NamedBuilder<DocumentProcessor>() {
           @Override
           public NamedBuilder<DocumentProcessor> named(String name) {
@@ -95,8 +98,8 @@ public class SimpleFileWatchScannerImplTest {
 
     planBuilder
         .named("testScan")
-        .addStep(null, scannerBuilder)
-        .addStep(new String[]{SHAKESPEAR}, testStepBuilder)
+        .addStep(scannerBuilder)
+        .addStep(testStepBuilder, SHAKESPEAR)
         .withIdField("id");
     Plan plan = planBuilder.build();
 

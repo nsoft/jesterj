@@ -154,11 +154,11 @@ public class PlanImpl implements Plan {
      * If more than one step exists for the same predecessor this represents a fork in the DAG. Steps never
      * know from whence a document was handed to them.
      *
+     * @param step         the step to add, must not be null
      * @param predecessors the steps that this step should follow. If null, step must build a scanner. The step must have a
      *                     step name that is unique.
-     * @param step         the step to add, must not be null
      */
-    public Builder addStep(String[] predecessors, StepImpl.Builder step) {
+    public Builder addStep(StepImpl.Builder step, String... predecessors) {
       if ((predecessors == null || predecessors.length == 0) && !(step instanceof ScannerImpl.Builder)) {
         throw new IllegalArgumentException("Only scanners can have no predecessor");
       }
@@ -178,10 +178,6 @@ public class PlanImpl implements Plan {
       return this;
     }
 
-    public Builder addStep(String predecessor, StepImpl.Builder step) {
-      addStep(new String[]{predecessor}, step);
-      return this;
-    }
 
     List<StepImpl.Builder> findScanners() {
       return builders.keySet().stream().filter(stepName ->

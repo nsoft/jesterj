@@ -96,8 +96,8 @@ public class JdbcScannerRunner {
 
     planBuilder
       .named("JdbcScannerPlan")
-      .addStep(null, scannerBuilder)
-      .addStep(new String[] { "JDBC Scanner" }, testStepBuilder)
+        .addStep(scannerBuilder)
+        .addStep(testStepBuilder, "JDBC Scanner")
       .withIdField("empno");
 
     Plan plan = planBuilder.build();

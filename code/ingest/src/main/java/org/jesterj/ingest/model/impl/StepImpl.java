@@ -391,7 +391,7 @@ public class StepImpl implements Step {
         while (!this.active) {
           log.trace("inactive: {}", getName());
           try {
-            Thread.sleep(500);
+            Thread.sleep(50);
           } catch (InterruptedException e) {
             // ignore
           }
@@ -412,7 +412,7 @@ public class StepImpl implements Step {
 
         try {
           // if we don't have work make sure we let others do their work.
-          Thread.sleep(500);
+          Thread.sleep(50);
         } catch (InterruptedException e) {
           // ignore
         }

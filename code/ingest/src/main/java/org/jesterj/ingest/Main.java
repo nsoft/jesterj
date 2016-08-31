@@ -301,17 +301,17 @@ public class Main {
     planBuilder
         .named("myPlan")
         .withIdField("id")
-        .addStep((String) null, scanner)
-        .addStep(SHAKESPEARE, formatCreated)
-        .addStep(CREATED, formatModified)
-        .addStep(MODIFIED, formatAccessed)
-        .addStep(ACCESSED, renameFileszieToInteger)
-        .addStep(SIZE_TO_INT, tikaBuilder);
+        .addStep(scanner, (String) null)
+        .addStep(formatCreated, SHAKESPEARE)
+        .addStep(formatModified, CREATED)
+        .addStep(formatAccessed, MODIFIED)
+        .addStep(renameFileszieToInteger, ACCESSED)
+        .addStep(tikaBuilder, SIZE_TO_INT);
     if ("solr".equals(example) || "both".equals(example)) {
-      planBuilder.addStep(TIKA, sendToSolrBuilder);
+      planBuilder.addStep(sendToSolrBuilder, TIKA);
     }
     if ("elastic".equals(example) || "both".equals(example)) {
-      planBuilder.addStep(TIKA, sendToElasticBuilder);
+      planBuilder.addStep(sendToElasticBuilder, TIKA);
     }
     Plan myplan = planBuilder.build();
 
