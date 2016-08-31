@@ -1,6 +1,6 @@
 language: java
 env:
-  - TEST_DIR=code/injest
+  - TEST_DIR=code/ingest
 script: cd $TEST_DIR &&  gradle jacocoTestReport
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
