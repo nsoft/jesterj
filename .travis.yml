@@ -1,4 +1,6 @@
 language: java
+jdk:
+  - oraclejdk8
 env:
   - TEST_DIR=code/ingest
 script: cd $TEST_DIR &&  gradle jacocoTestReport
