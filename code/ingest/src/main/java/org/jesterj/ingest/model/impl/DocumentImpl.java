@@ -261,7 +261,8 @@ public class DocumentImpl implements Document {
 
   @Override
   public String getFirstValue(String fieldName) {
-    return get(fieldName).get(0);
+    List<String> values = get(fieldName);
+    return values == null || values.size() == 0 ? null : values.get(0);
   }
 
 
