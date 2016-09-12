@@ -84,11 +84,30 @@ public class DocumentImpl implements Document {
    * @param doc The original document to be copied.
    */
   public DocumentImpl(Document doc) {
-    byte[] duplicate = new byte[doc.getRawData().length];
-    System.arraycopy(doc.getRawData(), 0, duplicate, 0, doc.getRawData().length);
-    this.rawData = duplicate;
+    this(doc, true);
+  }
+
+  /**
+   * Create a copy of a document but do not copy the raw data or existing mappings. Useful in creating
+   * child documents or documents calculated from other documents.
+   *
+   * @param doc  The document to copy
+   * @param deep whether or not to copy the mappings and raw content or only the document info.
+   */
+  public DocumentImpl(Document doc, boolean deep) {
+    if (deep) {
+      byte[] duplicate = new byte[doc.getRawData().length];
+      System.arraycopy(doc.getRawData(), 0, duplicate, 0, doc.getRawData().length);
+      this.rawData = duplicate;
+    } else {
+      rawData = new byte[]{};
+    }
     this.operation = doc.getOperation();
-    this.delegate = ArrayListMultimap.create(doc.getDelegate());
+    if (deep) {
+      this.delegate = ArrayListMultimap.create(doc.getDelegate());
+    } else {
+      this.delegate = ArrayListMultimap.create();
+    }
     this.sourceScannerName = doc.getSourceScannerName();
     this.idField = doc.getIdField();
     this.status = doc.getStatus();
