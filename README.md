@@ -34,13 +34,16 @@ file name and file size.
 ## Progress for 0.2
  * JDBC scanner
  * Node and Transport style senders for Elastic
+ * Ability to load Java based config from a jar file - experimental. 
+ * More processors: Fetch URL, Regex Replace on a value, delete a field..
+ 
+The Java config feature is experimental. I wanted to use what I had built for a project but the lack of externalized configuration was a blocker. It was a quick fix but it's turnning out to be quite pleasant to work with. The down side is I'm not sure how it would carry forward to later stages of the project so it might still go away. Feedback welcome.
 
 ## TODO for 0.2
  * Serialized format for a plan/steps.
  * Cassandra stored hashcode based file scanner
  * Xpath extractor
  * JsonPath extractor
- * Database JDBC scanner
  * Cassandra based FTI
  * Source DB based FTI
  * Solr FTI plugin jar to mark documents searchable on commit
