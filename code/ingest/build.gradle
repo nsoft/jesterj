@@ -65,7 +65,11 @@ publishing {
         }
     }
 }
-
+jacocoTestReport {
+    reports {
+        xml.enabled true
+    }
+}
 dependencies {
     compile 'org.apache.tika:tika-parsers:1.12'
     compile 'org.apache.solr:solr-solrj:5.5.0'
