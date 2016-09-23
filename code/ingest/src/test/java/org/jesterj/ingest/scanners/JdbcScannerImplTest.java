@@ -16,32 +16,29 @@
 
 package org.jesterj.ingest.scanners;
 
+import com.copyright.easiertest.Mock;
+import com.copyright.easiertest.ObjectUnderTest;
+import org.jesterj.ingest.model.Document;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 import static com.copyright.easiertest.EasierMocks.prepareMocks;
 import static com.copyright.easiertest.EasierMocks.replay;
 import static com.copyright.easiertest.EasierMocks.reset;
 import static com.copyright.easiertest.EasierMocks.verify;
 import static org.junit.Assert.assertEquals;
 
-import org.jesterj.ingest.model.Document;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import com.copyright.easiertest.Mock;
-import com.copyright.easiertest.ObjectUnderTest;
-
 /**
  * Tests the JDBC scanner.
- * 
+ *
  * @author dgoldenberg
  */
-@Ignore("Pending resolution of Issue #27")
 public class JdbcScannerImplTest {
 
   private static final String SQL_1 = "SELECT " +
-    "e.emp_no as empno, e.birth_date as birthdate, e.first_name as firstname, e.last_name as lastname, e.hire_date as hiredate, t.title as title " +
-    "FROM employees as e LEFT JOIN titles as t ON e.emp_no=t.emp_no limit 25;";
+      "e.emp_no as empno, e.birth_date as birthdate, e.first_name as firstname, e.last_name as lastname, e.hire_date as hiredate, t.title as title " +
+      "FROM employees as e LEFT JOIN titles as t ON e.emp_no=t.emp_no limit 25;";
 
   @ObjectUnderTest
   private JdbcScanner obj;
@@ -70,17 +67,18 @@ public class JdbcScannerImplTest {
     JdbcScanner.Builder builder = new JdbcScanner.Builder();
 
     builder
-      .batchSize(100)
-      .named("JDBC Scanner")
-      .withAutoCommit(true)
-      .withContentColumn("title") // simplistic "content column"
-      .withFetchSize(1000)
-      .withJdbcDriver("com.myco.jdbc.Driver")
-      .withJdbcPassword("password")
-      .withJdbcUrl("jdbc:myco://localhost/employees")
-      .withJdbcUser("user")
-      .withQueryTimeout(3600)
-      .withSqlStatement(SQL_1);
+        .batchSize(100)
+        .named("JDBC Scanner")
+        .withAutoCommit(true)
+        .withContentColumn("title") // simplistic "content column"
+        .withFetchSize(1000)
+        .withJdbcDriver("com.myco.jdbc.Driver")
+        .withJdbcPassword("password")
+        .withJdbcUrl("jdbc:myco://localhost/employees")
+        .withJdbcUser("user")
+        .representingTable("employee")
+        .withQueryTimeout(3600)
+        .withSqlStatement(SQL_1);
 
     JdbcScanner built = (JdbcScanner) builder.build();
 
@@ -99,5 +97,6 @@ public class JdbcScannerImplTest {
   @Test
   public void testScan() throws InterruptedException {
     // TODO
+    replay();
   }
 }
