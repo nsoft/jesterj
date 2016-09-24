@@ -49,7 +49,7 @@ The Java config feature is experimental. I wanted to use what I had built for a 
  * Solr FTI plugin jar to mark documents searchable on commit
  * Execute a plan with data that causes an error, properly adjust statuses in cassandra FTI
  * Support for external Cassandra if desired.
- * 60% test coverage 
+ * 60% [test coverage](https://codecov.io/gh/nsoft/jesterj) 
  * Index a database and a filesystem simultaneously into solr
  
 
