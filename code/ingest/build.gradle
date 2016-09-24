@@ -97,8 +97,7 @@ dependencies {
     compile 'net.jini:jsk-platform:2.2.2'
     compile 'docopt:docopt:0.6.1'
     testCompile 'junit:junit:4.11'
-//    testCompile 'org.easymock:easymock:3.4' // issue #27
-    testCompile 'com.needhamsoftware:easier-mock:1.0'
+    testCompile 'com.needhamsoftware:easier-mock:2.0'
     //runtime ':one-jar-boot:0.98' // uncomment for debugging stack traces into one-jar classes
 
     oneJarLib files('onejar/one-jar-boot-0.98.jar')

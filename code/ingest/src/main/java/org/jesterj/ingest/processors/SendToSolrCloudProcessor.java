@@ -53,33 +53,42 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
   protected SendToSolrCloudProcessor() {
   }
 
+  // in this class logging is important, so encapsulate it for tests.
+  public Logger log() {
+    return log;
+  }
+
   @Override
   protected void perDocumentFailure(ConcurrentBiMap<Document, SolrInputDocument> oldBatch, Exception e) {
     // something's wrong with the network all documents must be errored out:
     for (Document doc : oldBatch.keySet()) {
-      ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, doc.getId());
-      log.info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", doc.getId(), e.getMessage());
-      log.error("Error communicating with solr!", e);
+      putIdInThreadContext(doc);
+      log().info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", doc.getId(), e.getMessage());
+      log().error("Error communicating with solr!", e);
     }
+  }
+
+  void putIdInThreadContext(Document doc) {
+    ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, doc.getId());
   }
 
   @Override
   protected void individualFallbackOperation(ConcurrentBiMap<Document, SolrInputDocument> oldBatch, Exception e) {
     // TODO: send in bisected batches to avoid massive traffic down due to one doc when batches are large
     for (Document document : oldBatch.keySet()) {
-      ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, document.getId());
+      putIdInThreadContext(document);
       try {
         SolrInputDocument doc = oldBatch.get(document);
         if (doc instanceof Delete) {
           solrClient.deleteById(oldBatch.inverse().get(doc).getId());
-          log.info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());
+          log().info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());
         } else {
           solrClient.add(doc);
-          log.info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
+          log().info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
         }
       } catch (IOException | SolrServerException e1) {
-        log.info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", document.getId(), e1.getMessage());
-        log.error("Error sending to with solr!", e1);
+        log().info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", document.getId(), e1.getMessage());
+        log().error("Error sending to with solr!", e1);
       }
     }
   }
@@ -101,11 +110,11 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
       solrClient.add(adds);
     }
     for (Document document : oldBatch.keySet()) {
-      ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, document.getId());
+      putIdInThreadContext(document);
       if (document.getOperation() == Document.Operation.DELETE) {
-        log.info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());
+        log().info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());
       } else {
-        log.info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
+        log().info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
       }
     }
   }
