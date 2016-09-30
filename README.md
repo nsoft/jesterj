@@ -35,7 +35,7 @@ file name and file size.
  * JDBC scanner
  * Node and Transport style senders for Elastic
  * Ability to load Java based config from a jar file - experimental. 
- * More processors: Fetch URL, Regex Replace on a value, delete a field, URL encode a field...
+ * More processors: Fetch URL, Regex Replace Value, Delete Field, Parse Field as Template, URL Encode Field
  
 The Java config feature is experimental. I wanted to use what I had built for a project but the lack of externalized configuration was a blocker. It was a quick fix but it's turnning out to be quite pleasant to work with. The down side is I'm not sure how it would carry forward to later stages of the project so it might still go away. Feedback welcome.
 
