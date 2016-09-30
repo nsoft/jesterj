@@ -33,6 +33,8 @@ file name and file size.
 
 ## Progress for 0.2
  * JDBC scanner
+ * Cassandra based FTI
+ * Document hashing to detect changed docs (any scanner)
  * Node and Transport style senders for Elastic
  * Ability to load Java based config from a jar file - experimental. 
  * More processors: Fetch URL, Regex Replace Value, Delete Field, Parse Field as Template, URL Encode Field
@@ -41,16 +43,14 @@ The Java config feature is experimental. I wanted to use what I had built for a 
 
 ## TODO for 0.2
  * Serialized format for a plan/steps.
- * Cassandra stored hashcode based file scanner
  * Xpath extractor
  * JsonPath extractor
- * Cassandra based FTI
  * Source DB based FTI
- * Solr FTI plugin jar to mark documents searchable on commit
  * Execute a plan with data that causes an error, properly adjust statuses in cassandra FTI
  * Support for external Cassandra if desired.
  * 60% [test coverage](https://codecov.io/gh/nsoft/jesterj) 
- * Index a database and a filesystem simultaneously into solr
+ * Demo/tutorial to demonstrate indexing a database and a filesystem simultaneously into solr
+ * Up to date docs in wiki.
  
 
 Release 0.2 is intended to be the minimum usable single node system.  
