@@ -97,6 +97,13 @@ public interface Document extends ListMultimap<String, String>, Serializable {
    */
   String getId();
 
+  /**
+   * A hash based on the contents of the delegate and the raw data.
+   *
+   * @return a hex string md5 checksum
+   */
+  String getHash();
+
   String getIdField();
   
   Operation getOperation();

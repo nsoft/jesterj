@@ -18,6 +18,7 @@ package org.jesterj.ingest.model.impl;
 
 import com.google.common.collect.ArrayListMultimap;
 import org.jesterj.ingest.config.Transient;
+import org.jesterj.ingest.logging.CassandraSupport;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Step;
 
@@ -34,29 +35,31 @@ import java.util.stream.Collectors;
  */
 public class PlanImpl implements Plan {
 
-  private LinkedHashMap<String, Step> steps;
+  private LinkedHashMap<String, Step> stepsMap;
   private String idField;
   private boolean active = false;
   private String name;
 
+  private CassandraSupport cassandra = new CassandraSupport();
+  
   protected PlanImpl() {
   }
 
   @Override
   public Step[] getSteps() {
-    return steps.values().toArray(new Step[steps.values().size()]);
+    return getStepsMap().values().toArray(new Step[getStepsMap().values().size()]);
   }
 
   @Override
   public Step[] getExecutableSteps() {
     // for now... 
-    return steps.values().toArray(new Step[steps.values().size()]);
+    return getStepsMap().values().toArray(new Step[getStepsMap().values().size()]);
   }
 
 
   @Override
   public String getDocIdField() {
-    return idField;
+    return getIdField();
   }
 
   @Override
@@ -75,14 +78,14 @@ public class PlanImpl implements Plan {
 
   @Override
   public synchronized void activate() {
-    steps.values().forEach(Step::activate);
-    this.active = true;
+    getStepsMap().values().forEach(Step::activate);
+    this.setActive(true);
   }
 
   @Override
   public synchronized void deactivate() {
-    steps.values().forEach(Step::deactivate);
-    this.active = false;
+    getStepsMap().values().forEach(Step::deactivate);
+    this.setActive(false);
   }
 
   @Transient
@@ -121,27 +124,59 @@ public class PlanImpl implements Plan {
     return name;
   }
 
+  LinkedHashMap<String, Step> getStepsMap() {
+    return stepsMap;
+  }
+
+  void setStepsMap(LinkedHashMap<String, Step> stepsMap) {
+    this.stepsMap = stepsMap;
+  }
+
+  String getIdField() {
+    return idField;
+  }
+
+  void setIdField(String idField) {
+    this.idField = idField;
+  }
+
+  void setActive(boolean active) {
+    this.active = active;
+  }
+
+  void setName(String name) {
+    this.name = name;
+  }
+
+  CassandraSupport getCassandra() {
+    return cassandra;
+  }
+
+  void setCassandra(CassandraSupport cassandra) {
+    this.cassandra = cassandra;
+  }
+
 
   public static class Builder extends NamedBuilder<Plan> {
 
     PlanImpl obj = new PlanImpl();
     /**
-     * The steps already built
+     * The stepsMap already built
      */
     LinkedHashMap<String, Step> steps = new LinkedHashMap<>();
     /**
-     * The steps yet to be built
+     * The stepsMap yet to be built
      */
     LinkedHashMap<String, StepImpl.Builder> builders = new LinkedHashMap<>();
 
     /**
-     * A list of steps waiting on successors to build. Any time a successor appears in this
+     * A list of stepsMap waiting on successors to build. Any time a successor appears in this
      * list we have a cycle and we should throw a CyclicGraphException.
      */
     List<StepImpl.Builder> pendingBuilders = new ArrayList<>();
 
     /**
-     * The predecessor steps, the key is the name of the step and the value is the predecessor
+     * The predecessor stepsMap, the key is the name of the step and the value is the predecessor
      * a key with multiple values implies a node that coalesces two or mor paths in the DAG.
      * two keys with the same value implies a node that is a fork in the dag. Scanners will not have
      * predecessors and therefore will not appear as keys in this map.
@@ -155,7 +190,7 @@ public class PlanImpl implements Plan {
      * know from whence a document was handed to them.
      *
      * @param step         the step to add, must not be null
-     * @param predecessors the steps that this step should follow. If null, step must build a scanner. The step must have a
+     * @param predecessors the stepsMap that this step should follow. If null, step must build a scanner. The step must have a
      *                     step name that is unique.
      */
     public Builder addStep(StepImpl.Builder step, String... predecessors) {
@@ -194,7 +229,7 @@ public class PlanImpl implements Plan {
       scanners.forEach(this::buildStep);
       PlanImpl obj = getObj();
       this.obj = new PlanImpl();
-      obj.steps = this.steps;
+      obj.setStepsMap(this.steps);
       for (Step step : steps.values()) {
         ((StepImpl) step).setPlan(obj); // get with the plan...
       }
@@ -227,7 +262,7 @@ public class PlanImpl implements Plan {
     }
 
     public Builder named(String name) {
-      getObj().name = name;
+      getObj().setName(name);
       return this;
     }
 
@@ -236,7 +271,7 @@ public class PlanImpl implements Plan {
     }
 
     public Builder withIdField(String id) {
-      getObj().idField = id;
+      getObj().setIdField(id);
       return this;
     }
   }

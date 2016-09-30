@@ -105,7 +105,7 @@ public class SimpleFileWatchScannerImplTest {
 
     plan.activate();
 
-    Thread.sleep(2500);
+    Thread.sleep(5500);
     assertEquals(10, scannedDocs.size());
 
     scannedDocs.clear();

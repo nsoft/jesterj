@@ -16,6 +16,7 @@
 
 package org.jesterj.ingest.model.impl;
 
+import com.coremedia.iso.Hex;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ForwardingListMultimap;
 import com.google.common.collect.Multimap;
@@ -31,6 +32,9 @@ import org.jesterj.ingest.model.Step;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -235,7 +239,7 @@ public class DocumentImpl implements Document {
   @Override
   public void setStatus(Status status) {
     this.status = status;
-    log.info(status.getMarker(),statusMessage);
+    log.info(status.getMarker(), statusMessage);
   }
 
   @Override
@@ -264,13 +268,34 @@ public class DocumentImpl implements Document {
   }
 
   @Override
+  public String getHash() {
+    try {
+      MessageDigest md = MessageDigest.getInstance("MD5");
+      try {
+        md.update(getDelegateString().getBytes("UTF-8"));
+        md.update(getRawData());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+      return Hex.encodeHex(md.digest());
+    } catch (NoSuchAlgorithmException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+  }
+
+  String getDelegateString() {
+    return delegate.toString();
+  }
+
+  @Override
   public String getIdField() {
     return idField;
   }
 
   @Override
   public Operation getOperation() {
-    
+
     return operation;
   }
 
@@ -286,7 +311,7 @@ public class DocumentImpl implements Document {
 
 
   /**
-   * A serializable form of an item that can be placed in a JavaSpace. The nextStepName is the property on which 
+   * A serializable form of an item that can be placed in a JavaSpace. The nextStepName is the property on which
    * steps query JavaSpaces to retrieve entries.
    */
   public static class DocumentEntry implements Entry {
@@ -308,7 +333,6 @@ public class DocumentImpl implements Document {
       this.data.data = document.getRawData();
       this.nextStepName = destination.getName();
       this.operation = document.getOperation().toString();
-      
     }
   }
 

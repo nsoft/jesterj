@@ -376,6 +376,7 @@ public class StepImpl implements Step {
   private void reportDocStatus(Status status, Document document, String message, Object... messageParams) {
     try {
       ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, document.getId());
+      ThreadContext.put(JesterJAppender.JJ_INGEST_SOURCE_SCANNER, document.getSourceScannerName());
       document.setStatus(status);
       log.info(status.getMarker(), message, messageParams);
     } finally {

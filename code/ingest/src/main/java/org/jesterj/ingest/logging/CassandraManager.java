@@ -16,7 +16,6 @@
 
 package org.jesterj.ingest.logging;
 
-import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.appender.AbstractManager;
@@ -28,11 +27,6 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 11/15/14
- */
 public class CassandraManager extends AbstractManager {
 
   public static final String CREATE_LOG_KEYSPACE =
@@ -51,15 +45,19 @@ public class CassandraManager extends AbstractManager {
           ");";
   public static final String CREATE_FT_TABLE =
       "CREATE TABLE IF NOT EXISTS jj_logging.fault_tolerant(" +
-          "id uuid PRIMARY KEY, " +
+          "docid text , " +
           "logger text, " +
           "tstamp timestamp, " +
           "level text, " +
-          "thread text, " +
+          "thread text," +
+          "scanner text, " +
           "status text, " +
-          "docid text, " +
-          "message text" +
-          ");";
+          "message text," +
+          "md5hash text," +
+          "PRIMARY KEY (docid, scanner));";
+
+  public static final String FTI_STATUS_INDEX = "CREATE INDEX IF NOT EXISTS fti_statuses ON jj_logging.fault_tolerant( status );";
+  public static final String FTI_SCANNER_INDEX = "CREATE INDEX IF NOT EXISTS fti_scanners ON jj_logging.fault_tolerant( scanner );";
   private final Future cassandraReady;
 
   Executor executor = new ThreadPoolExecutor(1, 1, 100, TimeUnit.SECONDS, new SynchronousQueue<>());
@@ -75,23 +73,21 @@ public class CassandraManager extends AbstractManager {
 
     Callable<Object> makeTables = new Callable<Object>() {
 
+      CassandraSupport cassandra = new CassandraSupport();
+      
       @Override
       public Object call() throws Exception {
         boolean tryAgain = true;
         int tryCount = 0;
         // ugly but effective fix for https://github.com/nsoft/jesterj/issues/1
         while(tryAgain) {
-          try (
-              Session session = Cluster.builder()
-                  // safe to use getListenAddress since we will only be called after cassandra is booted.
-                  .addContactPoint(Cassandra.getListenAddress())
-                  //TODO: something secure!
-                  .withCredentials("cassandra", "cassandra")
-                  .build().newSession()
-          ) {
+          try {
+            Session session = cassandra.getSession();
             session.execute(CREATE_LOG_KEYSPACE);
             session.execute(CREATE_LOG_TABLE);
             session.execute(CREATE_FT_TABLE);
+            session.execute(FTI_STATUS_INDEX);
+            session.execute(FTI_SCANNER_INDEX);
             tryAgain = false;
           } catch (Exception e) {
             tryCount++;

@@ -20,7 +20,6 @@ import com.copyright.easiertest.SimpleProperty;
 import org.apache.cassandra.utils.ConcurrentBiMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.ThreadContext;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionWriteResponse;
@@ -31,7 +30,6 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
 import org.jesterj.ingest.config.Required;
-import org.jesterj.ingest.logging.JesterJAppender;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Status;
 
@@ -76,7 +74,7 @@ public abstract class ElasticSender extends BatchProcessor<ActionRequest> {
     ActionRequest request = futures.get(individualRetry);
     Document document = oldBatch.inverse().get(request);
     String id = document.getId();
-    ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, id);
+    putIdInThreadContext(document);
     try {
       ActionWriteResponse resp = (ActionWriteResponse) individualRetry.actionGet();
       checkResponse(document, resp);

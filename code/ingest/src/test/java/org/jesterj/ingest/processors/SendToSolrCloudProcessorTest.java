@@ -69,11 +69,19 @@ public class SendToSolrCloudProcessorTest {
     expect(batchMock.keySet()).andReturn(documents);
     RuntimeException e = new RuntimeException("TEST EXCEPTION");
     proc.putIdInThreadContext(docMock);
+    proc.perDocFailLogging(e, docMock);
+    replay();
+    proc.perDocumentFailure(batchMock, e);
+  }
+
+  @Test
+  public void testPerDocumentFailLogging() {
+    RuntimeException e = new RuntimeException("TEST EXCEPTION");
     expect(proc.log()).andReturn(logMock).anyTimes();
     expect(docMock.getId()).andReturn("42");
     logMock.info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", "42", "TEST EXCEPTION");
     logMock.error("Error communicating with solr!", e);
     replay();
-    proc.perDocumentFailure(batchMock, e);
+    proc.perDocFailLogging(e, docMock);
   }
 }

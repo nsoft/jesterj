@@ -59,16 +59,6 @@ public enum Status implements Serializable {
   },
 
   /**
-   * This document was intentionally skipped by the pipeline. Further processing should be avoided.
-   */
-  DROPPED {
-    @Override
-    public Marker getMarker() {
-      return SET_DROPPED;
-    }
-  },
-
-  /**
    * Something went wrong, human being must intervene and evaluate. Further processing should be avoided, and stateful
    * Scanners should avoid creating new documents for the resource.
    */
@@ -108,6 +98,16 @@ public enum Status implements Serializable {
     @Override
     public Marker getMarker() {
       return SET_SEARCHABLE;
+    }
+  },
+
+  /**
+   * This document was intentionally skipped by the pipeline. Further processing should be avoided.
+   */
+  DROPPED {
+    @Override
+    public Marker getMarker() {
+      return SET_DROPPED;
     }
   },
 

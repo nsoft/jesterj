@@ -18,12 +18,16 @@ package org.jesterj.ingest.model.impl;
 
 import com.copyright.easiertest.Mock;
 import com.copyright.easiertest.ObjectUnderTest;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
 
 import static com.copyright.easiertest.EasierMocks.prepareMocks;
 import static com.copyright.easiertest.EasierMocks.replay;
@@ -69,5 +73,13 @@ public class DocumentImplTest {
     assertEquals("stringvalue", document.getFirstValue("string"));
     assertEquals(null, document.getFirstValue("unknown"));
 
+  }
+
+  @Test
+  public void testHash() throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    expect(obj.getDelegateString()).andReturn("CAFE");
+    expect(obj.getRawData()).andReturn("BABE".getBytes("UTF-8"));
+    replay();
+    assertEquals(DigestUtils.md5Hex("CAFEBABE".getBytes("UTF-8")).toUpperCase(), obj.getHash());
   }
 }

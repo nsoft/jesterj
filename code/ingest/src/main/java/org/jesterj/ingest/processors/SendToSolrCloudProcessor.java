@@ -19,11 +19,9 @@ package org.jesterj.ingest.processors;
 import org.apache.cassandra.utils.ConcurrentBiMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.ThreadContext;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.common.SolrInputDocument;
-import org.jesterj.ingest.logging.JesterJAppender;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
@@ -59,17 +57,9 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
   }
 
   @Override
-  protected void perDocumentFailure(ConcurrentBiMap<Document, SolrInputDocument> oldBatch, Exception e) {
-    // something's wrong with the network all documents must be errored out:
-    for (Document doc : oldBatch.keySet()) {
-      putIdInThreadContext(doc);
-      log().info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", doc.getId(), e.getMessage());
-      log().error("Error communicating with solr!", e);
-    }
-  }
-
-  void putIdInThreadContext(Document doc) {
-    ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, doc.getId());
+  protected void perDocFailLogging(Exception e, Document doc) {
+    log().info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", doc.getId(), e.getMessage());
+    log().error("Error communicating with solr!", e);
   }
 
   @Override

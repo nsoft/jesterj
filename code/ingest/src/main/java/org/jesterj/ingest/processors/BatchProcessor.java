@@ -102,10 +102,24 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
       }
     } finally {
       ThreadContext.remove(JesterJAppender.JJ_INGEST_DOCID);
+      ThreadContext.remove(JesterJAppender.JJ_INGEST_SOURCE_SCANNER);
     }
   }
 
-  protected abstract void perDocumentFailure(ConcurrentBiMap<Document, T> oldBatch, Exception e);
+  protected void perDocumentFailure(ConcurrentBiMap<Document, ?> oldBatch, Exception e) {
+    // something's wrong with the network etc all documents must be errored out:
+    for (Document doc : oldBatch.keySet()) {
+      putIdInThreadContext(doc);
+      perDocFailLogging(e, doc);
+    }
+  }
+
+  protected abstract void perDocFailLogging(Exception e, Document doc);
+
+  void putIdInThreadContext(Document doc) {
+    ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, doc.getId());
+    ThreadContext.put(JesterJAppender.JJ_INGEST_SOURCE_SCANNER, doc.getSourceScannerName());
+  }
 
   /**
    * If the bulk request fails it might be just one document that's causing a problem, try each document individually

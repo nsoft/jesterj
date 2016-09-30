@@ -213,6 +213,7 @@ public class ElasticSenderTest {
     expect(mockBatch.inverse()).andReturn(actionRequestDocumentMap);
     expect(docMock.getId()).andReturn("foo");
     obj.checkResponse(docMock, mockIndexResponse);
+    obj.putIdInThreadContext(docMock);
     replay();
     obj.handleRetryResult(e, actionFutureActionRequestMap, futureMockIndex, mockBatch);
   }
@@ -227,6 +228,7 @@ public class ElasticSenderTest {
     actionRequestDocumentMap.put(mockIndex, docMock);
     expect(mockBatch.inverse()).andReturn(actionRequestDocumentMap);
     expect(docMock.getId()).andReturn("foo");
+    obj.putIdInThreadContext(docMock);
     replay();
     obj.handleRetryResult(e, actionFutureActionRequestMap, futureMockIndex, mockBatch);
   }
@@ -269,7 +271,12 @@ public class ElasticSenderTest {
     tester.testBean(new ElasticSender() {
 
       @Override
-      protected void perDocumentFailure(ConcurrentBiMap<Document, ActionRequest> oldBatch, Exception e) {
+      protected void perDocumentFailure(ConcurrentBiMap<Document, ?> oldBatch, Exception e) {
+      }
+
+      @Override
+      protected void perDocFailLogging(Exception e, Document doc) {
+
       }
 
       @Override

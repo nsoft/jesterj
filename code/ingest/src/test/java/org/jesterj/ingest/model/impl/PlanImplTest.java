@@ -15,23 +15,33 @@
  */
 
 package org.jesterj.ingest.model.impl;
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 3/18/16
- */
 
+import com.copyright.easiertest.Mock;
+import com.copyright.easiertest.ObjectUnderTest;
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Session;
 import org.apache.logging.log4j.Level;
+import org.jesterj.ingest.logging.CassandraSupport;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.processors.LogAndDrop;
 import org.jesterj.ingest.scanners.SimpleFileWatchScanner;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.LinkedHashMap;
 
+import static com.copyright.easiertest.EasierMocks.prepareMocks;
+import static com.copyright.easiertest.EasierMocks.replay;
+import static com.copyright.easiertest.EasierMocks.reset;
+import static com.copyright.easiertest.EasierMocks.verify;
+import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -40,8 +50,31 @@ public class PlanImplTest {
   private static final String LOG_AND_DROP = "log and drop";
   private static final String SCAN_FOO_BAR = "scan foo/bar";
 
+  @ObjectUnderTest PlanImpl plan;
+  @Mock private CassandraSupport supportMock;
+  @Mock private Session sessionMock;
+  @Mock private PreparedStatement prepStatementMock;
+  @Mock private BoundStatement boundMock;
+  @Mock private ResultSet rsMock;
+  @Mock private Step stepMock;
+
+  public PlanImplTest() {
+    prepareMocks(this);
+  }
+
+  @Before
+  public void setUp() {
+    reset();
+  }
+
+  @After
+  public void tearDown() {
+    verify();
+  }
+
   @Test
   public void testSimple2Step() {
+    replay();
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
     SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
     StepImpl.Builder dropStepBuilder = new StepImpl.Builder();
@@ -70,4 +103,15 @@ public class PlanImplTest {
 
   }
 
+  @Test
+  public void testActivate() {
+    LinkedHashMap<String, Step> stringStepLinkedHashMap = new LinkedHashMap<>();
+    stringStepLinkedHashMap.put("foo", stepMock);
+    expect(plan.getStepsMap()).andReturn(stringStepLinkedHashMap);
+    stepMock.activate();
+    plan.setActive(true);
+    replay();
+    plan.activate();
+  }
+  
 }
