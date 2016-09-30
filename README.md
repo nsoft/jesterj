@@ -7,7 +7,7 @@ See the [web site](http://www.jesterj.org) and the [documentation](https://githu
 
 # Status
 
-Current release version: 0.1.
+Current release version: 0.1. (But current HEAD revision is *much* better)
 
 ## Features:
 
