@@ -51,7 +51,6 @@ import java.util.stream.Collectors;
 public abstract class ScannerImpl extends StepImpl implements Scanner {
 
   private static final Logger log = LogManager.getLogger();
-  public static final String RESET_DOCS_U = "RESET_DOCS_U";
 
   private boolean hashing;
   private long interval;
@@ -79,7 +78,12 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   static final String FIND_BATCHED =
       "SELECT docid, scanner FROM jj_logging.fault_tolerant WHERE status = 'BATCHED' and scanner = ? ALLOW FILTERING";
 
+  public static final String RESET_DOCS_U = "RESET_DOCS_U";
   static final String RESET_DOCS = "UPDATE jj_logging.fault_tolerant SET status = 'DIRTY'  " +
+      " where docid = ? and scanner = ? ";
+
+  public static final String UPDATE_HASH_U = "UPDATE_HASH_U";
+  static final String UPDATE_HASH = "UPDATE jj_logging.fault_tolerant set md5hash = ? " +
       " where docid = ? and scanner = ? ";
 
   static String FTI_CHECK_Q = "FTI_CHECK_Q";
@@ -91,6 +95,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     getCassandra().addStatement(RESET_ERROR_Q, FIND_ERROR);
     getCassandra().addStatement(RESET_BATCHED_Q, FIND_BATCHED);
     getCassandra().addStatement(RESET_DOCS_U, RESET_DOCS);
+    getCassandra().addStatement(UPDATE_HASH_U, UPDATE_HASH);
   }
 
   @Override
@@ -144,14 +149,14 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     Future<?> scanner = null;
     long last = 0;
     if (isActive()) {
-      scanner = exec.submit(getScanOperation());
+      scanner = safeSubmit();
       last = System.nanoTime();
     }
     while (this.isActive()) {
       try {
         Thread.sleep(25);
         if (isReady() && longerAgoThanInterval(last)) {
-          scanner = exec.submit(getScanOperation());
+          scanner = safeSubmit();
           last = System.nanoTime();
         }
       } catch (InterruptedException e) {
@@ -166,8 +171,35 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     }
   }
 
+  Future<?> safeSubmit() {
+    Future<?> scanner = null;
+    try {
+      scanner = exec.submit(getScanOperation());
+    } catch (Exception e) {
+      log.error("Scan operation for {} failed.", getName());
+      log.error(e);
+    }
+    return scanner;
+  }
+
   boolean longerAgoThanInterval(long last) {
     return last + nanoInterval < System.nanoTime();
+  }
+
+  @Override
+  public void sendToNext(Document doc) {
+    if (isRemembering()) {
+      Session session = getCassandra().getSession();
+      PreparedStatement preparedQuery = getCassandra().getPreparedQuery(UPDATE_HASH_U);
+      BoundStatement bind = preparedQuery.bind(doc.getHash(), doc.getId(), doc.getSourceScannerName());
+      session.execute(bind);
+    }
+    superSendToNext(doc);
+  }
+
+  // mockable method for unit tests
+  void superSendToNext(Document doc) {
+    super.sendToNext(doc);
   }
 
   /**
@@ -178,7 +210,12 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   public void docFound(Document doc) {
     String id = doc.getId();
     Function<String, String> idFunction = getIdFunction();
+    String result = idFunction.apply(id);
+    String idField = doc.getIdField();
+    doc.removeAll(idField);
+    doc.put(idField, result);
 
+    id = doc.getId();
     String status = null;
     String md5 = null;
     if (isRemembering()) {
@@ -199,17 +236,25 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         }
       }
     }
-    if (!isRemembering() ||
-        status == null ||                                                            // didn't find it, so new doc
-        Status.valueOf(status) == Status.DIRTY ||                                    // existing found but dirty 
-        heuristicDirty(doc) ||                                                          // because subclass said so
-        this.isHashing() && (md5 == null || !md5.equals(doc.getHash()))              // data change detected
+    // written with negated and's so I can defer doc.getHash() until we are sure we
+    // need to check the hash.
+    if (isRemembering() &&                                         // easier to read, let jvm optimize this check out
+        status != null &&                                          // found so no new doc
+        Status.valueOf(status) != Status.DIRTY &&                  // not marked dirty
+        !heuristicDirty(doc)                                       // not dirty by subclass
         ) {
-      String result = idFunction.apply(id);
-      String idField = doc.getIdField();
-      doc.put(idField, result);
-      sendToNext(doc);
+      if (!isHashing()) {                       // data change not detected
+        return;
+      }
+      if (md5 != null) {
+        String hash = doc.getHash();
+        if (md5.equals(hash)) {
+          return;
+        }
+      }        
     }
+    sendToNext(doc);
+    
   }
 
   BoundStatement createBoundStatement(PreparedStatement preparedQuery) {

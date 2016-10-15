@@ -37,6 +37,7 @@ import static com.copyright.easiertest.EasierMocks.replay;
 import static com.copyright.easiertest.EasierMocks.reset;
 import static com.copyright.easiertest.EasierMocks.verify;
 import static org.easymock.EasyMock.expect;
+import static org.jesterj.ingest.model.impl.ScannerImpl.UPDATE_HASH_U;
 
 /*
  * Created with IntelliJ IDEA.
@@ -71,7 +72,7 @@ public class ScannerImplTest {
   @Test
   public void testDocFoundNoStatus() {
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
-    expect(docMock.getId()).andReturn("42");
+    expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.createBoundStatement(statementMock)).andReturn(bsMock);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
@@ -82,6 +83,7 @@ public class ScannerImplTest {
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
     expect(rsMock.getAvailableWithoutFetching()).andReturn(0).anyTimes();
     expect(docMock.getIdField()).andReturn("id");
+    expect(docMock.removeAll("id")).andReturn(null);
     expect(docMock.put("id", "42")).andReturn(true);
     scanner.sendToNext(docMock);
     replay();
@@ -92,7 +94,7 @@ public class ScannerImplTest {
   public void testDocFoundDirtyStatus() {
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
     expect(scanner.isHashing()).andReturn(false).anyTimes();
-    expect(docMock.getId()).andReturn("42");
+    expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.createBoundStatement(statementMock)).andReturn(bsMock);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
@@ -109,16 +111,20 @@ public class ScannerImplTest {
     expect(rowMock.getString(0)).andReturn("DIRTY");
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.put("id", "42")).andReturn(true);
+    expect(docMock.removeAll("id")).andReturn(null);
+
     scanner.sendToNext(docMock);
     replay();
     scanner.docFound(docMock);
   }
 
+  // the case where the doc was found and the status was "proscessing" but 
+  // hashing is not turned on.
   @Test
   public void testDocFoundProcessingStatus() {
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
     expect(scanner.isHashing()).andReturn(false).anyTimes();
-    expect(docMock.getId()).andReturn("42");
+    expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.createBoundStatement(statementMock)).andReturn(bsMock);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
@@ -133,6 +139,9 @@ public class ScannerImplTest {
     rows.add(rowMock);
     expect(rsMock.all()).andReturn(rows);
     expect(rowMock.getString(0)).andReturn("PROCESSING");
+    expect(docMock.getIdField()).andReturn("id");
+    expect(docMock.put("id", "42")).andReturn(true);
+    expect(docMock.removeAll("id")).andReturn(null);
     expect(scanner.heuristicDirty(docMock)).andReturn(false);
     replay();
     scanner.docFound(docMock);
@@ -142,7 +151,7 @@ public class ScannerImplTest {
   public void testDocFoundProcessingStatusButHeuristicDirty() {
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
     expect(scanner.isHashing()).andReturn(false);
-    expect(docMock.getId()).andReturn("42");
+    expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.createBoundStatement(statementMock)).andReturn(bsMock);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
@@ -159,6 +168,7 @@ public class ScannerImplTest {
     expect(rowMock.getString(0)).andReturn("PROCESSING");
     expect(scanner.heuristicDirty(docMock)).andReturn(true);
     expect(docMock.getIdField()).andReturn("id");
+    expect(docMock.removeAll("id")).andReturn(null);
     expect(docMock.put("id", "42")).andReturn(true);
     scanner.sendToNext(docMock);
     replay();
@@ -168,9 +178,10 @@ public class ScannerImplTest {
   @Test
   public void testDocFoundNoMemory() {
     expect(scanner.isRemembering()).andReturn(false).anyTimes();
-    expect(docMock.getId()).andReturn("42");
+    expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(docMock.getIdField()).andReturn("id");
+    expect(docMock.removeAll("id")).andReturn(null);
     expect(docMock.put("id", "42")).andReturn(true);
     scanner.sendToNext(docMock);
     replay();
@@ -181,7 +192,7 @@ public class ScannerImplTest {
   public void testDocFoundProcessingStatusButHashChange() {
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
     expect(scanner.isHashing()).andReturn(true).anyTimes();
-    expect(docMock.getId()).andReturn("42");
+    expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.createBoundStatement(statementMock)).andReturn(bsMock);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
@@ -199,6 +210,7 @@ public class ScannerImplTest {
     expect(rowMock.getString(1)).andReturn("CAFEBABE");
     expect(scanner.heuristicDirty(docMock)).andReturn(false);
     expect(docMock.getHash()).andReturn("DEADBEEF");
+    expect(docMock.removeAll("id")).andReturn(null);
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.put("id", "42")).andReturn(true);
     scanner.sendToNext(docMock);
@@ -210,7 +222,7 @@ public class ScannerImplTest {
   public void testDocFoundProcessingStatusButNoHashChange() {
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
     expect(scanner.isHashing()).andReturn(true).anyTimes();
-    expect(docMock.getId()).andReturn("42");
+    expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.createBoundStatement(statementMock)).andReturn(bsMock);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
@@ -226,6 +238,9 @@ public class ScannerImplTest {
     expect(rsMock.all()).andReturn(rows);
     expect(rowMock.getString(0)).andReturn("PROCESSING");
     expect(rowMock.getString(1)).andReturn("CAFEBABE");
+    expect(docMock.getIdField()).andReturn("id");
+    expect(docMock.put("id", "42")).andReturn(true);
+    expect(docMock.removeAll("id")).andReturn(null);
     expect(scanner.heuristicDirty(docMock)).andReturn(false);
     expect(docMock.getHash()).andReturn("CAFEBABE");
     replay();
@@ -236,7 +251,7 @@ public class ScannerImplTest {
   public void testDocFoundProcessingStatusButNoHash() {
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
     expect(scanner.isHashing()).andReturn(true).anyTimes();
-    expect(docMock.getId()).andReturn("42");
+    expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.createBoundStatement(statementMock)).andReturn(bsMock);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
@@ -254,6 +269,7 @@ public class ScannerImplTest {
     expect(rowMock.getString(1)).andReturn(null);
     expect(scanner.heuristicDirty(docMock)).andReturn(false);
     expect(docMock.getIdField()).andReturn("id");
+    expect(docMock.removeAll("id")).andReturn(null);
     expect(docMock.put("id", "42")).andReturn(true);
     scanner.sendToNext(docMock);
     replay();
@@ -262,8 +278,11 @@ public class ScannerImplTest {
 
   @Test(expected = RuntimeException.class)
   public void testMultiplePrimaryKeyError1() {
+    expect(docMock.getIdField()).andReturn("id");
+    expect(docMock.removeAll("id")).andReturn(null);
+    expect(docMock.put("id", "42")).andReturn(true);
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
-    expect(docMock.getId()).andReturn("42");
+    expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.createBoundStatement(statementMock)).andReturn(bsMock);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
@@ -280,8 +299,11 @@ public class ScannerImplTest {
 
   @Test(expected = RuntimeException.class)
   public void testMultiplePrimaryKeyError2() {
+    expect(docMock.getIdField()).andReturn("id");
+    expect(docMock.removeAll("id")).andReturn(null);
+    expect(docMock.put("id", "42")).andReturn(true);
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
-    expect(docMock.getId()).andReturn("42");
+    expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.createBoundStatement(statementMock)).andReturn(bsMock);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
@@ -294,5 +316,21 @@ public class ScannerImplTest {
     expect(rsMock.isFullyFetched()).andReturn(false);
     replay();
     scanner.docFound(docMock);
+  }
+
+  @Test
+  public void testSendToNext() {
+    expect(scanner.isRemembering()).andReturn(true);
+    expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
+    expect(supportMock.getSession()).andReturn(sessionMock);
+    expect(supportMock.getPreparedQuery(UPDATE_HASH_U)).andReturn(statementMock);
+    expect(docMock.getHash()).andReturn("DEADBEEF");
+    expect(docMock.getId()).andReturn("42").anyTimes();
+    expect(docMock.getSourceScannerName()).andReturn("Arthur Dent");
+    expect(statementMock.bind("DEADBEEF", "42", "Arthur Dent")).andReturn(bsMock);
+    expect(sessionMock.execute(bsMock)).andReturn(null);
+    scanner.superSendToNext(docMock);
+    replay();
+    scanner.sendToNext(docMock);
   }
 }
