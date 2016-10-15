@@ -111,31 +111,37 @@ public class JdbcScanner extends ScannerImpl {
   public Runnable getScanOperation() {
     return () -> {
 
-      log.info("connecting to database {}", jdbcUrl);
-      // Establish a connection and execute the query.
-      this.ready = false;
-      scanStarted();
-      try (Connection conn = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
-           Statement statement = createStatement(conn);
-           ResultSet rs = statement.executeQuery(sqlStatement)) {
-        log.info("Successfully queried database {}", jdbcUrl);
+      try {
+        log.info("connecting to database {}", jdbcUrl);
+        // Establish a connection and execute the query.
+        this.ready = false;
+        scanStarted();
+        try (Connection conn = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
+             Statement statement = createStatement(conn);
+             ResultSet rs = statement.executeQuery(sqlStatement)) {
+          log.info("Successfully queried database {}", jdbcUrl);
 
-        String[] columnNames = getColumnNames(rs);
-        int docIdColumnIdx = getDocIdColumnIndex(columnNames, getPlan().getDocIdField());
+          String[] columnNames = getColumnNames(rs);
+          int docIdColumnIdx = getDocIdColumnIndex(columnNames, getPlan().getDocIdField());
 
-        // For each row
-        while (rs.next()) {
-          String docId = rs.getString(docIdColumnIdx);
-          docId = jdbcUrl + "/" + table + "/" + docId;
-          Document doc = makeDoc(rs, columnNames, docId);
-          JdbcScanner.this.docFound(doc);
+          // For each row
+          while (rs.next()) {
+            String docId = rs.getString(docIdColumnIdx);
+            docId = jdbcUrl + "/" + table + "/" + docId;
+            Document doc = makeDoc(rs, columnNames, docId);
+            JdbcScanner.this.docFound(doc);
+          }
+
+        } catch (ConfigurationException | PersistenceException | SQLException ex) {
+          log.error("JDBC scanner error.", ex);
         }
-
-      } catch (ConfigurationException | PersistenceException | SQLException ex) {
-        log.error("JDBC scanner error.", ex);
+        scanFinished();
+        this.ready = true;
+      } catch (Exception e) {
+        log.error("JDBC operation for {} failed.", getName());
+        log.error(e);
+        e.printStackTrace(); // todo get rid of this when #63 is fixed
       }
-      scanFinished();
-      this.ready = true;
     };
   }
 
