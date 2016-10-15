@@ -17,6 +17,7 @@
 package org.jesterj.ingest.processors;
 
 import org.apache.cassandra.utils.ConcurrentBiMap;
+import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -28,6 +29,7 @@ import org.jesterj.ingest.model.Status;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,8 +41,6 @@ import java.util.stream.Collectors;
 public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> implements DocumentProcessor {
   private static final Logger log = LogManager.getLogger();
 
-  private String zkHost;
-  private int zkPort = 2181;
   private String collection;
   private String textContentField = "content";
   private String fieldsField;
@@ -155,6 +155,8 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
   public static class Builder extends BatchProcessor.Builder {
 
     SendToSolrCloudProcessor obj = new SendToSolrCloudProcessor();
+    List<String> zkList = new ArrayList<>();
+    String chroot;
 
     public Builder sendingBatchesOf(int batchSize) {
       super.sendingBatchesOf(batchSize);
@@ -176,15 +178,25 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
       return this;
     }
 
-    public Builder withZookeperHost(String hostname) {
-      getObj().zkHost = hostname;
+    /**
+     * Add a zookeeper host:port. If :port is omitted :2181 will be assumed
+     *
+     * @param zk a host name, and port specification
+     * @return This builder for further configuration;
+     */
+    public Builder withZookeeper(String zk) {
+      if (zk.indexOf(":") < -1) {
+        zk += ":2181";
+      }
+      zkList.add(zk);
       return this;
     }
 
-    public Builder atZookeeperPort(int port) {
-      getObj().zkPort = port;
+    @SuppressWarnings("unused")
+    public Builder zkChroot(String chroot) {
+      this.chroot = chroot;
       return this;
-    }
+    }    
 
     public Builder withDocFieldsIn(String fieldsField) {
       getObj().fieldsField = fieldsField;
@@ -207,7 +219,9 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
     public SendToSolrCloudProcessor build() {
       SendToSolrCloudProcessor tmp = getObj();
       setObj(new SendToSolrCloudProcessor());
-      tmp.solrClient = new CloudSolrClient(String.format("%s:%s", tmp.zkHost, tmp.zkPort));
+      String zkConnection = StringUtils.join(zkList, ',');
+      zkConnection = chroot == null ? zkConnection : zkConnection + chroot;
+      tmp.solrClient = new CloudSolrClient(zkConnection);
       tmp.solrClient.setDefaultCollection(tmp.collection);
       return tmp;
     }

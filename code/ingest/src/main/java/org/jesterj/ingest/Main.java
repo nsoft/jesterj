@@ -272,8 +272,7 @@ public class Main {
         .named("solr sender")
         .withProcessor(
             new SendToSolrCloudProcessor.Builder()
-                .withZookeperHost("localhost")
-                .atZookeeperPort(9983)
+                .withZookeeper("localhost:9983")
                 .usingCollection("jjtest")
                 .placingTextContentIn("_text_")
                 .withDocFieldsIn(".fields")

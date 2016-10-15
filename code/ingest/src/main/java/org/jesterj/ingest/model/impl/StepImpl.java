@@ -413,7 +413,7 @@ public class StepImpl implements Step {
 
         try {
           // if we don't have work make sure we let others do their work.
-          Thread.sleep(50);
+          Thread.sleep(5);
         } catch (InterruptedException e) {
           // ignore
         }
@@ -445,6 +445,7 @@ public class StepImpl implements Step {
     reportDocStatus(Status.ERROR, doc, errorMsg);
   }
 
+  @SuppressWarnings("unused")
   public JavaSpace getInputSpace() {
     return inputSpace;
   }
