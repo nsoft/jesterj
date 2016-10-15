@@ -42,26 +42,21 @@ file name and file size.
 The Java config feature is experimental. I wanted to use what I had built for a project but the lack of externalized configuration was a blocker. It was a quick fix but it's turnning out to be quite pleasant to work with. The down side is I'm not sure how it would carry forward to later stages of the project so it might still go away. Feedback welcome.
 
 ## TODO for 0.2
- * Serialized format for a plan/steps.
- * Xpath extractor
- * JsonPath extractor
- * Source DB based FTI
- * Execute a plan with data that causes an error, properly adjust statuses in cassandra FTI
- * Support for external Cassandra if desired.
- * 60% [test coverage](https://codecov.io/gh/nsoft/jesterj) 
+ * 50% [test coverage](https://codecov.io/gh/nsoft/jesterj) 
+ * Build a demo jar that can be run to demonstrate the java config usage
  * Demo/tutorial to demonstrate indexing a database and a filesystem simultaneously into solr
  * Up to date docs in wiki.
- 
 
 Release 0.2 is intended to be the minimum usable single node system.  
  
 ## TODO for 0.3
+ * Serialized format for a plan/steps.
  * JINI Registrar 
  * Register Node Service on JINI Registrar
  * Display nodes visible in control web app.
  * JINI Service to accept serialized format
  * Ability to build a plan in web-app.
- * 80% test coverage (maintain going forward)
+ * 60% [test coverage](https://codecov.io/gh/nsoft/jesterj) 
  * Availability on maven central.
  * Build and run the 0.2 scenario via the control web-app.
  
