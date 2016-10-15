@@ -273,7 +273,9 @@ public class DocumentImpl implements Document {
       MessageDigest md = MessageDigest.getInstance("MD5");
       try {
         md.update(getDelegateString().getBytes("UTF-8"));
-        md.update(getRawData());
+        if (getRawData() != null) {
+          md.update(getRawData());
+        }
       } catch (IOException e) {
         e.printStackTrace();
       }
