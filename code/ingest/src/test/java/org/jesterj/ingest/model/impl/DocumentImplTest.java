@@ -36,11 +36,7 @@ import static com.copyright.easiertest.EasierMocks.verify;
 import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.assertEquals;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 9/2/16
- */
+
 public class DocumentImplTest {
 
   @ObjectUnderTest private DocumentImpl obj;
@@ -64,11 +60,15 @@ public class DocumentImplTest {
 
   @Test
   public void testGetFirstValue() {
-    expect(scannerMock.getName()).andReturn("my_name");
-    expect(planMock.getDocIdField()).andReturn("id");
+    expect(scannerMock.getName()).andReturn("my_name").anyTimes();
+    expect(planMock.getDocIdField()).andReturn("id").anyTimes();
     replay();
     DocumentImpl document = new DocumentImpl(new byte[]{}, "foo", planMock, Document.Operation.NEW, scannerMock);
     document.put("string", "stringvalue");
+    DocumentImpl document2 = new DocumentImpl(new byte[]{}, "foo", planMock, Document.Operation.NEW, scannerMock);
+    document2.put("string", "stringvalue");
+    System.out.println(document.getHash());
+    System.out.println(document2.getHash());
 
     assertEquals("stringvalue", document.getFirstValue("string"));
     assertEquals(null, document.getFirstValue("unknown"));
@@ -78,8 +78,16 @@ public class DocumentImplTest {
   @Test
   public void testHash() throws UnsupportedEncodingException, NoSuchAlgorithmException {
     expect(obj.getDelegateString()).andReturn("CAFE");
-    expect(obj.getRawData()).andReturn("BABE".getBytes("UTF-8"));
+    expect(obj.getRawData()).andReturn("BABE".getBytes("UTF-8")).anyTimes();
     replay();
     assertEquals(DigestUtils.md5Hex("CAFEBABE".getBytes("UTF-8")).toUpperCase(), obj.getHash());
+  }
+
+  @Test
+  public void testHashRawDataNull() throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    expect(obj.getDelegateString()).andReturn("CAFE");
+    expect(obj.getRawData()).andReturn(null).anyTimes();
+    replay();
+    assertEquals(DigestUtils.md5Hex("CAFE".getBytes("UTF-8")).toUpperCase(), obj.getHash());
   }
 }
