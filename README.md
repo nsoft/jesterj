@@ -46,6 +46,7 @@ The Java config feature is experimental. I wanted to use what I had built for a 
  * Build a demo jar that can be run to demonstrate the java config usage
  * Demo/tutorial to demonstrate indexing a database and a filesystem simultaneously into solr
  * Up to date docs in wiki.
+ * Publish jars on Maven Central
 
 Release 0.2 is intended to be the minimum usable single node system.  
  
