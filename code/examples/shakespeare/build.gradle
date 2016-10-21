@@ -1,0 +1,17 @@
+group 'org.jesterj'
+version '0.2-SNAPSHOT'
+
+apply plugin: 'java'
+apply plugin: 'wrapper'
+
+sourceCompatibility = 1.8
+
+repositories {
+  mavenLocal()
+  mavenCentral()
+}
+
+dependencies {
+  testCompile group: 'junit', name: 'junit', version: '4.11'
+  compile ('org.jesterj:injest:0.2-SNAPSHOT')
+}
