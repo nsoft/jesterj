@@ -19,28 +19,15 @@ package org.jesterj.ingest;
 import com.google.common.io.Resources;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.ThreadContext;
 import org.docopt.clj;
 import org.jesterj.ingest.forkjoin.JesterJForkJoinThreadFactory;
 import org.jesterj.ingest.logging.Cassandra;
-import org.jesterj.ingest.logging.JesterJAppender;
-import org.jesterj.ingest.logging.Markers;
 import org.jesterj.ingest.model.Plan;
-import org.jesterj.ingest.model.impl.PlanImpl;
-import org.jesterj.ingest.model.impl.StepImpl;
-import org.jesterj.ingest.processors.CopyField;
-import org.jesterj.ingest.processors.ElasticTransportClientSender;
-import org.jesterj.ingest.processors.SendToSolrCloudProcessor;
-import org.jesterj.ingest.processors.SimpleDateTimeReformatter;
-import org.jesterj.ingest.processors.TikaProcessor;
-import org.jesterj.ingest.routers.DuplicateToAll;
-import org.jesterj.ingest.scanners.SimpleFileWatchScanner;
 import org.reflections.Reflections;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -72,14 +59,7 @@ import java.util.Properties;
  */
 public class Main {
 
-  private static final String ACCESSED = "format_accessed_date";
-  private static final String CREATED = "format_created_date";
-  private static final String MODIFIED = "format_modified_date";
-  private static final String SIZE_TO_INT = "size_to_int_step";
-  private static final String TIKA = "tika_step";
   public static String JJ_DIR;
-
-  public static IngestNode node;
 
   static {
     // set up a config dir in user's home dir
@@ -99,19 +79,17 @@ public class Main {
 
   private static Logger log;
 
-  private static final String SHAKESPEARE = "Shakespeare_scanner";
-
   public static void main(String[] args) {
     try {
       System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
 
-      // set up log ouput dir
-      String logdir = System.getProperty("jj.log.dir");
-      if (logdir == null) {
+      // set up log output dir
+      String logDir = System.getProperty("jj.log.dir");
+      if (logDir == null) {
         System.setProperty("jj.log.dir", JJ_DIR + "/logs");
       } else {
-        if (!(new File(logdir).canWrite())) {
-          System.out.println("Cannot write to log dir," + logdir + " switching to default...");
+        if (!(new File(logDir).canWrite())) {
+          System.out.println("Cannot write to log dir," + logDir + " switching to default...");
         }
       }
       System.out.println("logs will be written to: " + System.getProperty("jj.log.dir"));
@@ -125,57 +103,23 @@ public class Main {
           // Next check our args and die if they are FUBAR
           Map<String, Object> parsedArgs = usage(args);
 
-          String cassandraHome = (String) parsedArgs.get("--cassandra-home");
-          File cassandraDir = null;
-          if (cassandraHome != null) {
-            cassandraHome = cassandraHome.replaceFirst("^~", System.getProperty("user.home"));
-            cassandraDir = new File(cassandraHome);
-            if (!cassandraDir.isDirectory()) {
-              System.err.println("\nERROR: --cassandra-home must specify a directory\n");
-              System.exit(1);
-            }
-          }
-          if (cassandraDir == null) {
-            cassandraDir = new File(JJ_DIR + "/cassandra");
-          }
-          Cassandra.start(cassandraDir);
+          startCassandra(parsedArgs);
 
           // now we are allowed to look at log4j2.xml
           log = LogManager.getLogger();
 
-          log.info(Markers.LOG_MARKER, "Test regular log with marker");
-          log.info("Test regular log without marker");
-
-          try {
-            ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, "file:///foo/bar.txt");
-            log.error(Markers.SET_DROPPED, "Test fti drop");
-          } finally {
-            ThreadContext.clearAll();
+          Properties sysProps = System.getProperties();
+          for (Object prop : sysProps.keySet()) {
+            log.trace(prop + "=" + sysProps.get(prop));
           }
-
-          String id = String.valueOf(parsedArgs.get("<id>"));
-          String password = String.valueOf(parsedArgs.get("<secret>"));
-
-          Properties sysprops = System.getProperties();
-          for (Object prop : sysprops.keySet()) {
-            log.trace(prop + "=" + sysprops.get(prop));
-          }
-
-          // This  does nothing useful yet, just for testing right now.
-
-          log.debug("Starting injester node...");
-          node = new IngestNode(id, password);
-          new Thread(node).start();
 
           String javaConfig = System.getProperty("jj.javaConfig");
           if (javaConfig != null) {
             log.info("Looking for configuration class in {}", javaConfig);
             runJavaConfig(javaConfig);
           } else {
-            String example = System.getProperty("jj.example");
-            if (example != null) {
-              runExample(example);
-            }
+            System.out.println("Please specify the java config via -Djj.javaConfig=<location of jar file>");
+            System.exit(1);
           }
 
           //noinspection InfiniteLoopStatement
@@ -199,7 +143,7 @@ public class Main {
 
       });
       // unfortunately due to the hackery necessary to get things playing nice with one-jar, the contextClassLoader
-      // is now out of sync with the system class loader, which messess up the Reflections library. So hack on hack...
+      // is now out of sync with the system class loader, which messe up the Reflections library. So hack on hack...
       Field _f_contextClassLoader = Thread.class.getDeclaredField("contextClassLoader");
       _f_contextClassLoader.setAccessible(true);
       _f_contextClassLoader.set(contextClassLoaderFix, ClassLoader.getSystemClassLoader());
@@ -210,115 +154,23 @@ public class Main {
     }
   }
 
-  static void runExample(String example) {
-    PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-    SimpleFileWatchScanner.Builder scanner = new SimpleFileWatchScanner.Builder();
-    StepImpl.Builder formatCreated = new StepImpl.Builder();
-    StepImpl.Builder formatModified = new StepImpl.Builder();
-    StepImpl.Builder formatAccessed = new StepImpl.Builder();
-    StepImpl.Builder renameFileszieToInteger = new StepImpl.Builder();
-    StepImpl.Builder tikaBuilder = new StepImpl.Builder();
-    StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
-    StepImpl.Builder sendToElasticBuilder = new StepImpl.Builder();
-
-    File testDocs = new File("/Users/gus/projects/solrsystem/jesterj/code/ingest/src/test/resources/test-data/");
-
-    scanner
-        .named(SHAKESPEARE)
-        .withRoot(testDocs)
-        .scanFreqMS(100);
-    formatCreated
-        .named(CREATED)
-        .withProcessor(
-            new SimpleDateTimeReformatter.Builder()
-                .named("format_created")
-                .from("created")
-                .into("created_dt")
-        );
-    formatModified
-        .named(MODIFIED)
-        .withProcessor(
-            new SimpleDateTimeReformatter.Builder()
-                .named("format_modified")
-                .from("modified")
-                .into("modified_dt")
-        );
-    formatAccessed
-        .named(ACCESSED)
-        .withProcessor(
-            new SimpleDateTimeReformatter.Builder()
-                .named("format_accessed")
-                .from("accessed")
-                .into("accessed_dt")
-        );
-
-    renameFileszieToInteger
-        .named(SIZE_TO_INT)
-        .withProcessor(
-            new CopyField.Builder()
-                .named("copy_size_to_int")
-                .from("file_size")
-                .into("file_size_i")
-                .retainingOriginal(false)
-        );
-    tikaBuilder
-        .named(TIKA)
-        .routingBy(new DuplicateToAll.Builder()
-            .named("duplicator"))
-        .withProcessor(new TikaProcessor.Builder()
-            .named("tika")
-        );
-    sendToSolrBuilder
-        .named("solr sender")
-        .withProcessor(
-            new SendToSolrCloudProcessor.Builder()
-                .withZookeeper("localhost:9983")
-                .usingCollection("jjtest")
-                .placingTextContentIn("_text_")
-                .withDocFieldsIn(".fields")
-        );
-//            String home = Main.JJ_DIR + System.getProperty("file.separator") + "jj_elastic_client_node";
-
-    sendToElasticBuilder
-        .named("elastic_sender")
-//            .withProcessor(
-//                new ElasticNodeSender.Builder()
-//                    .named("elastic_node_processor")
-//                    .usingCluster("elasticsearch")
-//                    .nodeName("jj_elastic_client_node")
-//                    .locatedInDir(home)
-//                    .forIndex("shakespeare")
-//                    .forObjectType("work")
-        .withProcessor(
-            new ElasticTransportClientSender.Builder()
-                .named("elastic_node_processor")
-                .forIndex("shakespeare")
-                .forObjectType("work")
-                .withServer("localhost", 9300)
-            //.withServer("es.example.com", "9300")  // can have multiple servers
-        );
-    planBuilder
-        .named("myPlan")
-        .withIdField("id")
-        .addStep(scanner, (String) null)
-        .addStep(formatCreated, SHAKESPEARE)
-        .addStep(formatModified, CREATED)
-        .addStep(formatAccessed, MODIFIED)
-        .addStep(renameFileszieToInteger, ACCESSED)
-        .addStep(tikaBuilder, SIZE_TO_INT);
-    if ("solr".equals(example) || "both".equals(example)) {
-      planBuilder.addStep(sendToSolrBuilder, TIKA);
+  static void startCassandra(Map<String, Object> parsedArgs) {
+    String cassandraHome = (String) parsedArgs.get("--cassandra-home");
+    File cassandraDir = null;
+    if (cassandraHome != null) {
+      cassandraHome = cassandraHome.replaceFirst("^~", System.getProperty("user.home"));
+      cassandraDir = new File(cassandraHome);
+      if (!cassandraDir.isDirectory()) {
+        System.err.println("\nERROR: --cassandra-home must specify a directory\n");
+        System.exit(1);
+      }
     }
-    if ("elastic".equals(example) || "both".equals(example)) {
-      planBuilder.addStep(sendToElasticBuilder, TIKA);
+    if (cassandraDir == null) {
+      cassandraDir = new File(JJ_DIR + "/cassandra");
     }
-    Plan myplan = planBuilder.build();
-
-    // For now for testing purposes, write our config
-    //writeConfig(myplan, id);
-
-    myplan.activate();
+    Cassandra.start(cassandraDir);
   }
+
 
   static void runJavaConfig(String javaConfig) throws InstantiationException, IllegalAccessException {
     ClassLoader onejarLoader = null;
@@ -359,29 +211,31 @@ public class Main {
     plan.activate();
   }
 
-  private static void writeConfig(Plan myplan, String groupId) {
-    // This ~/.jj/groups is going to be the default location for loadable configs
-    // if the commandline startup id matches the name of a directory in the groups directory
-    // that configuration will be loaded. 
-    String sep = System.getProperty("file.separator");
-    File jjConfigDir = new File(JJ_DIR, "groups" + sep + groupId + sep + myplan.getName());
-    if (jjConfigDir.exists() || jjConfigDir.mkdirs()) {
-      System.out.println("made directories");
-      PlanImpl.Builder tmpBuldier = new PlanImpl.Builder();
-      String yaml = tmpBuldier.toYaml(myplan);
-      System.out.println("created yaml string");
-      File file = new File(jjConfigDir, "config.jj");
-      try (FileOutputStream fis = new FileOutputStream(file)) {
-        fis.write(yaml.getBytes("UTF-8"));
-        System.out.println("created file");
-      } catch (IOException e) {
-        log.error("failed to write file", e);
-        throw new RuntimeException(e);
-      }
-    } else {
-      throw new RuntimeException("Failed to make config directories");
-    }
-  }
+  // will come back in some form when we serialize config to a file.. 
+
+//  private static void writeConfig(Plan myPlan, String groupId) {
+//    // This ~/.jj/groups is going to be the default location for loadable configs
+//    // if the commandline startup id matches the name of a directory in the groups directory
+//    // that configuration will be loaded. 
+//    String sep = System.getProperty("file.separator");
+//    File jjConfigDir = new File(JJ_DIR, "groups" + sep + groupId + sep + myPlan.getName());
+//    if (jjConfigDir.exists() || jjConfigDir.mkdirs()) {
+//      System.out.println("made directories");
+//      PlanImpl.Builder tmpBuilder = new PlanImpl.Builder();
+//      String yaml = tmpBuilder.toYaml(myPlan);
+//      System.out.println("created yaml string");
+//      File file = new File(jjConfigDir, "config.jj");
+//      try (FileOutputStream fis = new FileOutputStream(file)) {
+//        fis.write(yaml.getBytes("UTF-8"));
+//        System.out.println("created file");
+//      } catch (IOException e) {
+//        log.error("failed to write file", e);
+//        throw new RuntimeException(e);
+//      }
+//    } else {
+//      throw new RuntimeException("Failed to make config directories");
+//    }
+//  }
 
   /**
    * Set up security policy that allows RMI and JINI code to work. Also seems to be
@@ -411,7 +265,7 @@ public class Main {
   }
 
   /**
-   * Initialize the classloader. This method fixes up an issue with OneJar's classloaders. Nothing in or before
+   * Initialize the classloader. This method fixes up an issue with OneJar's class loaders. Nothing in or before
    * this method should touch logging, or 3rd party jars that logging that might try to setup log4j.
    *
    * @throws NoSuchFieldException   if the system class loader field has changed in this version of java and is not "scl"
