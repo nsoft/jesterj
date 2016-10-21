@@ -18,10 +18,12 @@ package org.jesterj.ingest.model.impl;
 
 import com.copyright.easiertest.Mock;
 import com.copyright.easiertest.ObjectUnderTest;
+import com.google.common.collect.ArrayListMultimap;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
+import org.jesterj.ingest.model.Status;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,6 +44,7 @@ public class DocumentImplTest {
   @ObjectUnderTest private DocumentImpl obj;
   @Mock private Scanner scannerMock;
   @Mock private Plan planMock;
+  @Mock private StepImpl stepMock;
 
 
   public DocumentImplTest() {
@@ -67,8 +70,8 @@ public class DocumentImplTest {
     document.put("string", "stringvalue");
     DocumentImpl document2 = new DocumentImpl(new byte[]{}, "foo", planMock, Document.Operation.NEW, scannerMock);
     document2.put("string", "stringvalue");
-    System.out.println(document.getHash());
-    System.out.println(document2.getHash());
+//    System.out.println(document.getHash());
+//    System.out.println(document2.getHash());
 
     assertEquals("stringvalue", document.getFirstValue("string"));
     assertEquals(null, document.getFirstValue("unknown"));
@@ -89,5 +92,28 @@ public class DocumentImplTest {
     expect(obj.getRawData()).andReturn(null).anyTimes();
     replay();
     assertEquals(DigestUtils.md5Hex("CAFE".getBytes("UTF-8")).toUpperCase(), obj.getHash());
+  }
+
+  @Test
+  public void testToEntry() {
+    ArrayListMultimap<String, String> stupidFinalClass = ArrayListMultimap.create();
+    expect(obj.getDelegate()).andReturn(stupidFinalClass);
+    expect(obj.getSourceScannerName()).andReturn("foo");
+    expect(obj.getStatus()).andReturn(Status.PROCESSING);
+    expect(obj.getStatusMessage()).andReturn("ok");
+    byte[] value = {};
+    expect(obj.getRawData()).andReturn(value);
+    expect(stepMock.getName()).andReturn("bar");
+    expect(obj.getOperation()).andReturn(Document.Operation.UPDATE);
+    replay();
+    DocumentImpl.DocumentEntry e = (DocumentImpl.DocumentEntry) obj.toEntry(stepMock);
+    assertEquals(stupidFinalClass, e.contents);
+    assertEquals("foo", e.scannerName);
+    assertEquals(Status.PROCESSING, e.status);
+    assertEquals("ok", e.statusMessage);
+    assertEquals(value, e.data.data);
+    assertEquals("bar", e.nextStepName);
+    assertEquals(Document.Operation.UPDATE.toString(), e.operation);
+
   }
 }
