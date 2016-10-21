@@ -168,6 +168,25 @@ public class PlanImplTest {
   }
 
   @Test(expected = IllegalArgumentException.class)
+  public void testNonScannerPredecessorRequired() {
+    replay();
+    PlanImpl.Builder planBuilder = new PlanImpl.Builder();
+    SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
+    StepImpl.Builder dropStepBuilder = new StepImpl.Builder();
+
+    scannerBuilder.withRoot(new File("/Users/gus/foo/bar")).named(SCAN_FOO_BAR).batchSize(10);
+
+    dropStepBuilder.named(LOG_AND_DROP).batchSize(10).withProcessor(
+        new LogAndDrop.Builder().withLogLevel(Level.ERROR)
+    );
+
+    planBuilder
+        .named("testSimple2Step")
+        .addStep(scannerBuilder)
+        .addStep(dropStepBuilder);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
   public void testRejectDuplicateName() {
     replay();
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
