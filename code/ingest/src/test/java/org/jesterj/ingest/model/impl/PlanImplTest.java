@@ -36,6 +36,8 @@ import org.junit.Test;
 
 import java.io.File;
 import java.util.LinkedHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.copyright.easiertest.EasierMocks.prepareMocks;
 import static com.copyright.easiertest.EasierMocks.replay;
@@ -43,7 +45,9 @@ import static com.copyright.easiertest.EasierMocks.reset;
 import static com.copyright.easiertest.EasierMocks.verify;
 import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class PlanImplTest {
 
@@ -91,6 +95,24 @@ public class PlanImplTest {
         .addStep(dropStepBuilder, SCAN_FOO_BAR)
         .withIdField("id");
     Plan plan = planBuilder.build();
+
+    // silly coverage stuff...
+    plan.acceptJiniRequests();
+    plan.denyJiniRequests();
+    plan.advertise();
+    plan.stopAdvertising();
+    assertFalse(plan.readyForJiniRequests());
+    assertFalse(plan.isActive());
+
+    assertNull(plan.findStep(null));
+    assertNull(plan.findStep("foo"));
+
+    Step[] exes = plan.getExecutableSteps();
+    assertEquals(exes.length, 2);
+    System.out.println(exes[0].getName());
+    System.out.println(exes[1].getName());
+    assertEquals(1, Stream.of(exes).filter(foo -> SCAN_FOO_BAR.equals(foo.getName())).collect(Collectors.toList()).size());
+    assertEquals(1, Stream.of(exes).filter(foo -> LOG_AND_DROP.equals(foo.getName())).collect(Collectors.toList()).size());
 
     Step scanStep = plan.findStep(SCAN_FOO_BAR);
     Step dropStep = plan.findStep(LOG_AND_DROP);
@@ -203,5 +225,5 @@ public class PlanImplTest {
     replay();
     plan.deactivate();
   }
-  
+
 }
