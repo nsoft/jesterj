@@ -283,10 +283,10 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     return new Step[0];
   }
 
-  @Override
-  public boolean isFinalHelper() {
-    return false;
-  }
+//  @Override
+//  public boolean isFinalHelper() {
+//    return false;
+//  }
 
 
   @Override

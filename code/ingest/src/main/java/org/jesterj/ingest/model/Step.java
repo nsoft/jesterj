@@ -73,14 +73,14 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Documen
    *
    * @return true if this is the last step in a helper node, false otherwise.
    */
-  default boolean isFinalHelper() {
-    Plan plan = getPlan();
-    if (plan == null) {
-      return false; // if we aren't part of a plan yet, we aren't part of a helper node either.
-    }
-    Step[] executableSteps = plan.getExecutableSteps();
-    return plan.isHelping() && executableSteps[executableSteps.length - 1] == this;
-  }
+//  default boolean isFinalHelper() {
+//    Plan plan = getPlan();
+//    if (plan == null) {
+//      return false; // if we aren't part of a plan yet, we aren't part of a helper node either.
+//    }
+//    Step[] executableSteps = plan.getExecutableSteps();
+//    return plan.isHelping() && executableSteps[executableSteps.length - 1] == this;
+//  }
 
   void sendToNext(Document doc);
 

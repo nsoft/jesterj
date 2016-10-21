@@ -21,11 +21,6 @@ package org.jesterj.ingest.model;/*
  */
 
 
-import org.apache.commons.io.IOUtils;
-
-import java.io.IOException;
-import java.io.InputStream;
-
 // this may or may not remain...
 public interface ConfiguredBuildable<T> extends Buildable<T> {
 
@@ -58,8 +53,8 @@ public interface ConfiguredBuildable<T> extends Buildable<T> {
    * @param stream A UTF-8 stream containing yaml
    * @return this buildable object
    */
-  default ConfiguredBuildable<T> fromYaml(InputStream stream) throws IOException {
-    return fromYaml(IOUtils.toString(stream, "UTF-8"));
-  }
+//  default ConfiguredBuildable<T> fromYaml(InputStream stream) throws IOException {
+//    return fromYaml(IOUtils.toString(stream, "UTF-8"));
+//  }
 
 }

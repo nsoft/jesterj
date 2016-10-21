@@ -49,12 +49,12 @@ public interface Plan extends JiniServiceProvider, Active, Configurable {
    * @return true if the first step is not the first executable step, or the last step is not the
    * last executable step.
    */
-  @Transient
-  default boolean isHelping() {
-    Step[] all = getSteps();
-    Step[] exec = getExecutableSteps();
-    return (all[0] != exec[0] || all[all.length - 1] != exec[exec.length - 1]);
-  }
+//  @Transient
+//  default boolean isHelping() {
+//    Step[] all = getSteps();
+//    Step[] exec = getExecutableSteps();
+//    return (all[0] != exec[0] || all[all.length - 1] != exec[exec.length - 1]);
+//  }
 
   /**
    * This is the field that is to be used as a docId
