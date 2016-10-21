@@ -23,19 +23,12 @@ package org.jesterj.ingest;
  */
 
 import net.jini.core.lookup.ServiceID;
-import net.jini.core.lookup.ServiceItem;
 import net.jini.core.lookup.ServiceRegistrar;
-import net.jini.core.lookup.ServiceTemplate;
-import net.jini.discovery.DiscoveryManagement;
-import net.jini.discovery.LookupDiscovery;
-import net.jini.lease.LeaseRenewalManager;
-import net.jini.lookup.ServiceDiscoveryManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.jini.service.IngestService;
 import org.jesterj.ingest.model.Plan;
 
-import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -59,42 +52,43 @@ public class IngestNode implements Runnable, IngestService {
 
   @Override
   public void run() {
-    DiscoveryManagement dlm = null;
-    ServiceDiscoveryManager sdm = null;
-    try {
-      dlm = new LookupDiscovery(LookupDiscovery.ALL_GROUPS);
-      LeaseRenewalManager lrm = new LeaseRenewalManager();
-      sdm = new ServiceDiscoveryManager(dlm, lrm);
-    } catch (IOException e) {
-      e.printStackTrace();
-      System.exit(2);
-    }
-
-    ServiceTemplate srTemplate = new ServiceTemplate(null, new Class[]{ServiceRegistrar.class}, null);
-
-    log.info("Now Scanning for Service Registries...");
-    while (true) {
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        dlm.terminate();
-        break;
-      }
-      ServiceItem[] sis = sdm.lookup(srTemplate, 10, null);
-      Map<ServiceID, ServiceRegistrar> registrars = new LinkedHashMap<>();
-      for (ServiceItem si : sis) {
-        ServiceRegistrar registrar = (ServiceRegistrar) si.service;
-        ServiceRegistrar old = registrars.put(registrar.getServiceID(), registrar);
-        if (old == null) {
-          log.debug("added: " + registrar.getServiceID());
-        } else {
-          log.debug("replaced: " + registrar.getServiceID());
-        }
-      }
-      if (sis.length == 0) {
-        log.trace("No Service Registries found");
-      }
-    }
+    // todo: revive this or something similar for v0.3
+//    DiscoveryManagement dlm = null;
+//    ServiceDiscoveryManager sdm = null;
+//    try {
+//      dlm = new LookupDiscovery(LookupDiscovery.ALL_GROUPS);
+//      LeaseRenewalManager lrm = new LeaseRenewalManager();
+//      sdm = new ServiceDiscoveryManager(dlm, lrm);
+//    } catch (IOException e) {
+//      e.printStackTrace();
+//      System.exit(2);
+//    }
+//
+//    ServiceTemplate srTemplate = new ServiceTemplate(null, new Class[]{ServiceRegistrar.class}, null);
+//
+//    log.info("Now Scanning for Service Registries...");
+//    while (true) {
+//      try {
+//        Thread.sleep(1000);
+//      } catch (InterruptedException e) {
+//        dlm.terminate();
+//        break;
+//      }
+//      ServiceItem[] sis = sdm.lookup(srTemplate, 10, null);
+//      Map<ServiceID, ServiceRegistrar> registrars = new LinkedHashMap<>();
+//      for (ServiceItem si : sis) {
+//        ServiceRegistrar registrar = (ServiceRegistrar) si.service;
+//        ServiceRegistrar old = registrars.put(registrar.getServiceID(), registrar);
+//        if (old == null) {
+//          log.debug("added: " + registrar.getServiceID());
+//        } else {
+//          log.debug("replaced: " + registrar.getServiceID());
+//        }
+//      }
+//      if (sis.length == 0) {
+//        log.trace("No Service Registries found");
+//      }
+//    }
   }
 
   @Override
