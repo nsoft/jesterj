@@ -27,11 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 11/8/14
- */
 
 /**
  * A bean to represent Cassandra config. This will be converted directly to YAML so the property names are
@@ -56,6 +51,7 @@ public class CassandraConfig {
   private String authenticator = "PasswordAuthenticator";
   private String rpc_address = "127.0.0.1";
   private Integer num_tokens = 256;
+  private Integer write_request_timeout = 20000;
 
   public ArrayList getSeed_provider() {
     return seed_provider;
