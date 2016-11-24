@@ -22,103 +22,106 @@ apply plugin: 'jacoco'
 apply plugin: 'maven-publish'
 
 idea {
-    module {
-        downloadJavadoc = true
-        downloadSources = true
-    }
+  module {
+    downloadJavadoc = true
+    downloadSources = true
+  }
 }
 
 buildscript {
 
-    repositories {
-        flatDir {
-            dir 'onejar'
-        }
-        mavenCentral()
+  repositories {
+    flatDir {
+      dir 'onejar'
     }
-    dependencies {
-        classpath 'com.github.rholder:gradle-one-jar:1.0.4'
-    }
+    mavenCentral()
+  }
+  dependencies {
+    classpath 'com.github.rholder:gradle-one-jar:1.0.4'
+  }
 }
 
 repositories {
-    mavenCentral()
-    maven {
-        url 'https://clojars.org/repo'
-    }
-    flatDir {
-        dir 'onejar'
-    }
+  mavenCentral()
+  maven {
+    url 'https://clojars.org/repo'
+  }
+  flatDir {
+    dir 'onejar'
+  }
 }
 
 configurations {
-    oneJarLib
+  oneJarLib
 }
 
 publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            groupId 'org.jesterj'
-            artifactId 'injest'
-            version '0.2-SNAPSHOT'
-            from components.java
-        }
+  publications {
+    mavenJava(MavenPublication) {
+      groupId 'org.jesterj'
+      artifactId 'injest'
+      version '0.2-SNAPSHOT'
+      from components.java
     }
+  }
 }
+
+mainClassName = 'foo.bar.FOO'
+
 jacocoTestReport {
-    reports {
-        xml.enabled true
-    }
+  reports {
+    xml.enabled true
+  }
 }
 dependencies {
-    compile 'org.apache.tika:tika-parsers:1.12'
-    compile 'org.apache.solr:solr-solrj:5.5.0'
-    compile 'org.elasticsearch:elasticsearch:2.3.1'
+  compile 'org.apache.tika:tika-parsers:1.12'
+  compile 'org.apache.solr:solr-solrj:5.5.0'
+  compile 'org.elasticsearch:elasticsearch:2.3.1'
 
-    compile 'com.google.guava:guava:18.0'
-    compile 'com.google.code.findbugs:jsr305:3.0.0'
+  compile 'com.google.guava:guava:18.0'
+  compile 'com.google.code.findbugs:jsr305:3.0.0'
 
-    compile 'jini:jini-core:2.1'
-    compile 'org.apache.river:reggie:2.2.2'
-    compile 'org.apache.cassandra:cassandra-all:2.1.1'
-    compile 'com.datastax.cassandra:cassandra-driver-core:2.1.1'
-    compile 'org.yaml:snakeyaml:1.14'
-    compile 'org.apache.velocity:velocity:1.7'
+  compile 'jini:jini-core:2.1'
+  compile 'org.apache.river:reggie:2.2.2'
+  compile 'org.apache.cassandra:cassandra-all:2.1.1'
+  compile 'com.datastax.cassandra:cassandra-driver-core:2.1.1'
+  compile 'org.yaml:snakeyaml:1.14'
+  compile 'org.apache.velocity:velocity:1.7'
 
-    compile 'org.apache.logging.log4j:log4j-core:2.5'
-    compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.5'
-    compile 'org.apache.logging.log4j:log4j-jcl:2.5'
-    compile 'org.apache.logging.log4j:log4j-1.2-api:2.5'
-    compile 'org.apache.logging.log4j:log4j-jul:2.5'
+  compile 'org.apache.logging.log4j:log4j-core:2.5'
+  compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.5'
+  compile 'org.apache.logging.log4j:log4j-jcl:2.5'
+  compile 'org.apache.logging.log4j:log4j-1.2-api:2.5'
+  compile 'org.apache.logging.log4j:log4j-jul:2.5'
 
-    compile('com.needhamsoftware:easier-mock:1.0') {
-        ext.transative = false;
-    }
-    compile 'net.jini:jsk-platform:2.2.2'
-    compile 'docopt:docopt:0.6.1'
-    testCompile 'junit:junit:4.11'
-    testCompile 'com.needhamsoftware:easier-mock:2.0'
-    //runtime ':one-jar-boot:0.98' // uncomment for debugging stack traces into one-jar classes
+  compile('com.needhamsoftware:easier-mock:1.0') {
+    ext.transative = false;
+  }
+  compile 'net.jini:jsk-platform:2.2.2'
+  compile 'docopt:docopt:0.6.1'
+  testCompile 'junit:junit:4.11'
+  testCompile 'com.needhamsoftware:easier-mock:2.0'
+  //runtime ':one-jar-boot:0.98' // uncomment for debugging stack traces into one-jar classes
 
-    oneJarLib files('onejar/one-jar-boot-0.98.jar')
-    compile files('onejar/one-jar-boot-0.98.jar')
-    compile('org.reflections:reflections:0.9.10') {
-        exclude group: 'org.javassist'
-    }
-    compile 'org.javassist:javassist:3.20.0-GA' // substitute a version that handles java 8
+  oneJarLib files('onejar/one-jar-boot-0.98.jar')
+  compile files('onejar/one-jar-boot-0.98.jar')
+  compile('org.reflections:reflections:0.9.10') {
+    exclude group: 'org.javassist'
+  }
+  compile 'org.javassist:javassist:3.20.0-GA' // substitute a version that handles java 8
 
 }
 
 task oneJar(type: OneJar, dependsOn: clean) {
-    mainClass = 'org.jesterj.ingest.Main'
-    archiveName = 'ingest-node.jar'
-    useStable = false
+  mainClass = 'org.jesterj.ingest.Main'
+  archiveName = 'ingest-node.jar'
+  useStable = false
+  //noinspection GroovyAssignabilityCheck
+  manifest {
     //noinspection GroovyAssignabilityCheck
-    manifest {
-        //noinspection GroovyAssignabilityCheck
-        attributes 'One-Jar-URL-Factory': 'com.simontuffs.onejar.JarClassLoader$OneJarURLFactory'
-    }
-    oneJarConfiguration = configurations.oneJarLib
+    attributes 'One-Jar-URL-Factory': 'com.simontuffs.onejar.JarClassLoader$OneJarURLFactory'
+  }
+  oneJarConfiguration = configurations.oneJarLib
 }
 
 jacocoTestReport.dependsOn test
