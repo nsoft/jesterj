@@ -51,7 +51,7 @@ public class CassandraConfig {
   private String authenticator = "PasswordAuthenticator";
   private String rpc_address = "127.0.0.1";
   private Integer num_tokens = 256;
-  private Integer write_request_timeout = 20000;
+  private Integer write_request_timeout_in_ms = 20000;
 
   public ArrayList getSeed_provider() {
     return seed_provider;
@@ -273,6 +273,14 @@ public class CassandraConfig {
 
   public void setNum_tokens(Integer num_tokens) {
     this.num_tokens = num_tokens;
+  }
+
+  public Integer getWrite_request_timeout_in_ms() {
+    return write_request_timeout_in_ms;
+  }
+
+  public void setWrite_request_timeout_in_ms(Integer write_request_timeout_in_ms) {
+    this.write_request_timeout_in_ms = write_request_timeout_in_ms;
   }
 
 
