@@ -31,11 +31,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 3/30/16
- */
 abstract class BatchProcessor<T> implements DocumentProcessor {
   private static final Logger log = LogManager.getLogger();
 

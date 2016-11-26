@@ -15,11 +15,6 @@
  */
 
 package org.jesterj.ingest.processors;
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 4/7/16
- */
 
 import com.copyright.easiertest.BeanTester;
 import com.copyright.easiertest.Mock;

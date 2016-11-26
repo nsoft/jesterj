@@ -29,18 +29,17 @@ import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.jesterj.ingest.config.Required;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Status;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 4/5/16
- */
 public abstract class ElasticSender extends BatchProcessor<ActionRequest> {
   private static final Logger log = LogManager.getLogger();
 
@@ -125,6 +124,19 @@ public abstract class ElasticSender extends BatchProcessor<ActionRequest> {
   }
 
   @Override
+  protected void perDocFailLogging(Exception e, Document doc) {
+    log.info(Status.ERROR.getMarker(), "{} could not be sent to elastic because of {}", doc.getId(), e.getMessage());
+    log.error("Error communicating with elastic!", e);
+  }
+
+  @Override
+  protected boolean exceptionIndicatesDocumentIssue(Exception e) {
+    // TODO figure out what causes might be due to a single document vs not available etc
+    return e instanceof ESBulkFail;
+  }
+
+
+  @Override
   protected ActionRequest convertDoc(Document document) {
     Document.Operation operation = document.getOperation();
     switch (operation) {
@@ -187,14 +199,54 @@ public abstract class ElasticSender extends BatchProcessor<ActionRequest> {
   }
 
 
-  public static abstract class Builder extends BatchProcessor.Builder {
+  public static class Builder extends BatchProcessor.Builder {
 
-    protected abstract ElasticSender getObj();
+    private Map<String, String> hosts = new HashMap<>();
+    private ElasticSender obj;
 
+    protected  ElasticSender getObj() {
+      return obj;
+    }
+
+    @Override
+    public ElasticSender build() {
+      ElasticSender obj = getObj();
+      try {
+        TransportClient transportClient = TransportClient.builder().build();
+        for (Map.Entry<String, String> host : hosts.entrySet()) {
+          int port = Integer.valueOf(host.getValue());
+          transportClient.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(host.getKey()), port));
+        }
+        obj.setClient(transportClient);
+      } catch (UnknownHostException e) {
+        log.error("Could not find elastic!", e);
+        throw new RuntimeException(e);
+      }
+      return obj;
+    }
 
     @Override
     public boolean isValid() {
-      return super.isValid() && getObj() != null && getObj().indexName != null && getObj().objectType != null;
+      boolean nullHost = false;
+      boolean nonIntegerPort = false;
+      for (Map.Entry<String, String> host : hosts.entrySet()) {
+        try {
+          log.trace("{}:{}", host.getKey(), Integer.valueOf(host.getValue()));
+        } catch (NumberFormatException nfe) {
+          nonIntegerPort = true;
+          log.error("Non-numeric port {} for host:{} in processor named {}",
+              host.getValue(), host.getKey(), obj.getName());
+        }
+        if (host.getKey() == null) {
+          nullHost = true;
+          log.error("Null host in list of hosts for transportClient in processor named {}", obj.getName());
+        }
+      }
+      if (hosts.size() == 0) {
+        log.error("No hosts supplied for processor named {}", obj.getName());
+      }
+      return super.isValid() && getObj() != null && getObj().indexName != null &&
+          getObj().objectType != null && !nonIntegerPort && !nullHost;
     }
 
     @Override
@@ -214,6 +266,12 @@ public abstract class ElasticSender extends BatchProcessor<ActionRequest> {
       getObj().objectType = objectType;
       return this;
     }
+
+    public Builder withServer(String host, Object port) {
+      this.hosts.put(host, String.valueOf(port));
+      return this;
+    }
+
   }
 
 

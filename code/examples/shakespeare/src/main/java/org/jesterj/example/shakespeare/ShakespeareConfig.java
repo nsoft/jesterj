@@ -101,7 +101,7 @@ public class ShakespeareConfig implements PlanProvider {
 //                    .forIndex("shakespeare")
 //                    .forObjectType("work")
         .withProcessor(
-            new ElasticTransportClientSender.Builder()
+            new ElasticSender.Builder()
                 .named("elastic_node_processor")
                 .forIndex("shakespeare")
                 .forObjectType("work")
