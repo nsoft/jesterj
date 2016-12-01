@@ -40,7 +40,7 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class ElasticSender extends BatchProcessor<ActionRequest> {
+public class ElasticSender extends BatchProcessor<ActionRequest> {
   private static final Logger log = LogManager.getLogger();
 
   protected Client client;
@@ -202,7 +202,7 @@ public abstract class ElasticSender extends BatchProcessor<ActionRequest> {
   public static class Builder extends BatchProcessor.Builder {
 
     private Map<String, String> hosts = new HashMap<>();
-    private ElasticSender obj;
+    private ElasticSender obj = new ElasticSender();
 
     protected  ElasticSender getObj() {
       return obj;
