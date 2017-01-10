@@ -110,6 +110,7 @@ public class JdbcScanner extends ScannerImpl {
   @Override
   public Runnable getScanOperation() {
     return () -> {
+      int count = 0;
 
       try {
         log.info("connecting to database {}", jdbcUrl);
@@ -126,14 +127,18 @@ public class JdbcScanner extends ScannerImpl {
 
           // For each row
           while (rs.next()) {
+            if (count == 0) {
+              log.debug("{} begining processing of result set", getName());
+            }
             String docId = rs.getString(docIdColumnIdx);
             docId = jdbcUrl + "/" + table + "/" + docId;
             Document doc = makeDoc(rs, columnNames, docId);
             JdbcScanner.this.docFound(doc);
+            count++;
           }
 
         } catch (ConfigurationException | PersistenceException | SQLException ex) {
-          log.error("JDBC scanner error.", ex);
+          log.error(getName() + " JDBC scanner error, rows processed=" + count, ex);
         }
         scanFinished();
         this.ready = true;
@@ -141,6 +146,8 @@ public class JdbcScanner extends ScannerImpl {
         log.error("JDBC operation for {} failed.", getName());
         log.error(e);
         e.printStackTrace(); // todo get rid of this when #63 is fixed
+      } finally {
+        log.debug("{} Database rows processed by {}", count, getName());
       }
     };
   }
