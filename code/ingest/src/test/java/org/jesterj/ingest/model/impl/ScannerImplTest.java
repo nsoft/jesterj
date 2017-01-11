@@ -71,6 +71,7 @@ public class ScannerImplTest {
 
   @Test
   public void testDocFoundNoStatus() {
+    expect(scanner.getName()).andReturn("Dent, Aurthur Dent").anyTimes();
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
     expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
@@ -78,7 +79,6 @@ public class ScannerImplTest {
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
     expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
-    expect(scanner.getName()).andReturn("Dent, Aurthur Dent");
     expect(bsMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
     expect(rsMock.getAvailableWithoutFetching()).andReturn(0).anyTimes();
@@ -92,6 +92,7 @@ public class ScannerImplTest {
 
   @Test
   public void testDocFoundDirtyStatus() {
+    expect(scanner.getName()).andReturn("Dent, Aurthur Dent").anyTimes();
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
     expect(scanner.isHashing()).andReturn(false).anyTimes();
     expect(docMock.getId()).andReturn("42").anyTimes();
@@ -100,7 +101,6 @@ public class ScannerImplTest {
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
     expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
-    expect(scanner.getName()).andReturn("Dent, Aurthur Dent");
     expect(bsMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
     expect(rsMock.getAvailableWithoutFetching()).andReturn(1).anyTimes();
@@ -122,15 +122,15 @@ public class ScannerImplTest {
   // hashing is not turned on.
   @Test
   public void testDocFoundProcessingStatus() {
-    expect(scanner.isRemembering()).andReturn(true).anyTimes();
-    expect(scanner.isHashing()).andReturn(false).anyTimes();
+    expect(scanner.getName()).andReturn("Dent, Aurthur Dent").anyTimes();
+    expect(scanner.isRemembering()).andReturn(true).anyTimes();   // remembering
+    expect(scanner.isHashing()).andReturn(false).anyTimes();      // but not hashing
     expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.createBoundStatement(statementMock)).andReturn(bsMock);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
     expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
-    expect(scanner.getName()).andReturn("Dent, Aurthur Dent");
     expect(bsMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
     expect(rsMock.getAvailableWithoutFetching()).andReturn(1).anyTimes();
@@ -149,6 +149,7 @@ public class ScannerImplTest {
 
   @Test
   public void testDocFoundProcessingStatusButHeuristicDirty() {
+    expect(scanner.getName()).andReturn("Dent, Aurthur Dent").anyTimes();
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
     expect(scanner.isHashing()).andReturn(false);
     expect(docMock.getId()).andReturn("42").anyTimes();
@@ -157,7 +158,6 @@ public class ScannerImplTest {
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
     expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
-    expect(scanner.getName()).andReturn("Dent, Aurthur Dent");
     expect(bsMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
     expect(rsMock.getAvailableWithoutFetching()).andReturn(1).anyTimes();
@@ -177,6 +177,7 @@ public class ScannerImplTest {
 
   @Test
   public void testDocFoundNoMemory() {
+    expect(scanner.getName()).andReturn("Dent, Aurthur Dent").anyTimes();
     expect(scanner.isRemembering()).andReturn(false).anyTimes();
     expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
@@ -190,6 +191,7 @@ public class ScannerImplTest {
 
   @Test
   public void testDocFoundProcessingStatusButHashChange() {
+    expect(scanner.getName()).andReturn("Dent, Aurthur Dent").anyTimes();
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
     expect(scanner.isHashing()).andReturn(true).anyTimes();
     expect(docMock.getId()).andReturn("42").anyTimes();
@@ -198,7 +200,6 @@ public class ScannerImplTest {
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
     expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
-    expect(scanner.getName()).andReturn("Dent, Aurthur Dent");
     expect(bsMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
     expect(rsMock.getAvailableWithoutFetching()).andReturn(1).anyTimes();
@@ -220,6 +221,7 @@ public class ScannerImplTest {
 
   @Test
   public void testDocFoundProcessingStatusButNoHashChange() {
+    expect(scanner.getName()).andReturn("Dent, Aurthur Dent").anyTimes();
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
     expect(scanner.isHashing()).andReturn(true).anyTimes();
     expect(docMock.getId()).andReturn("42").anyTimes();
@@ -228,7 +230,6 @@ public class ScannerImplTest {
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
     expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
-    expect(scanner.getName()).andReturn("Dent, Aurthur Dent");
     expect(bsMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
     expect(rsMock.getAvailableWithoutFetching()).andReturn(1).anyTimes();
@@ -249,6 +250,7 @@ public class ScannerImplTest {
 
   @Test
   public void testDocFoundProcessingStatusButNoHash() {
+    expect(scanner.getName()).andReturn("Dent, Aurthur Dent").anyTimes();
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
     expect(scanner.isHashing()).andReturn(true).anyTimes();
     expect(docMock.getId()).andReturn("42").anyTimes();
@@ -257,7 +259,6 @@ public class ScannerImplTest {
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
     expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
-    expect(scanner.getName()).andReturn("Dent, Aurthur Dent");
     expect(bsMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
     expect(rsMock.getAvailableWithoutFetching()).andReturn(1).anyTimes();
@@ -278,6 +279,7 @@ public class ScannerImplTest {
 
   @Test(expected = RuntimeException.class)
   public void testMultiplePrimaryKeyError1() {
+    expect(scanner.getName()).andReturn("Dent, Aurthur Dent").anyTimes();
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.removeAll("id")).andReturn(null);
     expect(docMock.put("id", "42")).andReturn(true);
@@ -288,7 +290,6 @@ public class ScannerImplTest {
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
     expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
-    expect(scanner.getName()).andReturn("Dent, Aurthur Dent");
     expect(bsMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
     expect(rsMock.getAvailableWithoutFetching()).andReturn(2).anyTimes();
@@ -299,6 +300,7 @@ public class ScannerImplTest {
 
   @Test(expected = RuntimeException.class)
   public void testMultiplePrimaryKeyError2() {
+    expect(scanner.getName()).andReturn("Dent, Aurthur Dent").anyTimes();
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.removeAll("id")).andReturn(null);
     expect(docMock.put("id", "42")).andReturn(true);
@@ -309,7 +311,6 @@ public class ScannerImplTest {
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
     expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
-    expect(scanner.getName()).andReturn("Dent, Aurthur Dent");
     expect(bsMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
     expect(rsMock.getAvailableWithoutFetching()).andReturn(1).anyTimes();

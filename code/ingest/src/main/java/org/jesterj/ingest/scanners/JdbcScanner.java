@@ -113,14 +113,14 @@ public class JdbcScanner extends ScannerImpl {
       int count = 0;
 
       try {
-        log.info("connecting to database {}", jdbcUrl);
+        log.info("{} connecting to database {}", getName(), jdbcUrl);
         // Establish a connection and execute the query.
         this.ready = false;
         scanStarted();
         try (Connection conn = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
              Statement statement = createStatement(conn);
              ResultSet rs = statement.executeQuery(sqlStatement)) {
-          log.info("Successfully queried database {}", jdbcUrl);
+          log.info("{} successfully queried database {}", getName(), jdbcUrl);
 
           String[] columnNames = getColumnNames(rs);
           int docIdColumnIdx = getDocIdColumnIndex(columnNames, getPlan().getDocIdField());

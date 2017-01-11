@@ -208,6 +208,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
    * @param doc The document to be processed
    */
   public void docFound(Document doc) {
+    log.trace("{} found doc: {}", getName(), doc.getId());
     String id = doc.getId();
     Function<String, String> idFunction = getIdFunction();
     String result = idFunction.apply(id);
@@ -239,22 +240,24 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     // written with negated and's so I can defer doc.getHash() until we are sure we
     // need to check the hash.
     if (isRemembering() &&                                         // easier to read, let jvm optimize this check out
-        status != null &&                                          // found so no new doc
+        status != null &&                                          // A status was found so we have seen this before
         Status.valueOf(status) != Status.DIRTY &&                  // not marked dirty
-        !heuristicDirty(doc)                                       // not dirty by subclass
+        !heuristicDirty(doc)                                       // not dirty by subclass logic
         ) {
-      if (!isHashing()) {                       // data change not detected
+      if (!isHashing()) {
+        log.trace("{} ignoring previously seen document {}", getName(), id);
         return;
       }
       if (md5 != null) {
         String hash = doc.getHash();
         if (md5.equals(hash)) {
+          log.trace("{} ignoring document with previously seen content {}", getName(), id);
           return;
         }
       }        
     }
     sendToNext(doc);
-    
+
   }
 
   BoundStatement createBoundStatement(PreparedStatement preparedQuery) {

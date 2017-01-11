@@ -407,6 +407,7 @@ public class StepImpl implements Step {
           }
         }
         if (temp != null) {
+          log.trace("{} took {} from queue", getName(), temp.size());
           temp.forEach(new DocumentConsumer());
           continue;
         }
@@ -468,7 +469,13 @@ public class StepImpl implements Step {
     @Override
     public void accept(Document document) {
       try {
+        log.trace("accepting {}, sending to {} in {}", document.getId(),
+            (StepImpl.this.processor == null) ? "null" : StepImpl.this.processor.getName(),
+            StepImpl.this.getName());
         Document[] documents = StepImpl.this.processor.processDocument(document);
+        log.trace("finished {}, was sent to {} in {}", document.getId(),
+            (StepImpl.this.processor == null) ? "null" : StepImpl.this.processor.getName(),
+            StepImpl.this.getName());
         for (Document documentResult : documents) {
           pushToNextIfOk(documentResult);
         }
