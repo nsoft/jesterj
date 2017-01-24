@@ -6,13 +6,13 @@ A new highly flexible, highly scaleable document ingestion system.
 
 See the [web site](http://www.jesterj.org) and the [documentation](https://github.com/nsoft/jesterj/wiki/Documentation) for more info
 
-# Status
-
-Current release version: 0.1. (But current HEAD revision is *much* better)
-
 # Getting Started
 
 Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki/Documentation)
+
+# Project Status
+
+Current release version: 0.1. (But current HEAD revision is *much* better, please build from source until 0.2)
 
 ## Features:
 
