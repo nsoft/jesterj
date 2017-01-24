@@ -10,6 +10,10 @@ See the [web site](http://www.jesterj.org) and the [documentation](https://githu
 
 Current release version: 0.1. (But current HEAD revision is *much* better)
 
+# Getting Started
+
+Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki/Documentation)
+
 ## Features:
 
 In this release we have the following features
