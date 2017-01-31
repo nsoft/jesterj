@@ -9,6 +9,9 @@ sourceCompatibility = 1.8
 repositories {
   mavenLocal()
   mavenCentral()
+  maven {
+    url 'https://clojars.org/repo'
+  }
 }
 
 dependencies {
