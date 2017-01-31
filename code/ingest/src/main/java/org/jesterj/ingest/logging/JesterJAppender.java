@@ -28,6 +28,7 @@ import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginElement;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
 import org.apache.logging.log4j.core.layout.PatternLayout;
+import org.jesterj.ingest.persistence.CassandraSupport;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
@@ -59,7 +60,7 @@ public class JesterJAppender extends AbstractAppender {
   public static final String JJ_INGEST_DOCID = "jj_ingest.docid";
   public static final String JJ_INGEST_SOURCE_SCANNER = "JJ_INGEST_SOURCE_SCANNER";
   
-  private static CassandraManager manager;
+  private static CassandraLog4JManager manager;
 
   // we need to delay startup of cassandra until after logger initialization, because when cassandra code
   // tries to log messages we get a deadlock. Therefore the manager does not create cassandra until after the first
@@ -78,7 +79,7 @@ public class JesterJAppender extends AbstractAppender {
     super(name, filter, null, ignoreExceptions);
   }
 
-  public JesterJAppender(String name, @SuppressWarnings("UnusedParameters") Layout layout, Filter filter, CassandraManager manager, boolean ignoreExceptions) {
+  public JesterJAppender(String name, @SuppressWarnings("UnusedParameters") Layout layout, Filter filter, CassandraLog4JManager manager, boolean ignoreExceptions) {
     // perhaps support layout and format the message?... later
     super(name, filter, null, ignoreExceptions);
     JesterJAppender.manager = manager;
@@ -108,8 +109,8 @@ public class JesterJAppender extends AbstractAppender {
     return new JesterJAppender(name, layout, filter, manager, ignoreExceptions);
   }
 
-  private static CassandraManager createManager() {
-    return new CassandraManagerFactory().createManager("jjCassandraManager", null);
+  private static CassandraLog4JManager createManager() {
+    return new CassandraLog4JManagerFactory().createManager("jjCassandraManager", null);
   }
 
   /**

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest.logging;
+package org.jesterj.ingest.persistence;
 
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.ConfigurationLoader;
@@ -33,11 +33,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.RunnableFuture;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 11/8/14
- */
 
 /**
  * Starts a Casandra Daemon after creating or loading the cassandra config. The main purpose of this

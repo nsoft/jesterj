@@ -19,6 +19,8 @@ package org.jesterj.ingest.logging;
 import com.datastax.driver.core.Session;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.appender.AbstractManager;
+import org.jesterj.ingest.persistence.Cassandra;
+import org.jesterj.ingest.persistence.CassandraSupport;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
@@ -27,7 +29,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class CassandraManager extends AbstractManager {
+public class CassandraLog4JManager extends AbstractManager {
 
   public static final String CREATE_LOG_KEYSPACE =
       "CREATE KEYSPACE IF NOT EXISTS jj_logging " +
@@ -68,7 +70,7 @@ public class CassandraManager extends AbstractManager {
   // (such as starting cassandra) Doing so causes that thread and this one to deadlock and hangs
   // everything. This includes calling System.exit() since that gets checked in another JVM thread and
   // the JVM thread tries to start a JUL logger!
-  protected CassandraManager(String name) {
+  protected CassandraLog4JManager(String name) {
     super(name);
 
     Callable<Object> makeTables = new Callable<Object>() {

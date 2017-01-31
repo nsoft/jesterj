@@ -18,7 +18,6 @@ package org.jesterj.ingest.model.impl;
 
 import com.google.common.collect.ArrayListMultimap;
 import org.jesterj.ingest.config.Transient;
-import org.jesterj.ingest.logging.CassandraSupport;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Step;
 
@@ -40,8 +39,6 @@ public class PlanImpl implements Plan {
   private boolean active = false;
   private String name;
 
-  private CassandraSupport cassandra = new CassandraSupport();
-  
   protected PlanImpl() {
   }
 
@@ -146,14 +143,6 @@ public class PlanImpl implements Plan {
 
   void setName(String name) {
     this.name = name;
-  }
-
-  CassandraSupport getCassandra() {
-    return cassandra;
-  }
-
-  void setCassandra(CassandraSupport cassandra) {
-    this.cassandra = cassandra;
   }
 
 

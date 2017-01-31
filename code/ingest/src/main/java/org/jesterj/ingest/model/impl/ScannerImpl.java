@@ -24,7 +24,7 @@ import com.datastax.driver.core.Session;
 import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jesterj.ingest.logging.CassandraSupport;
+import org.jesterj.ingest.persistence.CassandraSupport;
 import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;

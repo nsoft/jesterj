@@ -23,7 +23,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import org.jesterj.ingest.logging.CassandraSupport;
+import org.jesterj.ingest.persistence.CassandraSupport;
 import org.jesterj.ingest.model.Document;
 import org.junit.After;
 import org.junit.Before;

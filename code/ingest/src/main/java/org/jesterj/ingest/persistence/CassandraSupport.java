@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest.logging;
+package org.jesterj.ingest.persistence;
 
 import com.datastax.driver.core.CloseFuture;
 import com.datastax.driver.core.Cluster;
@@ -25,6 +25,7 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.google.common.util.concurrent.ListenableFuture;
+import org.jesterj.ingest.persistence.Cassandra;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

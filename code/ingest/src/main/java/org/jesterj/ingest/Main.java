@@ -21,7 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.docopt.clj;
 import org.jesterj.ingest.forkjoin.JesterJForkJoinThreadFactory;
-import org.jesterj.ingest.logging.Cassandra;
+import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.model.Plan;
 import org.reflections.Reflections;
 import org.reflections.util.ClasspathHelper;

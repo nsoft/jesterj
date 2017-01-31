@@ -23,7 +23,6 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import org.apache.logging.log4j.Level;
-import org.jesterj.ingest.logging.CassandraSupport;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
@@ -55,7 +54,6 @@ public class PlanImplTest {
   private static final String SCAN_FOO_BAR = "scan foo/bar";
 
   @ObjectUnderTest PlanImpl plan;
-  @Mock private CassandraSupport supportMock;
   @Mock private Session sessionMock;
   @Mock private PreparedStatement prepStatementMock;
   @Mock private BoundStatement boundMock;
