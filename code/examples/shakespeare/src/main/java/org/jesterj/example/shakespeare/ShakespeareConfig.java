@@ -32,7 +32,7 @@ public class ShakespeareConfig implements PlanProvider {
     StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
     StepImpl.Builder sendToElasticBuilder = new StepImpl.Builder();
 
-    File testDocs = new File("./shakespeare/");
+    File testDocs = new File("src/main/resources/data");
 
     scanner
         .named(SHAKESPEARE)
@@ -111,7 +111,7 @@ public class ShakespeareConfig implements PlanProvider {
     planBuilder
         .named("myPlan")
         .withIdField("id")
-        .addStep(scanner, (String) null)
+        .addStep(scanner)
         .addStep(formatCreated, SHAKESPEARE)
         .addStep(formatModified, CREATED)
         .addStep(formatAccessed, MODIFIED)
