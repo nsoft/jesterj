@@ -1,13 +1,18 @@
-JesterJ [![License](https://img.shields.io/badge/license-Apache%202.0-B70E23.svg?style=plastic)](http://www.opensource.org/licenses/Apache-2.0) [![Build Status](https://travis-ci.org/nsoft/jesterj.svg?branch=master)](https://travis-ci.org/nsoft/jesterj)
+JesterJ 
 =======
+[![License](https://img.shields.io/badge/license-Apache%202.0-B70E23.svg?style=plastic)](http://www.opensource.org/licenses/Apache-2.0) [![Build Status](https://travis-ci.org/nsoft/jesterj.svg?branch=master)](https://travis-ci.org/nsoft/jesterj)
 
 A new highly flexible, highly scaleable document ingestion system. 
 
 See the [web site](http://www.jesterj.org) and the [documentation](https://github.com/nsoft/jesterj/wiki/Documentation) for more info
 
-# Status
+# Getting Started
 
-Current release version: 0.1. (But current HEAD revision is *much* better)
+Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki/Documentation)
+
+# Project Status
+
+Current release version: 0.1. (But current HEAD revision is *much* better, please build from source until 0.2)
 
 ## Features:
 
