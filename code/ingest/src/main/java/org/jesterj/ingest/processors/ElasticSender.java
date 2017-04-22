@@ -30,6 +30,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.jesterj.ingest.config.Required;
 import org.jesterj.ingest.model.Document;
@@ -47,6 +48,7 @@ public class ElasticSender extends BatchProcessor<ActionRequest> {
   protected String indexName;
   protected String objectType;
   protected String name;
+  private int connectTimout;
 
   @Override
   protected void individualFallbackOperation(ConcurrentBiMap<Document, ActionRequest> oldBatch, Exception e) {
@@ -198,11 +200,16 @@ public class ElasticSender extends BatchProcessor<ActionRequest> {
     this.client = client;
   }
 
+  public int getConnectTimeout() {
+    return connectTimout;
+  }
+
 
   public static class Builder extends BatchProcessor.Builder {
 
     private Map<String, String> hosts = new HashMap<>();
     private ElasticSender obj = new ElasticSender();
+    boolean connectSetting = false;
 
     protected  ElasticSender getObj() {
       return obj;
@@ -212,7 +219,14 @@ public class ElasticSender extends BatchProcessor<ActionRequest> {
     public ElasticSender build() {
       ElasticSender obj = getObj();
       try {
-        TransportClient transportClient = TransportClient.builder().build();
+
+        TransportClient.Builder clientBuilder = TransportClient.builder();
+        if (connectSetting) {
+          Settings.Builder settings = Settings.settingsBuilder();
+          settings.put("transport.tcp.connect_timeout", obj.connectTimout + "ms");
+          clientBuilder.settings(settings);
+        }
+        TransportClient transportClient = clientBuilder.build();
         for (Map.Entry<String, String> host : hosts.entrySet()) {
           int port = Integer.valueOf(host.getValue());
           transportClient.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(host.getKey()), port));
@@ -245,6 +259,10 @@ public class ElasticSender extends BatchProcessor<ActionRequest> {
       if (hosts.size() == 0) {
         log.error("No hosts supplied for processor named {}", obj.getName());
       }
+      if (obj.getConnectTimeout() < 0) {
+        log.error("Negative timeout set for connecting to elastic?");
+        return false;
+      }
       return super.isValid() && getObj() != null && getObj().indexName != null &&
           getObj().objectType != null && !nonIntegerPort && !nullHost;
     }
@@ -269,6 +287,12 @@ public class ElasticSender extends BatchProcessor<ActionRequest> {
 
     public Builder withServer(String host, Object port) {
       this.hosts.put(host, String.valueOf(port));
+      return this;
+    }
+
+    public Builder withConnectTimout(int msTimeout) {
+      getObj().connectTimout = msTimeout;
+      connectSetting = true;
       return this;
     }
 

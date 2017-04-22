@@ -6,6 +6,7 @@ import org.junit.Test;
 import java.net.UnknownHostException;
 
 import static junit.framework.TestCase.assertFalse;
+import static junit.framework.TestCase.fail;
 import static org.junit.Assert.assertTrue;
 
 public class ElasticSenderBuilderTest {
@@ -38,10 +39,8 @@ public class ElasticSenderBuilderTest {
     assertFalse(b.isValid());
     b.named("foobar");
     assertTrue(b.isValid());
-    try {
-      b.build();
-    } catch (RuntimeException e) {
-      assertTrue(e.getCause() instanceof UnknownHostException);
-    }
+    b.withConnectTimout(250);
+    assertTrue(b.isValid());
+    b.build();
   }
 }
