@@ -14,6 +14,17 @@ Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki
 
 Current release version: 0.1. (But current HEAD revision is *much* better, please build from source until 0.2)
 
+# Slack Chanel
+If you want an invite to our slack channel just send mail to:
+```
+                     ______    _           __            _                  
+   ____ ___  _______/ ____ \  (_)__  _____/ /____  _____(_)____  _________ _
+  / __ `/ / / / ___/ / __ `/ / / _ \/ ___/ __/ _ \/ ___/ // __ \/ ___/ __ `/
+ / /_/ / /_/ (__  ) / /_/ / / /  __(__  ) /_/  __/ /  / // /_/ / /  / /_/ / 
+ \__, /\__,_/____/\ \__,_/_/ /\___/____/\__/\___/_/__/ (_)____/_/   \__, /  
+/____/             \____/___/                     /___/            /____/   
+
+```
 ## Features:
 
 In this release we have the following features
