@@ -32,7 +32,7 @@ public class ShakespeareConfig implements PlanProvider {
     StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
     StepImpl.Builder sendToElasticBuilder = new StepImpl.Builder();
 
-    File testDocs = new File("src/main/resources/data");
+    File testDocs = new File("data");
 
     scanner
         .named(SHAKESPEARE)
