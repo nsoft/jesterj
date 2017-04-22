@@ -29,11 +29,13 @@ import org.reflections.util.ConfigurationBuilder;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.security.AllPermission;
 import java.security.CodeSource;
 import java.security.PermissionCollection;
@@ -80,6 +82,7 @@ public class Main {
   private static Logger log;
 
   public static void main(String[] args) {
+
     try {
       System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
 
@@ -87,14 +90,29 @@ public class Main {
       String logDir = System.getProperty("jj.log.dir");
       if (logDir == null) {
         System.setProperty("jj.log.dir", JJ_DIR + "/logs");
-      } else {
-        if (!(new File(logDir).canWrite())) {
-          System.out.println("Cannot write to log dir," + logDir + " switching to default...");
-        }
       }
-      System.out.println("logs will be written to: " + System.getProperty("jj.log.dir"));
+      logDir = System.getProperty("jj.log.dir");
+
+      // Check that we can write to the log dir
+      File logDirFile = new File(logDir);
+      if (!(logDirFile.canWrite())) {
+        System.out.println("Cannot write to " + logDir + " \n" +
+            "Please fix the filesystem permissions or provide a writable location with -Djj.log.dir property on the command line.");
+        System.exit(99);
+      }
+
+      System.out.println("logs will be written to: " + logDir);
 
       initClassloader();
+
+      String logConfig = logDir + "/log4j2.xml";
+      System.setProperty("log4j.configurationFile", logConfig);
+      File configFile = new File(logConfig);
+      if (!configFile.exists()) {
+        InputStream log4jxml = Main.class.getClass().getResourceAsStream("/log4j2.xml");
+        Files.copy(log4jxml, configFile.toPath());
+      }
+
       Thread contextClassLoaderFix = new Thread(() -> {
         try {
 
