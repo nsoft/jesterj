@@ -23,10 +23,9 @@ import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.util.LinkedHashMap;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 3/18/16
+/**
+ * A router that sends documents to subsequent steps by comparing the value in a standard field
+ * in the document to the name of subsequent steps.
  */
 public class RouteByStepName implements Router {
 
