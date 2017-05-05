@@ -23,10 +23,8 @@ import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.util.LinkedHashMap;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 3/31/16
+/**
+ * A router that simply duplicates the document to all subsequent steps.
  */
 public class DuplicateToAll implements Router {
   private String name;

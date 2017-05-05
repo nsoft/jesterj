@@ -25,7 +25,9 @@ import java.util.LinkedHashMap;
 
 /**
  * A router that sends documents to subsequent steps by comparing the value in a standard field
- * in the document to the name of subsequent steps.
+ * in the document to the name of subsequent steps. Only the first value in the standard field is consulted, and
+ * only one step may be returned (because all steps must hae a unique value for name). Therefore this router
+ * will never duplicate the document.
  */
 public class RouteByStepName implements Router {
 
