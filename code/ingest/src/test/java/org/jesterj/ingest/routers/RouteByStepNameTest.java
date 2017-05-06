@@ -63,4 +63,14 @@ public class RouteByStepNameTest {
     assertEquals(1, steps.length);
     assertTrue(Arrays.asList(steps).contains(stepMock2));
   }
+
+  @Test
+  public void testBuilder() {
+    replay();
+    RouteByStepName router = new RouteByStepName.Builder()
+        .named("foo")
+        .build();
+    assertEquals("foo",router.getName());
+
+  }
 }

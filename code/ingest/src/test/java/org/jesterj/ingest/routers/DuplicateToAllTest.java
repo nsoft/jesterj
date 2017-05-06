@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 
 import static com.copyright.easiertest.EasierMocks.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class DuplicateToAllTest {
@@ -46,5 +47,12 @@ public class DuplicateToAllTest {
     Step[] steps = router.route(docMock, stepList);
     assertTrue(Arrays.asList(steps).contains(stepMock1));
     assertTrue(Arrays.asList(steps).contains(stepMock2));
+  }
+
+  @Test
+  public void testBuilder() {
+    replay();
+    DuplicateToAll router = new DuplicateToAll.Builder().named("foo").build();
+    assertEquals("foo", router.getName());
   }
 }
