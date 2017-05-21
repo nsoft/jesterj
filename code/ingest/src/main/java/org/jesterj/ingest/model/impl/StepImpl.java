@@ -71,7 +71,6 @@ public class StepImpl implements Step {
   private static final Logger log = LogManager.getLogger();
 
   private LinkedBlockingQueue<Document> queue;
-  private final Object queueLock = new Object();
   private int batchSize; // no concurrency by default
   private LinkedHashMap<String, Step> nextSteps = new LinkedHashMap<>();
   private volatile boolean active;
@@ -336,7 +335,7 @@ public class StepImpl implements Step {
       }
     } else {
       reportDocStatus(document.getStatus(), document,
-          "Document processing for {} terminated after {}", document.getId(), getName());
+          "Document processing for {} terminated ({}) after {}", document.getId(), document.getStatus(), getName());
     }
     log.trace("completing push to next if ok {} for {}", getName(), document.getId());
   }
@@ -399,11 +398,10 @@ public class StepImpl implements Step {
         }
         log.trace("active: {}", getName());
         ArrayList<Document> temp = null;
-        synchronized (queueLock) {
-          if (peek() != null) {
-            temp = new ArrayList<>();
-            temp.addAll(queue);
-            clear();
+        if (peek() != null) {
+          temp = new ArrayList<>();
+          for (int i = 0; i < queue.size(); i++) {
+            temp.add(queue.take());
           }
         }
         if (temp != null) {

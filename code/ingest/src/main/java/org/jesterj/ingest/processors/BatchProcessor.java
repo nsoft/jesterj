@@ -40,6 +40,7 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
   private ScheduledFuture scheduledSend;
 
   private final Object batchLock = new Object();
+  private final Object sendLock = new Object();
 
   private ConcurrentBiMap<Document, T> batch;
 
@@ -79,25 +80,35 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
     synchronized (batchLock) {
       ConcurrentBiMap<Document, T> oldBatch = this.batch;
       this.batch = new ConcurrentBiMap<>();
+      log.info("took batch {} with size {}",oldBatch.toString(), oldBatch.size());
       return oldBatch;
     }
   }
 
   private void sendBatch(ConcurrentBiMap<Document, T> oldBatch) {
-    // This really shouldn't be called outside of the synchronized block in process document, but just in case...
-    try {
-      batchOperation(oldBatch);
-    } catch (Exception e) {
-      // we may have a single bad document... 
-      //noinspection ConstantConditions
-      if (exceptionIndicatesDocumentIssue(e)) {
-        individualFallbackOperation(oldBatch, e);
-      } else {
-        perDocumentFailure(oldBatch, e);
+    // there's a small window where the same BiMap could be grabbed by a timer and a full batch causing a double
+    // send. Thus we have a lock to ensure that the oldBatch.clear() in the finally is called
+    // before the second thread tries to send the same batch. We tolerate this because it means batches can fill up
+    // while sending is in progress.
+    synchronized (sendLock) {
+      if (oldBatch.size() == 0) {
+        return;
       }
-    } finally {
-      ThreadContext.remove(JesterJAppender.JJ_INGEST_DOCID);
-      ThreadContext.remove(JesterJAppender.JJ_INGEST_SOURCE_SCANNER);
+      try {
+        batchOperation(oldBatch);
+      } catch (Exception e) {
+        // we may have a single bad document...
+        //noinspection ConstantConditions
+        if (exceptionIndicatesDocumentIssue(e)) {
+          individualFallbackOperation(oldBatch, e);
+        } else {
+          perDocumentFailure(oldBatch, e);
+        }
+      } finally {
+        ThreadContext.remove(JesterJAppender.JJ_INGEST_DOCID);
+        ThreadContext.remove(JesterJAppender.JJ_INGEST_SOURCE_SCANNER);
+        oldBatch.clear();
+      }
     }
   }
 
