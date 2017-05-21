@@ -95,7 +95,8 @@ public class Main {
 
       // Check that we can write to the log dir
       File logDirFile = new File(logDir);
-      if (!(logDirFile.canWrite())) {
+
+      if (!logDirFile.mkdirs() && !(logDirFile.canWrite())) {
         System.out.println("Cannot write to " + logDir + " \n" +
             "Please fix the filesystem permissions or provide a writable location with -Djj.log.dir property on the command line.");
         System.exit(99);
