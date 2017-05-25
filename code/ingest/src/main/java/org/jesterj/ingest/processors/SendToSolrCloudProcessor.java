@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
+import org.apache.solr.client.solrj.request.UpdateRequest;
 import org.apache.solr.common.SolrInputDocument;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
@@ -31,6 +32,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /*
@@ -44,6 +46,7 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
   private String collection;
   private String textContentField = "content";
   private String fieldsField;
+  private Map<String, String> params;
 
   private CloudSolrClient solrClient;
   private String name;
@@ -70,10 +73,10 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
       try {
         SolrInputDocument doc = oldBatch.get(document);
         if (doc instanceof Delete) {
-          solrClient.deleteById(oldBatch.inverse().get(doc).getId());
+          getSolrClient().deleteById(oldBatch.inverse().get(doc).getId());
           log().info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());
         } else {
-          solrClient.add(doc);
+          getSolrClient().add(doc);
           log().info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
         }
       } catch (IOException | SolrServerException e1) {
@@ -90,14 +93,25 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
         .map(Document::getId)
         .collect(Collectors.toList());
     if (deletes.size() > 0) {
-      solrClient.deleteById(deletes);
+      getSolrClient().deleteById(deletes);
     }
     List<SolrInputDocument> adds = oldBatch.keySet().stream()
         .filter(doc -> doc.getOperation() != Document.Operation.DELETE)
         .map(oldBatch::get)
         .collect(Collectors.toList());
     if (adds.size() > 0) {
-      solrClient.add(adds);
+      Map<String, String> params = getParams();
+      if (params == null) {
+        getSolrClient().add(adds);
+      } else {
+        UpdateRequest req = new UpdateRequest();
+        req.add(adds);
+        // always true right now, but pattern for addtional global params...
+        for (String s : params.keySet()) {
+          req.setParam(s, params.get(s));
+        }
+        getSolrClient().request(req);
+      }
     }
     for (Document document : oldBatch.keySet()) {
       putIdInThreadContext(document);
@@ -143,9 +157,25 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
     return doc;
   }
 
+  Map<String, String> getParams() {
+    return params;
+  }
+
+  void setParams(Map<String, String> updateChain) {
+    this.params = updateChain;
+  }
+
+  CloudSolrClient getSolrClient() {
+    return solrClient;
+  }
+
+  void setSolrClient(CloudSolrClient solrClient) {
+    this.solrClient = solrClient;
+  }
+
   private static class Delete extends SolrInputDocument {
   }
-  
+
   @Override
   public String getName() {
     return name;
@@ -178,6 +208,11 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
       return this;
     }
 
+    public Builder withRequestParameters(Map<String,String> params) {
+      getObj().params = params;
+      return this;
+    }
+
     /**
      * Add a zookeeper host:port. If :port is omitted :2181 will be assumed
      *
@@ -196,7 +231,7 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
     public Builder zkChroot(String chroot) {
       this.chroot = chroot;
       return this;
-    }    
+    }
 
     public Builder withDocFieldsIn(String fieldsField) {
       getObj().fieldsField = fieldsField;
@@ -221,8 +256,8 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
       setObj(new SendToSolrCloudProcessor());
       String zkConnection = StringUtils.join(zkList, ',');
       zkConnection = chroot == null ? zkConnection : zkConnection + chroot;
-      tmp.solrClient = new CloudSolrClient(zkConnection);
-      tmp.solrClient.setDefaultCollection(tmp.collection);
+      tmp.setSolrClient(new CloudSolrClient(zkConnection));
+      tmp.getSolrClient().setDefaultCollection(tmp.collection);
       return tmp;
     }
   }

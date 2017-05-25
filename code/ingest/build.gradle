@@ -102,8 +102,8 @@ dependencies {
   compile 'org.apache.logging.log4j:log4j-1.2-api:2.5'
   compile 'org.apache.logging.log4j:log4j-jul:2.5'
 
-  compile('com.needhamsoftware:easier-mock:1.0') {
-    ext.transative = false;
+  compile('com.needhamsoftware:easier-mock:2.0') {
+    ext.transative = false
   }
   compile 'net.jini:jsk-platform:2.2.2'
   compile 'docopt:docopt:0.6.1'

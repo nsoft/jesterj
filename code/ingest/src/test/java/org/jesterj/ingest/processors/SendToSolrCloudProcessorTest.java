@@ -20,21 +20,35 @@ import com.copyright.easiertest.Mock;
 import com.copyright.easiertest.ObjectUnderTest;
 import org.apache.cassandra.utils.ConcurrentBiMap;
 import org.apache.logging.log4j.Logger;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.CloudSolrClient;
+import org.apache.solr.client.solrj.request.UpdateRequest;
+import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.params.ModifiableSolrParams;
+import org.apache.solr.common.util.NamedList;
+import org.easymock.Capture;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Status;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static com.copyright.easiertest.EasierMocks.prepareMocks;
 import static com.copyright.easiertest.EasierMocks.replay;
 import static com.copyright.easiertest.EasierMocks.reset;
 import static com.copyright.easiertest.EasierMocks.verify;
-import static org.easymock.EasyMock.expect;
+import static junit.framework.TestCase.assertTrue;
+import static org.easymock.EasyMock.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 /*
  * Created with IntelliJ IDEA.
@@ -47,6 +61,15 @@ public class SendToSolrCloudProcessorTest {
   @Mock private ConcurrentBiMap<Document, SolrInputDocument> batchMock;
   @Mock private Document docMock;
   @Mock private Logger logMock;
+  @Mock private SolrInputDocument inputDocMock;
+  @Mock private SolrInputDocument inputDocMock2;
+  @Mock private Document docMock2;
+  @Mock private SolrInputDocument inputDocMock3;
+  @Mock private Document docMock3;
+  @Mock private CloudSolrClient solrClientMock;
+  @Mock private UpdateResponse updateResponseMock;
+  @Mock private UpdateResponse deleteResponseMock;
+  @Mock private NamedList<Object> namedListMock;
 
   public SendToSolrCloudProcessorTest() {
     prepareMocks(this);
@@ -83,5 +106,78 @@ public class SendToSolrCloudProcessorTest {
     logMock.error("Error communicating with solr!", e);
     replay();
     proc.perDocFailLogging(e, docMock);
+  }
+
+  @Test
+  public void testPerBatchOperation() throws IOException, SolrServerException {
+    ConcurrentBiMap<Document, SolrInputDocument> biMap = expect3Docs();
+    expect(proc.getParams()).andReturn(null).anyTimes();
+    expect(proc.getSolrClient()).andReturn(solrClientMock).anyTimes();
+    Capture<List<SolrInputDocument>> addCap = newCapture();
+    Capture<List<String>> delCap = newCapture();
+    expect(solrClientMock.add(capture(addCap))).andReturn(updateResponseMock);
+    expect(solrClientMock.deleteById(capture(delCap))).andReturn(deleteResponseMock);
+    expectLogging();
+    replay();
+    proc.batchOperation(biMap);
+    assertEquals("42", delCap.getValue().get(0));
+    assertTrue(addCap.getValue().contains(inputDocMock));
+    assertFalse(addCap.getValue().contains(inputDocMock2));
+    assertTrue(addCap.getValue().contains(inputDocMock3));
+  }
+
+  private void expectLogging() {
+    proc.putIdInThreadContext(docMock);
+    proc.putIdInThreadContext(docMock2);
+    proc.putIdInThreadContext(docMock3);
+    // this logging is functional for FTI so we need to verify it, but only the status for eeach doc
+    // message is not very important.
+    expect(proc.log()).andReturn(logMock).anyTimes();
+    logMock.info(eq(Status.INDEXED.getMarker()), anyString(), eq("41") );
+    logMock.info(eq(Status.INDEXED.getMarker()), anyString(), eq("42") );
+    logMock.info(eq(Status.INDEXED.getMarker()), anyString(), eq("43") );
+  }
+
+  @Test
+  public void testPerBatchOperationWithChain() throws IOException, SolrServerException {
+    ConcurrentBiMap<Document, SolrInputDocument> biMap = expect3Docs();
+
+    Map<String,String> params = new HashMap<>();
+    params.put("update.chain", "myCustomChain");
+
+    expect(proc.getParams()).andReturn(params).anyTimes();
+    expect(proc.getSolrClient()).andReturn(solrClientMock).anyTimes();
+    Capture<UpdateRequest> addCap = newCapture();
+    Capture<List<String>> delCap = newCapture();
+    //noinspection ConstantConditions
+    expect(solrClientMock.request(capture(addCap), eq(null))).andReturn(namedListMock);
+    expect(solrClientMock.deleteById(capture(delCap))).andReturn(deleteResponseMock);
+
+    expectLogging();
+    replay();
+    proc.batchOperation(biMap);
+
+    assertEquals("42", delCap.getValue().get(0));
+    UpdateRequest updateRequest = addCap.getValue();
+    List<SolrInputDocument> documents = updateRequest.getDocuments();
+    assertTrue(documents.contains(inputDocMock));
+    assertFalse(documents.contains(inputDocMock2));
+    assertTrue(documents.contains(inputDocMock3));
+    ModifiableSolrParams reqParams = updateRequest.getParams();
+    assertEquals("myCustomChain", reqParams.get("update.chain"));
+  }
+
+  private ConcurrentBiMap<Document, SolrInputDocument> expect3Docs() {
+    ConcurrentBiMap<Document, SolrInputDocument> biMap = new ConcurrentBiMap<>();
+    biMap.put(docMock, inputDocMock);
+    biMap.put(docMock2, inputDocMock2);
+    biMap.put(docMock3, inputDocMock3);
+    expect(docMock.getOperation()).andReturn(Document.Operation.NEW).anyTimes();
+    expect(docMock2.getOperation()).andReturn(Document.Operation.DELETE).anyTimes();
+    expect(docMock3.getOperation()).andReturn(Document.Operation.UPDATE).anyTimes();
+    expect(docMock.getId()).andReturn("41").anyTimes();
+    expect(docMock2.getId()).andReturn("42").anyTimes();
+    expect(docMock3.getId()).andReturn("43").anyTimes();
+    return biMap;
   }
 }
