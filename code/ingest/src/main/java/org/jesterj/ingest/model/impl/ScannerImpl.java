@@ -163,7 +163,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         if (scanner != null) {
           scanner.cancel(true);
         }
-        e.printStackTrace();
+        log.error(e);
       }
     }
     if (scanner != null) {
