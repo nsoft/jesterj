@@ -81,6 +81,7 @@ public class Cassandra {
         Config conf = cl.loadConfig();
         listenAddress = conf.listen_address;
       }
+      System.out.println("Listen Address:" + listenAddress);
     } catch (IOException | ConfigurationException e) {
       e.printStackTrace();
     }

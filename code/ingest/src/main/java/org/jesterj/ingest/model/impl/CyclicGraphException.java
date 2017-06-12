@@ -16,12 +16,11 @@
 
 package org.jesterj.ingest.model.impl;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 3/18/16
+/**
+ * This exception indicates that a cycle was detected while attempting to assemble the steps
+ * of a plan into a DAG.
  */
-public class CyclicGraphException extends RuntimeException {
+public class CyclicGraphException extends IllegalStateException {
   public CyclicGraphException(String s) {
     super(s);
   }
