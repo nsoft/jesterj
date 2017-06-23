@@ -67,7 +67,7 @@ publishing {
   publications {
     mavenJava(MavenPublication) {
       groupId 'org.jesterj'
-      artifactId 'injest'
+      artifactId 'ingest'
       version '0.2-SNAPSHOT'
       from components.java
     }

@@ -1,5 +1,5 @@
 
-Start an injester process supplying a password required to configure it. A prefix of
+Start an ingester process supplying a password required to configure it. A prefix of
 java -jar is presumed for all usage below.
 
 Usage:
