@@ -183,6 +183,9 @@ public class PlanImpl implements Plan {
      *                     step name that is unique.
      */
     public Builder addStep(StepImpl.Builder step, String... predecessors) {
+      if (!step.isValid()) {
+        throw new RuntimeException("Invalid configuration for step " + step.getStepName() );
+      }
       if ((predecessors == null || predecessors.length == 0) && !(step instanceof ScannerImpl.Builder)) {
         throw new IllegalArgumentException("Only scanners can have no predecessor");
       }

@@ -50,8 +50,8 @@ import static org.junit.Assert.assertNull;
 
 public class PlanImplTest {
 
-  private static final String LOG_AND_DROP = "log and drop";
-  private static final String SCAN_FOO_BAR = "scan foo/bar";
+  private static final String LOG_AND_DROP = "log_and_drop";
+  private static final String SCAN_FOO_BAR = "scan_foo_bar";
 
   @ObjectUnderTest PlanImpl plan;
   @Mock private Session sessionMock;
@@ -145,9 +145,31 @@ public class PlanImplTest {
 
   }
 
+  @Test(expected = RuntimeException.class)
+  public void testFailNullStepName() {
+    replay();
+    PlanImpl.Builder planBuilder = new PlanImpl.Builder();
+    SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
+    StepImpl.Builder dropStepBuilder = new StepImpl.Builder();
+
+    scannerBuilder.withRoot(new File("/Users/gus/foo/bar")).named("legal_name").batchSize(10);
+
+    dropStepBuilder.batchSize(10).withProcessor(             /// ERROR! step should have a name
+        new LogAndDrop.Builder().withLogLevel(Level.ERROR)
+    );
+
+    planBuilder
+        .named("testSimple2Step")
+        .addStep(scannerBuilder)
+        .addStep(dropStepBuilder, "legal_name")
+        .withIdField("id");
+    planBuilder.build();
+
+  }
+
 
   @Test(expected = IllegalArgumentException.class)
-  public void testScannerPredecisorNotAllowed() {
+  public void testScannerPredecessorNotAllowed() {
     replay();
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
     SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();

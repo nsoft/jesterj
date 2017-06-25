@@ -498,39 +498,39 @@ public class StepImpl implements Step {
       }.getClass().getEnclosingMethod().getDeclaringClass();
     }
 
-    protected StepImpl getObject() {
+    protected StepImpl getObj() {
       return obj;
     }
 
     public Builder batchSize(int size) {
-      getObject().batchSize = size;
-      getObject().queue = new LinkedBlockingQueue<>(size);
+      getObj().batchSize = size;
+      getObj().queue = new LinkedBlockingQueue<>(size);
       return this;
     }
 
 
     public Builder outputSpace(JavaSpace outputSpace) {
-      getObject().outputSpace = outputSpace;
+      getObj().outputSpace = outputSpace;
       return this;
     }
 
     public Builder inputSpace(JavaSpace inputSpace) {
-      getObject().inputSpace = inputSpace;
+      getObj().inputSpace = inputSpace;
       return this;
     }
 
     public Builder named(String stepName) {
-      getObject().stepName = stepName;
+      getObj().stepName = stepName;
       return this;
     }
 
     public Builder routingBy(ConfiguredBuildable<? extends Router> router) {
-      getObject().addDeferred(() -> getObject().router = router.build());
+      getObj().addDeferred(() -> getObj().router = router.build());
       return this;
     }
 
     public Builder withProcessor(ConfiguredBuildable<? extends DocumentProcessor> processor) {
-      getObject().addDeferred(() -> getObject().processor = processor.build());
+      getObj().addDeferred(() -> getObj().processor = processor.build());
       return this;
     }
 
@@ -540,7 +540,7 @@ public class StepImpl implements Step {
      * @return the name of the step
      */
     public String getStepName() {
-      return getObject().stepName;
+      return getObj().stepName;
     }
 
     private void setObj(StepImpl obj) {
@@ -553,7 +553,7 @@ public class StepImpl implements Step {
      * @return the immutable step instance.
      */
     public StepImpl build() {
-      StepImpl object = getObject();
+      StepImpl object = getObj();
       object.executeDeferred();
       int batchSize = object.batchSize;
       object.queue = new LinkedBlockingQueue<>(batchSize > 0 ? batchSize : 50);
@@ -567,7 +567,7 @@ public class StepImpl implements Step {
      * @param step a fully built step
      */
     void addNextStep(Step step) {
-      getObject().nextSteps.put(step.getName(), step);
+      getObj().nextSteps.put(step.getName(), step);
     }
   }
 

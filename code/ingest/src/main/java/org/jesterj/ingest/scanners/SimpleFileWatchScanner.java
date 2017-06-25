@@ -230,8 +230,13 @@ public class SimpleFileWatchScanner extends ScannerImpl {
     }
 
     public Builder withRoot(File root) {
-      getObject().rootDir = root;
+      getObj().rootDir = root;
       return this;
+    }
+
+    @Override
+    protected SimpleFileWatchScanner getObj() {
+      return obj;
     }
 
     @Override
@@ -277,10 +282,6 @@ public class SimpleFileWatchScanner extends ScannerImpl {
       return tmp;
     }
 
-    @Override
-    protected SimpleFileWatchScanner getObject() {
-      return obj;
-    }
   }
 
 

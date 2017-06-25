@@ -509,7 +509,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     }
 
     @Override
-    protected abstract ScannerImpl getObject();
+    protected abstract ScannerImpl getObj();
 
     /**
      * The scanning frequency. 25ms is the minimum. Smaller intervals will be treated as 25ms
@@ -518,7 +518,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
      * @return This builder object for further configuration.
      */
     public ScannerImpl.Builder scanFreqMS(long interval) {
-      getObject().interval = interval;
+      getObj().interval = interval;
       return this;
     }
 
@@ -531,7 +531,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
      * @return This builder object for further configuration
      */
     public ScannerImpl.Builder rememberScannedIds(boolean remember) {
-      getObject().remembering = remember;
+      getObj().remembering = remember;
       return this;
     }
 
@@ -547,7 +547,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
      * @return This builder object for further configuration
      */
     public ScannerImpl.Builder detectChangesViaHashing(boolean hash) {
-      getObject().hashing = hash;
+      getObj().hashing = hash;
       return this;
     }
 

@@ -316,52 +316,52 @@ public class JdbcScanner extends ScannerImpl {
     // TODO DG - validate method
 
     public Builder withJdbcDriver(String jdbcDriver) {
-      getObject().jdbcDriver = jdbcDriver;
+      getObj().jdbcDriver = jdbcDriver;
       return this;
     }
 
     public Builder withJdbcUrl(String jdbcUrl) {
-      getObject().jdbcUrl = jdbcUrl;
+      getObj().jdbcUrl = jdbcUrl;
       return this;
     }
 
     public Builder withJdbcUser(String jdbcUser) {
-      getObject().jdbcUser = jdbcUser;
+      getObj().jdbcUser = jdbcUser;
       return this;
     }
 
     public Builder withJdbcPassword(String jdbcPassword) {
-      getObject().jdbcPassword = jdbcPassword;
+      getObj().jdbcPassword = jdbcPassword;
       return this;
     }
 
     public Builder withSqlStatement(String sqlStatement) {
-      getObject().sqlStatement = sqlStatement;
+      getObj().sqlStatement = sqlStatement;
       return this;
     }
 
     public Builder representingTable(String table) {
-      getObject().table = table;
+      getObj().table = table;
       return this;
     }
 
     public Builder withContentColumn(String contentColumn) {
-      getObject().contentColumn = contentColumn;
+      getObj().contentColumn = contentColumn;
       return this;
     }
 
     public Builder withFetchSize(int fetchSize) {
-      getObject().fetchSize = fetchSize;
+      getObj().fetchSize = fetchSize;
       return this;
     }
 
     public Builder withAutoCommit(boolean autoCommit) {
-      getObject().autoCommit = autoCommit;
+      getObj().autoCommit = autoCommit;
       return this;
     }
 
     public Builder withQueryTimeout(int queryTimeout) {
-      getObject().queryTimeout = queryTimeout;
+      getObj().queryTimeout = queryTimeout;
       return this;
     }
 
@@ -417,7 +417,7 @@ public class JdbcScanner extends ScannerImpl {
     }
 
     @Override
-    protected JdbcScanner getObject() {
+    protected JdbcScanner getObj() {
       return obj;
     }
   }
