@@ -40,7 +40,7 @@ import static org.junit.Assert.assertEquals;
 
 public class SimpleFileWatchScannerImplTest {
 
-  private static final String SHAKESPEAR = "Shakespear scanner";
+  private static final String SHAKESPEAR = "Shakespear_scanner";
 
 
   @Before
@@ -65,7 +65,7 @@ public class SimpleFileWatchScannerImplTest {
     StepImpl.Builder testStepBuilder = new StepImpl.Builder();
 
     File tragedies = new File("src/test/resources/test-data/tragedies");
-    scannerBuilder.withRoot(tragedies).named(SHAKESPEAR).scanFreqMS(100);
+    scannerBuilder.named("test_scanner").withRoot(tragedies).named(SHAKESPEAR).scanFreqMS(100);
 
     HashMap<String, Document> scannedDocs = new HashMap<>();
 
