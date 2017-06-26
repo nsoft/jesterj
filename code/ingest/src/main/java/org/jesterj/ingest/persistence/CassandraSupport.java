@@ -101,6 +101,11 @@ public class CassandraSupport {
     }
 
     @Override
+    public ListenableFuture<Session> initAsync() {
+      return sessionRef.initAsync();
+    }
+
+    @Override
     public ResultSet execute(String query) {
       return sessionRef.execute(query);
     }
@@ -108,6 +113,11 @@ public class CassandraSupport {
     @Override
     public ResultSet execute(String query, Object... values) {
       return sessionRef.execute(query, values);
+    }
+
+    @Override
+    public ResultSet execute(String query, Map<String, Object> values) {
+      return sessionRef.execute(query,values);
     }
 
     @Override
@@ -123,6 +133,11 @@ public class CassandraSupport {
     @Override
     public ResultSetFuture executeAsync(String query, Object... values) {
       return sessionRef.executeAsync(query, values);
+    }
+
+    @Override
+    public ResultSetFuture executeAsync(String query, Map<String, Object> values) {
+      return sessionRef.executeAsync(query,values);
     }
 
     @Override

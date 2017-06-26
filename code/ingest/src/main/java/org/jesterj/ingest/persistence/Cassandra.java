@@ -75,6 +75,8 @@ public class Cassandra {
         cfg.guessIp();
         listenAddress = cfg.getListen_address();
         String cfgStr = new Yaml().dumpAsMap(cfg);
+        System.out.println("First time startup detected, writing default config to " + yaml.toPath());
+        System.out.println(cfgStr);
         Files.write(yaml.toPath(), cfgStr.getBytes(), StandardOpenOption.CREATE);
       } else {
         ConfigurationLoader cl = new YamlConfigurationLoader();
