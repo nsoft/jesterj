@@ -44,6 +44,7 @@ public class CassandraConfig {
   private Integer commitlog_sync_period_in_ms = 10000;
   private String partitioner = "Murmur3Partitioner";
   private String endpoint_snitch = "SimpleSnitch";
+  private Boolean enable_user_defined_functions = false;
   private String commitlog_directory;
   private String hints_directory;
   private String cdc_raw_directory;
@@ -299,6 +300,14 @@ public class CassandraConfig {
 
   public void setCdc_raw_directory(String cdc_raw_directory) {
     this.cdc_raw_directory = cdc_raw_directory;
+  }
+
+  public Boolean getEnable_user_defined_functions() {
+    return enable_user_defined_functions;
+  }
+
+  public void setEnable_user_defined_functions(Boolean enable_user_defined_functions) {
+    this.enable_user_defined_functions = enable_user_defined_functions;
   }
 
 
