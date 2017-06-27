@@ -17,14 +17,12 @@
 package org.jesterj.ingest;
 
 import com.google.common.io.Resources;
-import com.simontuffs.onejar.JarClassLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.tools.ant.taskdefs.Classloader;
 import org.docopt.clj;
 import org.jesterj.ingest.forkjoin.JesterJForkJoinThreadFactory;
-import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.model.Plan;
+import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.utils.JesterjPolicy;
 import org.reflections.Reflections;
 import org.reflections.util.ClasspathHelper;
@@ -34,26 +32,17 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.security.AccessController;
-import java.security.AllPermission;
-import java.security.CodeSource;
 import java.security.Permission;
-import java.security.PermissionCollection;
-import java.security.Permissions;
 import java.security.Policy;
-import java.security.PrivilegedAction;
-import java.security.ProtectionDomain;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 /*
  * Created with IntelliJ IDEA.
