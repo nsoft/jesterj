@@ -50,6 +50,7 @@ licenseReport {
 }
 
 repositories {
+  mavenLocal()
   mavenCentral()
   maven {
     url 'https://clojars.org/repo'
@@ -91,7 +92,7 @@ dependencies {
 
   compile 'jini:jini-core:2.1'
   compile 'org.apache.river:reggie:2.2.2'
-  compile 'org.apache.cassandra:cassandra-all:3.11.0'
+  compile 'org.apache.cassandra:cassandra-all:3.11.0-SNAPSHOT'
   compile 'com.datastax.cassandra:cassandra-driver-core:3.2.0'
   compile 'org.yaml:snakeyaml:1.14'
   compile 'org.apache.velocity:velocity:1.7'

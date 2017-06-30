@@ -37,7 +37,6 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.security.Permission;
 import java.security.Policy;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -82,7 +81,7 @@ public class Main {
 
     try {
       System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
-
+      System.setProperty("cassandra.insecure.udf", "true");
       // set up log output dir
       String logDir = System.getProperty("jj.log.dir");
       if (logDir == null) {
@@ -263,43 +262,9 @@ public class Main {
     String policyFile = System.getProperty("java.security.policy");
     if (policyFile == null) {
       // for river/jni
-
-      try {
-        final Method m = Policy.class.getDeclaredMethod("getPolicyNoCheck");
-        m.setAccessible(true);
-        // issue #89, we need to make cassandra install its policy first so we can overwrite it with our own
-        Policy p = new JesterjPolicy();
-        try {
-          Policy.setPolicy(p); // ensures our protection domain gets cached I think..
-
-          System.setSecurityManager(new SecurityManager() {
-            // temporarily disable permission checking so that we can subsequently override the
-            // policy that cassandra is about to install. Without this, our call to
-            // setPolicy will fail silently, and nothing in the code base will have any
-            // permissions at all. Cassandra installs a policy that denies anything
-            // that comes from any code source url with a scheme other than "file".
-            // That's a problem, because all our code is loaded with a source scheme of "onejar"
-            @Override
-            public void checkPermission(Permission perm) {}
-
-            @Override
-            public void checkPermission(Permission perm, Object context) {}
-
-            @Override
-            public String toString() {
-              return "JesterJ temp no check Security manager";
-            }
-          });
-          Class.forName("org.apache.cassandra.cql3.functions.ThreadAwareSecurityManager");
-        } catch (ClassNotFoundException e) {
-          e.printStackTrace();
-        }
-
-        Policy.setPolicy(p);        // ok back to normal security management
-        System.setSecurityManager(new SecurityManager());
-      } catch (NoSuchMethodException e) {
-        e.printStackTrace();
-      }
+      Policy p = new JesterjPolicy();
+      Policy.setPolicy(p);
+      System.setSecurityManager(new SecurityManager());
     }
   }
 
