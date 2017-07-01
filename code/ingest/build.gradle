@@ -36,6 +36,7 @@ allprojects {
   apply plugin: "com.jfrog.artifactory"
 }
 
+
 artifactory {
   contextUrl = "https://jesterj.jfrog.io/jesterj"   //The base Artifactory URL if not overridden by the publisher/resolver
   publish {
@@ -51,8 +52,8 @@ artifactory {
         Note that anonymous user will not be able to test out new versions of libraries. Use mavenLocal() for that.
 
        */
-      username = project.hasProperty(jj_artifactory_user) ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
-      password = project.hasProperty(jj_artifactory_password) ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
+      username = project.hasProperty("jj_artifactory_user") ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
+      password = project.hasProperty("jj_artifactory_password") ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
       maven = true
 
     }
@@ -65,8 +66,8 @@ artifactory {
   resolve {
     repository {
       repoKey = 'libs-release'
-      username = project.hasProperty(jj_artifactory_user) ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
-      password = project.hasProperty(jj_artifactory_password) ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
+      username = project.hasProperty("jj_artifactory_user") ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
+      password = project.hasProperty("jj_artifactory_password") ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
       maven = true
 
     }
@@ -98,8 +99,8 @@ repositories {
   }
   maven {
     credentials {
-      username = project.hasProperty(jj_artifactory_user) ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
-      password = project.hasProperty(jj_artifactory_password) ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
+      username = project.hasProperty("jj_artifactory_user") ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
+      password = project.hasProperty("jj_artifactory_password") ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
     }
     url 'https://jesterj.jfrog.io/jesterj/libs-release/'
   }
