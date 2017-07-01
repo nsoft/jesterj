@@ -3,7 +3,7 @@ jdk:
   - oraclejdk8
 env:
   - TEST_DIR=code/ingest
-script: cd $TEST_DIR &&  ./gradlew jacocoTestReport artifactoryPublish
+script: cd $TEST_DIR &&  ./gradlew jacocoTestReport 
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
