@@ -37,7 +37,7 @@ allprojects {
 }
 
 artifactory {
-  contextUrl = "${jj_artifactory_contextUrl}"   //The base Artifactory URL if not overridden by the publisher/resolver
+  contextUrl = "https://jesterj.jfrog.io/jesterj"   //The base Artifactory URL if not overridden by the publisher/resolver
   publish {
     repository {
       repoKey = 'libs-snapshot-local'
@@ -47,7 +47,6 @@ artifactory {
 
         jj_artifactory_user=anonymous
         jj_artifactory_password=
-        jj_artifactory_contextUrl=https://jesterj.jfrog.io/jesterj
 
         Note that anonymous user will not be able to test out new versions of libraries. Use mavenLocal() for that.
 
