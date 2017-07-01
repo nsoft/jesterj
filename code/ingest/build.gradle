@@ -51,8 +51,8 @@ artifactory {
         Note that anonymous user will not be able to test out new versions of libraries. Use mavenLocal() for that.
 
        */
-      username = project.hasProperty(jj_artifactory_user) ? "${jj_artifactory_user}" : System.env.ARTIFACTORY_USER
-      password = project.hasProperty(jj_artifactory_password) ? "${jj_artifactory_password}" : System.env.ARTIFACTORY_PASSWORD
+      username = project.hasProperty(jj_artifactory_user) ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
+      password = project.hasProperty(jj_artifactory_password) ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
       maven = true
 
     }
@@ -65,8 +65,8 @@ artifactory {
   resolve {
     repository {
       repoKey = 'libs-release'
-      username = "${jj_artifactory_user}" ? "${jj_artifactory_user}" : System.env.ARTIFACTORY_USER
-      password = "${jj_artifactory_password}" ? "${jj_artifactory_password}" : System.env.ARTIFACTORY_PASSWORD
+      username = project.hasProperty(jj_artifactory_user) ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
+      password = project.hasProperty(jj_artifactory_password) ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
       maven = true
 
     }
@@ -98,8 +98,8 @@ repositories {
   }
   maven {
     credentials {
-      username = "${jj_artifactory_user}"
-      password = "${jj_artifactory_password}"
+      username = project.hasProperty(jj_artifactory_user) ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
+      password = project.hasProperty(jj_artifactory_password) ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
     }
     url 'https://jesterj.jfrog.io/jesterj/libs-release/'
   }
