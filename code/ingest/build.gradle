@@ -15,7 +15,13 @@
  */
 buildscript {
   repositories {
-    jcenter()
+    maven {
+      credentials {
+        username = project.hasProperty("jj_artifactory_user") ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
+        password = project.hasProperty("jj_artifactory_password") ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
+      }
+      url 'https://jesterj.jfrog.io/jesterj/libs-release/'
+    }
     flatDir {
       dir 'onejar'
     }
@@ -35,7 +41,6 @@ plugins {
 allprojects {
   apply plugin: "com.jfrog.artifactory"
 }
-
 
 artifactory {
   contextUrl = "https://jesterj.jfrog.io/jesterj"   //The base Artifactory URL if not overridden by the publisher/resolver
@@ -73,7 +78,6 @@ artifactory {
     }
   }
 }
-
 
 apply plugin: 'idea'
 apply plugin: 'java'
@@ -131,11 +135,6 @@ publishing {
 
 mainClassName = 'foo.bar.FOO'
 
-jacocoTestReport {
-  reports {
-    xml.enabled true
-  }
-}
 dependencies {
   compile 'org.apache.tika:tika-parsers:1.12'
   compile 'org.apache.solr:solr-solrj:5.5.0'
@@ -173,6 +172,17 @@ dependencies {
   }
   compile 'org.javassist:javassist:3.20.0-GA' // substitute a version that handles java 8
 
+  // this shouldn't be necessary but there's something dodgy going on with jacocoTestReport's classpath
+  // using testCompile so we don't package these...
+  testCompile (group: 'org.jacoco', name:'org.jacoco.report', version:'0.7.7.201606060606')
+  testCompile (group: 'org.jacoco', name:'org.jacoco.core', version:'0.7.7.201606060606')
+}
+
+jacocoTestReport {
+  reports {
+    xml.enabled true
+  }
+  jacocoClasspath += files {configurations.testCompile.resolve()}
 }
 
 task oneJar(type: OneJar) {
