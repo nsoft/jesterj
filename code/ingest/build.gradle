@@ -13,16 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 buildscript {
-
   repositories {
+    jcenter()
     flatDir {
       dir 'onejar'
     }
-    mavenCentral()
+
   }
   dependencies {
+    //Check for the latest version here: http://plugins.gradle.org/plugin/com.jfrog.artifactory
+    classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4+"
     classpath 'com.github.rholder:gradle-one-jar:1.0.4'
   }
 }
@@ -30,6 +31,47 @@ buildscript {
 plugins {
   id 'com.github.jk1.dependency-license-report' version '0.3.4'
 }
+
+allprojects {
+  apply plugin: "com.jfrog.artifactory"
+}
+
+artifactory {
+  contextUrl = "${jj_artifactory_contextUrl}"   //The base Artifactory URL if not overridden by the publisher/resolver
+  publish {
+    repository {
+      repoKey = 'libs-snapshot-local'
+      /* System env var is for Travis CI, add these to gradle.properties
+
+        jj_artifactory_user=anonymous
+        jj_artifactory_password=
+        jj_artifactory_contextUrl=https://jesterj.jfrog.io/jesterj
+
+        Note that anonymous user will not be able to test out new versions of libraries. Use mavenLocal() for that.
+
+       */
+      username = "${jj_artifactory_user}" ? "${jj_artifactory_user}" : System.env.ARTIFACTORY_USER
+      password = "${jj_artifactory_password}" ? "${jj_artifactory_password}" : System.env.ARTIFACTORY_PASSWORD
+      maven = true
+
+    }
+    defaults {
+      publications('mavenJava')
+      publishArtifacts = true
+      publishPom = true
+    }
+  }
+  resolve {
+    repository {
+      repoKey = 'libs-release'
+      username = "${jj_artifactory_user}" ? "${jj_artifactory_user}" : System.env.ARTIFACTORY_USER
+      password = "${jj_artifactory_password}" ? "${jj_artifactory_password}" : System.env.ARTIFACTORY_PASSWORD
+      maven = true
+
+    }
+  }
+}
+
 
 apply plugin: 'idea'
 apply plugin: 'java'
@@ -50,10 +92,15 @@ licenseReport {
 }
 
 repositories {
-  mavenLocal()
-  mavenCentral()
   maven {
     url 'https://clojars.org/repo'
+  }
+  maven {
+    credentials {
+      username = "${jj_artifactory_user}"
+      password = "${jj_artifactory_password}"
+    }
+    url 'https://jesterj.jfrog.io/jesterj/libs-release/'
   }
   flatDir {
     dir 'onejar'
@@ -63,14 +110,19 @@ repositories {
 configurations {
   oneJarLib
 }
+version = '0.2-SNAPSHOT'
+group = 'org.jesterj'
 
 publishing {
   publications {
     mavenJava(MavenPublication) {
-      groupId 'org.jesterj'
+      groupId project.group
       artifactId 'ingest'
-      version '0.2-SNAPSHOT'
+      version project.version
       from components.java
+      artifact oneJar {
+        classifier "node"
+      }
     }
   }
 }
@@ -92,7 +144,7 @@ dependencies {
 
   compile 'jini:jini-core:2.1'
   compile 'org.apache.river:reggie:2.2.2'
-  compile 'org.apache.cassandra:cassandra-all:3.11.0-SNAPSHOT'
+  compile 'org.apache.cassandra:cassandra-all:3.11.0-JJ'
   compile 'com.datastax.cassandra:cassandra-driver-core:3.2.0'
   compile 'org.yaml:snakeyaml:1.14'
   compile 'org.apache.velocity:velocity:1.7'
@@ -121,9 +173,9 @@ dependencies {
 
 }
 
-task oneJar(type: OneJar, dependsOn: clean) {
+task oneJar(type: OneJar) {
   mainClass = 'org.jesterj.ingest.Main'
-  archiveName = 'ingest-node.jar'
+  archiveName = 'ingest-'+project.version+'-node.jar'
   useStable = false
   //noinspection GroovyAssignabilityCheck
   manifest {
@@ -134,3 +186,5 @@ task oneJar(type: OneJar, dependsOn: clean) {
 }
 
 jacocoTestReport.dependsOn test
+
+artifactoryPublish.dependsOn oneJar
