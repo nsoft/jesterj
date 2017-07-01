@@ -261,11 +261,9 @@ public class Main {
     // must do this before any jini code
     String policyFile = System.getProperty("java.security.policy");
     if (policyFile == null) {
-      // for river/jni
-      Policy p = new JesterjPolicy();
-      Policy.setPolicy(p);
-      System.setSecurityManager(new SecurityManager());
+      Policy.setPolicy(new JesterjPolicy());
     }
+    System.setSecurityManager(new SecurityManager());
   }
 
   /**
