@@ -38,18 +38,23 @@ import java.util.concurrent.Future;
  */
 public class CassandraSupport {
 
-  private Map<String, Future<PreparedStatement>> preparedQueries = new ConcurrentHashMap<>();
+  private static final Map<String, Future<PreparedStatement>> preparedQueries = new ConcurrentHashMap<>();
 
   /**
    * Add a query to the list of prepared queries maintained by this instance. Queries may be added before
    * Cassandra is booted, but will not become available until after the Cassandra boot cycle completes.
+   * Attempts to add a query with the same name more than once will be ignored. Queries are cached globally.
    *
    * @param name      A name with which to retrieve the prepared statement instance
    * @param statement A string to be prepared as a CQL statement.
    */
   public void addStatement(String name, String statement) {
-    //noinspection unchecked
-    preparedQueries.put(name, Cassandra.whenBooted(() -> getSession().prepare(statement)));
+    synchronized (preparedQueries) {
+      if (!preparedQueries.containsKey(name)) {
+        //noinspection unchecked
+        preparedQueries.put(name, Cassandra.whenBooted(() -> getSession().prepare(statement)));
+      }
+    }
   }
 
   /**
