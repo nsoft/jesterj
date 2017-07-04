@@ -21,8 +21,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.docopt.clj;
 import org.jesterj.ingest.forkjoin.JesterJForkJoinThreadFactory;
-import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.model.Plan;
+import org.jesterj.ingest.persistence.Cassandra;
 import org.reflections.Reflections;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
@@ -62,6 +62,7 @@ import java.util.Properties;
 public class Main {
 
   public static String JJ_DIR;
+  private static Thread DUMMY_HOOK = new Thread();
 
   static {
     // set up a config dir in user's home dir
@@ -322,6 +323,24 @@ public class Main {
     return result;
   }
 
+  /**
+   * This is a heuristic test for system shutdown. It is potentially expensive, so it should only be used in
+   * code that is not performance sensitive. (i.e. code where an exception is already being thrown).
+   *
+   * @return true if the system is shutting down
+   */
+
+  public static boolean isShuttingDown()
+  {
+    try {
+      Runtime.getRuntime().addShutdownHook(DUMMY_HOOK);
+      Runtime.getRuntime().removeShutdownHook(DUMMY_HOOK);
+    } catch ( IllegalStateException e ) {
+      return true;
+    }
+
+    return false;
+  }
 }
 
 

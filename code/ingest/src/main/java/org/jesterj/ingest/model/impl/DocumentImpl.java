@@ -24,6 +24,8 @@ import com.google.common.collect.Multiset;
 import net.jini.core.entry.Entry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.appender.AppenderLoggingException;
+import org.jesterj.ingest.Main;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
@@ -239,7 +241,13 @@ public class DocumentImpl implements Document {
   @Override
   public void setStatus(Status status) {
     this.status = status;
-    log.info(status.getMarker(), statusMessage);
+    try {
+      log.info(status.getMarker(), statusMessage);
+    } catch (AppenderLoggingException e) {
+      if (!Main.isShuttingDown()) {
+        log.error("Could not contact our internal Cassandra!!!" + e);
+      }
+    }
   }
 
   @Override

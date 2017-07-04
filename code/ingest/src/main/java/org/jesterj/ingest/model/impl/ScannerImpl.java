@@ -21,16 +21,18 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jesterj.ingest.persistence.CassandraSupport;
+import org.jesterj.ingest.Main;
 import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.Step;
+import org.jesterj.ingest.persistence.CassandraSupport;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -189,10 +191,16 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   @Override
   public void sendToNext(Document doc) {
     if (isRemembering()) {
+      try {
       Session session = getCassandra().getSession();
       PreparedStatement preparedQuery = getCassandra().getPreparedQuery(UPDATE_HASH_U);
       BoundStatement bind = preparedQuery.bind(doc.getHash(), doc.getId(), doc.getSourceScannerName());
       session.execute(bind);
+      } catch (NoHostAvailableException e) {
+        if (!Main.isShuttingDown()) {
+          log.error("Could not contact our internal Cassandra!!!" + e);
+        }
+      }
     }
     superSendToNext(doc);
   }
@@ -220,20 +228,26 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     String status = null;
     String md5 = null;
     if (isRemembering()) {
-      PreparedStatement preparedQuery = getCassandra().getPreparedQuery(FTI_CHECK_Q);
-      BoundStatement bs = createBoundStatement(preparedQuery);
-      Session session = getCassandra().getSession();
-      ResultSet statusRs = session.execute(bs.bind(id, getName()));
-      if (statusRs.getAvailableWithoutFetching() > 0) {
-        if (statusRs.getAvailableWithoutFetching() > 1 || !statusRs.isFullyFetched()) {
-          log.error("FATAL: duplicate primary keys in cassandra table??");
-          throw new RuntimeException("VERY BAD: duplicate primary keys in FTI table?");
-        } else {
-          Row next = statusRs.all().iterator().next();
-          status = next.getString(0);
-          if (isHashing()) {
-            md5 = next.getString(1);
+      try {
+        PreparedStatement preparedQuery = getCassandra().getPreparedQuery(FTI_CHECK_Q);
+        BoundStatement bs = createBoundStatement(preparedQuery);
+        Session session = getCassandra().getSession();
+        ResultSet statusRs = session.execute(bs.bind(id, getName()));
+        if (statusRs.getAvailableWithoutFetching() > 0) {
+          if (statusRs.getAvailableWithoutFetching() > 1 || !statusRs.isFullyFetched()) {
+            log.error("FATAL: duplicate primary keys in cassandra table??");
+            throw new RuntimeException("VERY BAD: duplicate primary keys in FTI table?");
+          } else {
+            Row next = statusRs.all().iterator().next();
+            status = next.getString(0);
+            if (isHashing()) {
+              md5 = next.getString(1);
+            }
           }
+        }
+      } catch (NoHostAvailableException e) {
+        if (!Main.isShuttingDown()) {
+          log.error("Could not contact our internal Cassandra!!!" + e);
         }
       }
     }
