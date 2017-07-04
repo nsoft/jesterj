@@ -96,11 +96,11 @@ dependencies {
   compile 'org.yaml:snakeyaml:1.14'
   compile 'org.apache.velocity:velocity:1.7'
 
-  compile 'org.apache.logging.log4j:log4j-core:2.5'
-  compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.5'
-  compile 'org.apache.logging.log4j:log4j-jcl:2.5'
-  compile 'org.apache.logging.log4j:log4j-1.2-api:2.5'
-  compile 'org.apache.logging.log4j:log4j-jul:2.5'
+  compile 'org.apache.logging.log4j:log4j-core:2.6'
+  compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.6'
+  compile 'org.apache.logging.log4j:log4j-jcl:2.6'
+  compile 'org.apache.logging.log4j:log4j-1.2-api:2.6'
+  compile 'org.apache.logging.log4j:log4j-jul:2.6'
 
   compile('com.needhamsoftware:easier-mock:2.0') {
     ext.transative = false
