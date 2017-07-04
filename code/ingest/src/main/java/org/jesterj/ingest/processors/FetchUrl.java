@@ -33,6 +33,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 
+/**
+ * Issue a GET request to fetch a document at a particular URL. Uses simple URL connection, for more
+ * complicated scenarios such as authentication, a different processor will be required, probably more
+ * complicated versions should be implemented with Apache HTTP Client.
+ */
 public class FetchUrl implements DocumentProcessor {
   private static final Logger log = LogManager.getLogger();
 
