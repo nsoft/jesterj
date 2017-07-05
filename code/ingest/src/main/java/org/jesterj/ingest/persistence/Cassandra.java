@@ -16,6 +16,7 @@
 
 package org.jesterj.ingest.persistence;
 
+import org.apache.cassandra.auth.AuthKeyspace;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.ConfigurationLoader;
 import org.apache.cassandra.config.YamlConfigurationLoader;
@@ -40,10 +41,15 @@ import java.util.concurrent.RunnableFuture;
  */
 public class Cassandra {
 
+  // LOGGER WARNING: Do not set up a logger in this class, our logging configuration relies on this class and
+  // that circularity will cause a deadlock (trust me it's ugly). So yes the System.out prints must stay,
+  // though they should all fire only during system startup.
 
   private static CassandraDaemon cassandra;
   private static final ConcurrentLinkedQueue<RunnableFuture> finalBootActions = new ConcurrentLinkedQueue<>();
   private static String listenAddress;
+
+  private volatile static boolean booting = true;
 
   /**
    * Indicates whether cassandra has finished booting. Does NOT indicate if
@@ -58,31 +64,33 @@ public class Cassandra {
     return booting;
   }
 
-
-  private volatile static boolean booting = true;
-
   public static void start(File cassandraDir) {
 
     System.out.println("Booting internal cassandra");
+    boolean firstboot = false;
     try {
       if (!cassandraDir.exists() && !cassandraDir.mkdirs()) {
         throw new RuntimeException("could not create" + cassandraDir);
       }
       File yaml = new File(cassandraDir, "cassandra.yaml");
-      System.setProperty("cassandra.config", yaml.toURI().toString());
+      String confURI = yaml.toURI().toString();
+      System.setProperty("cassandra.config", confURI);
+      System.out.println("Using cassandra config file at: " + confURI);
+
       if (!yaml.exists()) {
+        firstboot = true;
         CassandraConfig cfg = new CassandraConfig(cassandraDir.getCanonicalPath());
         cfg.guessIp();
-        listenAddress = cfg.getListen_address();
         String cfgStr = new Yaml().dumpAsMap(cfg);
         System.out.println("First time startup detected, writing default config to " + yaml.toPath());
         System.out.println(cfgStr);
         Files.write(yaml.toPath(), cfgStr.getBytes(), StandardOpenOption.CREATE);
-      } else {
-        ConfigurationLoader cl = new YamlConfigurationLoader();
-        Config conf = cl.loadConfig();
-        listenAddress = conf.listen_address;
       }
+
+      ConfigurationLoader cl = new YamlConfigurationLoader();
+      Config conf = cl.loadConfig();
+      listenAddress = conf.listen_address;
+
       System.out.println("Listen Address:" + listenAddress);
     } catch (IOException | ConfigurationException e) {
       e.printStackTrace();
@@ -96,6 +104,18 @@ public class Cassandra {
       e.printStackTrace();
     }
 
+    // Issue #59
+    // Cassandra waits 10 seconds before creating the super-user, see CassandraRoleManager.scheduleSetupTask()
+    // https://github.com/apache/cassandra/blob/cassandra-3.11.0/src/java/org/apache/cassandra/auth/CassandraRoleManager.java#L403
+    if (firstboot) {
+      try {
+        // wait 11 seconds...
+        System.out.println("First time startup... waiting for Cassandra to create it's default roles");
+        Thread.sleep((long) (AuthKeyspace.SUPERUSER_SETUP_DELAY * 1.1));
+      } catch (InterruptedException e) {
+        throw new RuntimeException("interrupted during startup");
+      }
+    }
     synchronized (finalBootActions) {
       while (finalBootActions.peek() != null) {
         finalBootActions.remove().run();
