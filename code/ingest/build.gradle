@@ -146,7 +146,9 @@ dependencies {
   compile 'jini:jini-core:2.1'
   compile 'org.apache.river:reggie:2.2.2'
   compile 'org.apache.cassandra:cassandra-all:3.11.0-JJ'
-  compile 'com.datastax.cassandra:cassandra-driver-core:3.2.0'
+  compile ('com.datastax.cassandra:cassandra-driver-core:3.2.0') {
+    exclude group: 'org.jboss.logging'
+  }
   compile 'org.yaml:snakeyaml:1.14'
   compile 'org.apache.velocity:velocity:1.7'
 
@@ -169,6 +171,7 @@ dependencies {
   compile files('onejar/one-jar-boot-0.98.jar')
   compile('org.reflections:reflections:0.9.10') {
     exclude group: 'org.javassist'
+    exclude group: 'com.google.code.findbugs'
   }
   compile 'org.javassist:javassist:3.20.0-GA' // substitute a version that handles java 8
 
