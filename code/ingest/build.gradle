@@ -115,6 +115,12 @@ repositories {
 
 configurations {
   oneJarLib
+  // under no circumstances shall we distribute these in our archives
+  runtime.exclude group: 'junit'               // test lib
+  runtime.exclude group: 'org.easymock'        // test lib
+  // Conflicting licenses...
+  runtime.exclude group: 'org.jboss.logging'
+  runtime.exclude group: 'com.google.code.findbugs', module: 'annotations' // N.B. findbugs jsr305 is ok, thus module
 }
 version = '0.2-SNAPSHOT'
 group = 'org.jesterj'
@@ -146,9 +152,7 @@ dependencies {
   compile 'jini:jini-core:2.1'
   compile 'org.apache.river:reggie:2.2.2'
   compile 'org.apache.cassandra:cassandra-all:3.11.0-JJ'
-  compile ('com.datastax.cassandra:cassandra-driver-core:3.2.0') {
-    exclude group: 'org.jboss.logging'
-  }
+  compile ('com.datastax.cassandra:cassandra-driver-core:3.2.0')
   compile 'org.yaml:snakeyaml:1.14'
   compile 'org.apache.velocity:velocity:1.7'
 
@@ -158,11 +162,10 @@ dependencies {
   compile 'org.apache.logging.log4j:log4j-1.2-api:2.5'
   compile 'org.apache.logging.log4j:log4j-jul:2.5'
 
-  compile('com.needhamsoftware:easier-mock:2.0') {
-    ext.transative = false
-  }
+  compile('com.needhamsoftware:easier-mock:2.0')
   compile 'net.jini:jsk-platform:2.2.2'
   compile 'docopt:docopt:0.6.1'
+
   testCompile 'junit:junit:4.11'
   testCompile 'com.needhamsoftware:easier-mock:2.0'
   //runtime ':one-jar-boot:0.98' // uncomment for debugging stack traces into one-jar classes
@@ -171,7 +174,6 @@ dependencies {
   compile files('onejar/one-jar-boot-0.98.jar')
   compile('org.reflections:reflections:0.9.10') {
     exclude group: 'org.javassist'
-    exclude group: 'com.google.code.findbugs'
   }
   compile 'org.javassist:javassist:3.20.0-GA' // substitute a version that handles java 8
 
@@ -203,3 +205,4 @@ task oneJar(type: OneJar) {
 jacocoTestReport.dependsOn test
 
 artifactoryPublish.dependsOn oneJar
+
