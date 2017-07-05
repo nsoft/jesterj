@@ -3,16 +3,14 @@
 
   <appenders>
     <Console name="STDOUT" target="SYSTEM_OUT">
-      <PatternLayout pattern="%d{ISO8601} %p %t %c %m%n" />
+      <PatternLayout pattern="%d{ISO8601} %p %t %c %m%ex%n" />
       <filters>
         <MarkerFilter marker="JJ_FTI" onMatch="DENY" onMismatch="ACCEPT" />
       </filters>
     </Console>
     <RollingFile name="FILE" fileName="${sys:jj.log.dir}/jj.log" filePattern="${sys:jj.log.dir}/jj.log.%i"
       immediateFlush="true">
-      <PatternLayout>
-        <pattern>%d{ISO8601} %p %t %c %m%n</pattern>
-      </PatternLayout>
+      <PatternLayout pattern="%d{ISO8601} %p %t %c %m%ex%n" />
       <SizeBasedTriggeringPolicy size="50 MB" />
       <DefaultRolloverStrategy max="20" />
       <filters>
