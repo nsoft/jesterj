@@ -115,12 +115,14 @@ repositories {
 
 configurations {
   oneJarLib
+  oneJarPack
   // under no circumstances shall we distribute these in our archives
-  runtime.exclude group: 'junit'               // test lib
-  runtime.exclude group: 'org.easymock'        // test lib
+  oneJarPack.exclude group: 'junit'               // test lib
+  oneJarPack.exclude group: 'org.easymock'        // test lib
   // Conflicting licenses...
-  runtime.exclude group: 'org.jboss.logging'
-  runtime.exclude group: 'com.google.code.findbugs', module: 'annotations' // N.B. findbugs jsr305 is ok, thus module
+  oneJarPack.exclude group: 'org.jboss.logging'
+  oneJarPack.exclude group: 'com.google.code.findbugs', module: 'annotations' // N.B. findbugs jsr305 is ok, thus module
+  oneJarPack.extendsFrom runtime
 }
 version = '0.2-SNAPSHOT'
 group = 'org.jesterj'
@@ -200,6 +202,7 @@ task oneJar(type: OneJar) {
     attributes 'One-Jar-URL-Factory': 'com.simontuffs.onejar.JarClassLoader$OneJarURLFactory'
   }
   oneJarConfiguration = configurations.oneJarLib
+  targetConfiguration = configurations.oneJarPack
 }
 
 jacocoTestReport.dependsOn test
