@@ -4,6 +4,9 @@
   <appenders>
     <Console name="STDOUT" target="SYSTEM_OUT">
       <PatternLayout pattern="%d{ISO8601} %p %t %c %m%n" />
+      <filters>
+        <MarkerFilter marker="JJ_FTI" onMatch="DENY" onMismatch="ACCEPT" />
+      </filters>
     </Console>
     <RollingFile name="FILE" fileName="${sys:jj.log.dir}/jj.log" filePattern="${sys:jj.log.dir}/jj.log.%i"
       immediateFlush="true">
@@ -12,6 +15,9 @@
       </PatternLayout>
       <SizeBasedTriggeringPolicy size="50 MB" />
       <DefaultRolloverStrategy max="20" />
+      <filters>
+        <MarkerFilter marker="JJ_FTI" onMatch="DENY" onMismatch="ACCEPT" />
+      </filters>
     </RollingFile>
     <JesterJAppender name="CASSANDRA">
       <PatternLayout pattern="%m%n" />
