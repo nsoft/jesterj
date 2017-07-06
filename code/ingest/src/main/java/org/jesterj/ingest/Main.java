@@ -23,6 +23,7 @@ import org.docopt.clj;
 import org.jesterj.ingest.forkjoin.JesterJForkJoinThreadFactory;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.persistence.Cassandra;
+import org.jesterj.ingest.utils.JesterjPolicy;
 import org.reflections.Reflections;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
@@ -36,12 +37,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.security.AllPermission;
-import java.security.CodeSource;
-import java.security.PermissionCollection;
-import java.security.Permissions;
 import java.security.Policy;
-import java.security.ProtectionDomain;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Map;
@@ -86,7 +82,7 @@ public class Main {
 
     try {
       System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
-
+      System.setProperty("cassandra.insecure.udf", "true");
       // set up log output dir
       String logDir = System.getProperty("jj.log.dir");
       if (logDir == null) {
@@ -158,6 +154,7 @@ public class Main {
             }
           }
         } catch (Exception e) {
+          e.printStackTrace();
           log.fatal("CRASH and BURNED:", e);
         }
 
@@ -265,23 +262,9 @@ public class Main {
     // must do this before any jini code
     String policyFile = System.getProperty("java.security.policy");
     if (policyFile == null) {
-      // for river/jni
-      final Permissions pc = new Permissions();
-      pc.add(new AllPermission());
-      Policy.setPolicy(new Policy() {
-        @Override
-        public PermissionCollection getPermissions(CodeSource codesource) {
-          return pc;
-        }
-
-        @Override
-        public PermissionCollection getPermissions(ProtectionDomain domain) {
-          return pc;
-        }
-
-      });
-      System.setSecurityManager(new SecurityManager());
+      Policy.setPolicy(new JesterjPolicy());
     }
+    System.setSecurityManager(new SecurityManager());
   }
 
   /**

@@ -44,7 +44,10 @@ public class CassandraConfig {
   private Integer commitlog_sync_period_in_ms = 10000;
   private String partitioner = "Murmur3Partitioner";
   private String endpoint_snitch = "SimpleSnitch";
+  private Boolean enable_user_defined_functions = false;
   private String commitlog_directory;
+  private String hints_directory;
+  private String cdc_raw_directory;
   private String saved_caches_directory;
   private String[] data_file_directories;
   private Boolean start_native_transport = Boolean.TRUE;
@@ -66,10 +69,11 @@ public class CassandraConfig {
   @SuppressWarnings("unchecked")
   public CassandraConfig(String cassandraDir) {
 
-    String dir = cassandraDir;
-    commitlog_directory = dir + "/data/commitlog";
-    saved_caches_directory = dir + "/data/saved_caches";
-    data_file_directories = new String[]{dir + "/data/data"};
+    commitlog_directory = cassandraDir + "/data/commitlog";
+    hints_directory = cassandraDir + "/data/hints";
+    cdc_raw_directory = cassandraDir + "/data/hints";
+    saved_caches_directory = cassandraDir + "/data/saved_caches";
+    data_file_directories = new String[]{cassandraDir + "/data/data"};
 
     // yuck, but it's what's required.
     seed_provider = new ArrayList();
@@ -227,6 +231,13 @@ public class CassandraConfig {
     this.commitlog_directory = commitlog_directory;
   }
 
+  public String getHints_directory() {
+    return hints_directory;
+  }
+
+  public void setHints_directory(String hints_directory) {
+    this.hints_directory = hints_directory;
+  }
   public String getSaved_caches_directory() {
     return saved_caches_directory;
   }
@@ -281,6 +292,22 @@ public class CassandraConfig {
 
   public void setWrite_request_timeout_in_ms(Integer write_request_timeout_in_ms) {
     this.write_request_timeout_in_ms = write_request_timeout_in_ms;
+  }
+
+  public String getCdc_raw_directory() {
+    return cdc_raw_directory;
+  }
+
+  public void setCdc_raw_directory(String cdc_raw_directory) {
+    this.cdc_raw_directory = cdc_raw_directory;
+  }
+
+  public Boolean getEnable_user_defined_functions() {
+    return enable_user_defined_functions;
+  }
+
+  public void setEnable_user_defined_functions(Boolean enable_user_defined_functions) {
+    this.enable_user_defined_functions = enable_user_defined_functions;
   }
 
 

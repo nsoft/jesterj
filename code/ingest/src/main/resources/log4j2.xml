@@ -38,7 +38,7 @@
     <logger level="error" name="org.apache.http.wire" additivity="false">
       <appender-ref ref="STDOUT" />
     </logger>
-    <logger level="error" name="org.apache.cassandra" additivity="false">
+    <logger level="warn" name="org.apache.cassandra" additivity="false">
       <appender-ref ref="STDOUT" />
     </logger>
     <root level="info">

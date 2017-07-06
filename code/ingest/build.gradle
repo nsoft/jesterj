@@ -1,5 +1,5 @@
 /*
- * Copyright 2013,20014 Needham Software LLC
+ * Copyright 2013-2017 Needham Software LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,22 +13,70 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 buildscript {
-
   repositories {
+    maven {
+      credentials {
+        username = project.hasProperty("jj_artifactory_user") ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
+        password = project.hasProperty("jj_artifactory_password") ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
+      }
+      url 'https://jesterj.jfrog.io/jesterj/libs-release/'
+    }
     flatDir {
       dir 'onejar'
     }
-    mavenCentral()
+
   }
   dependencies {
+    //Check for the latest version here: http://plugins.gradle.org/plugin/com.jfrog.artifactory
+    classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4+"
     classpath 'com.github.rholder:gradle-one-jar:1.0.4'
   }
 }
 
 plugins {
   id 'com.github.jk1.dependency-license-report' version '0.3.4'
+}
+
+allprojects {
+  apply plugin: "com.jfrog.artifactory"
+}
+
+artifactory {
+  contextUrl = "https://jesterj.jfrog.io/jesterj"   //The base Artifactory URL if not overridden by the publisher/resolver
+  publish {
+    repository {
+      repoKey = 'libs-snapshot-local'
+      /*
+
+        System env var is for Travis CI, add these to gradle.properties for local builds
+
+        jj_artifactory_user=anonymous
+        jj_artifactory_password=
+
+        Note that anonymous user will not be able to test out new versions of libraries. Use mavenLocal() for that.
+
+       */
+      username = project.hasProperty("jj_artifactory_user") ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
+      password = project.hasProperty("jj_artifactory_password") ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
+      maven = true
+
+    }
+    defaults {
+      publications('mavenJava')
+      publishArtifacts = true
+      publishPom = true
+    }
+  }
+  resolve {
+    repository {
+      repoKey = 'libs-release'
+      username = project.hasProperty("jj_artifactory_user") ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
+      password = project.hasProperty("jj_artifactory_password") ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
+      maven = true
+
+    }
+  }
 }
 
 apply plugin: 'idea'
@@ -50,9 +98,15 @@ licenseReport {
 }
 
 repositories {
-  mavenCentral()
   maven {
     url 'https://clojars.org/repo'
+  }
+  maven {
+    credentials {
+      username = project.hasProperty("jj_artifactory_user") ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
+      password = project.hasProperty("jj_artifactory_password") ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
+    }
+    url 'https://jesterj.jfrog.io/jesterj/libs-release/'
   }
   flatDir {
     dir 'onejar'
@@ -61,26 +115,34 @@ repositories {
 
 configurations {
   oneJarLib
+  oneJarPack
+  // under no circumstances shall we distribute these in our archives
+  oneJarPack.exclude group: 'junit'               // test lib
+  oneJarPack.exclude group: 'org.easymock'        // test lib
+  // Conflicting licenses...
+  oneJarPack.exclude group: 'org.jboss.logging'
+  oneJarPack.exclude group: 'com.google.code.findbugs', module: 'annotations' // N.B. findbugs jsr305 is ok, thus module
+  oneJarPack.extendsFrom runtime
 }
+version = '0.2-SNAPSHOT'
+group = 'org.jesterj'
 
 publishing {
   publications {
     mavenJava(MavenPublication) {
-      groupId 'org.jesterj'
+      groupId project.group
       artifactId 'ingest'
-      version '0.2-SNAPSHOT'
+      version project.version
       from components.java
+      artifact oneJar {
+        classifier "node"
+      }
     }
   }
 }
 
 mainClassName = 'foo.bar.FOO'
 
-jacocoTestReport {
-  reports {
-    xml.enabled true
-  }
-}
 dependencies {
   compile 'org.apache.tika:tika-parsers:1.12'
   compile 'org.apache.solr:solr-solrj:5.5.0'
@@ -91,8 +153,8 @@ dependencies {
 
   compile 'jini:jini-core:2.1'
   compile 'org.apache.river:reggie:2.2.2'
-  compile 'org.apache.cassandra:cassandra-all:2.1.1'
-  compile 'com.datastax.cassandra:cassandra-driver-core:2.1.1'
+  compile 'org.apache.cassandra:cassandra-all:3.11.0-JJ'
+  compile ('com.datastax.cassandra:cassandra-driver-core:3.2.0')
   compile 'org.yaml:snakeyaml:1.14'
   compile 'org.apache.velocity:velocity:1.7'
 
@@ -102,11 +164,10 @@ dependencies {
   compile 'org.apache.logging.log4j:log4j-1.2-api:2.6'
   compile 'org.apache.logging.log4j:log4j-jul:2.6'
 
-  compile('com.needhamsoftware:easier-mock:2.0') {
-    ext.transative = false
-  }
+  compile('com.needhamsoftware:easier-mock:2.0')
   compile 'net.jini:jsk-platform:2.2.2'
   compile 'docopt:docopt:0.6.1'
+
   testCompile 'junit:junit:4.11'
   testCompile 'com.needhamsoftware:easier-mock:2.0'
   //runtime ':one-jar-boot:0.98' // uncomment for debugging stack traces into one-jar classes
@@ -118,11 +179,22 @@ dependencies {
   }
   compile 'org.javassist:javassist:3.20.0-GA' // substitute a version that handles java 8
 
+  // this shouldn't be necessary but there's something dodgy going on with jacocoTestReport's classpath
+  // using testCompile so we don't package these...
+  testCompile (group: 'org.jacoco', name:'org.jacoco.report', version:'0.7.7.201606060606')
+  testCompile (group: 'org.jacoco', name:'org.jacoco.core', version:'0.7.7.201606060606')
 }
 
-task oneJar(type: OneJar, dependsOn: clean) {
+jacocoTestReport {
+  reports {
+    xml.enabled true
+  }
+  jacocoClasspath += files {configurations.testCompile.resolve()}
+}
+
+task oneJar(type: OneJar) {
   mainClass = 'org.jesterj.ingest.Main'
-  archiveName = 'ingest-node.jar'
+  archiveName = 'ingest-'+project.version+'-node.jar'
   useStable = false
   //noinspection GroovyAssignabilityCheck
   manifest {
@@ -130,6 +202,10 @@ task oneJar(type: OneJar, dependsOn: clean) {
     attributes 'One-Jar-URL-Factory': 'com.simontuffs.onejar.JarClassLoader$OneJarURLFactory'
   }
   oneJarConfiguration = configurations.oneJarLib
+  targetConfiguration = configurations.oneJarPack
 }
 
 jacocoTestReport.dependsOn test
+
+artifactoryPublish.dependsOn oneJar
+
