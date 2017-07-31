@@ -5,7 +5,7 @@ To contribute to this project, please observe the following guidelines.
 
 1. Make an account on github (or log in to an existing one)
 2. Describe your feature suggestion in detail in an issue
-3. Wait for a response. You shoudl get a response within a week, but as with almost every 
+3. Wait for a response. You should get a response within a week, but as with almost every 
    open source project, paid employment comes first for the maintainer(s). If nobody has 
    responded in a week, feel free to join our slack channel and ask "has anyone had time
    to look at issue #<your issue number here>?" 
@@ -22,7 +22,7 @@ based requests. If it doesn't have a ticket it probably won't get done.
    2. The steps that reproduce the problem
    3. The expected result for the steps given
    4. The actual (bug) result for the steps given.
-3. Wait for a response. You shoudl get a response within a week, but as with almost every 
+3. Wait for a response. You should get a response within a week, but as with almost every 
    open source project, paid employment comes first for the maintainer(s). If nobody has 
    responded in a week, feel free to join our slack channel and ask "has anyone had time
    to look at issue #<your issue number here>?"
