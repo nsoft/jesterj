@@ -144,7 +144,7 @@ publishing {
 mainClassName = 'foo.bar.FOO'
 
 dependencies {
-  compile 'org.apache.tika:tika-parsers:1.12'
+  compile 'org.apache.tika:tika-parsers:1.16'
   compile 'org.apache.solr:solr-solrj:5.5.0'
   compile 'org.elasticsearch:elasticsearch:2.3.1'
 
