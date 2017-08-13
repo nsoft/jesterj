@@ -122,6 +122,7 @@ configurations {
   // Conflicting licenses...
   oneJarPack.exclude group: 'org.jboss.logging'
   oneJarPack.exclude group: 'com.google.code.findbugs', module: 'annotations' // N.B. findbugs jsr305 is ok, thus module
+  oneJarPack.exclude group: 'c3p0', module: 'c3p0'
   oneJarPack.extendsFrom runtime
 }
 version = '0.2-SNAPSHOT'
@@ -145,6 +146,8 @@ mainClassName = 'foo.bar.FOO'
 
 dependencies {
   compile 'org.apache.tika:tika-parsers:1.16'
+  compile 'com.mchange:c3p0:0.9.5.2' // for tika deps... actual declared dep includes older LGPL version only.
+
   compile 'org.apache.solr:solr-solrj:5.5.0'
   compile 'org.elasticsearch:elasticsearch:2.3.1'
 
