@@ -1,4 +1,4 @@
-This distributes uses the libraries shown below, and has runtime dependency on the libraries listed below.
+This project distributes and has runtime dependency on the libraries listed below.
 Each license type on the right is the name of the file in this directory holding the respective license.
 
 This list was generated as shown at https://jsfiddle.net/cgy7s9z8/5/
