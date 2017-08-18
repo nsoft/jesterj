@@ -65,7 +65,6 @@ ant-1.7.0.jar                            === has license type ===>     Apache-2.
 ant-launcher-1.7.0.jar                   === has license type ===>     Apache-2.0
 antlr-3.5.2.jar                          === has license type ===>     BSD-3-Clause
 antlr-runtime-3.5.2.jar                  === has license type ===>     BSD-3-Clause
-
 apache-mime4j-core-0.8.1.jar             === has license type ===>     Apache-2.0
 apache-mime4j-dom-0.8.1.jar              === has license type ===>     Apache-2.0
 asm-5.0.4.jar                            === has license type ===>     BSD-3-Clause
@@ -79,6 +78,9 @@ bcprov-jdk15on-1.54.jar                  === has license type ===>     Bouncy-Ca
 boilerpipe-1.1.0.jar                     === has license type ===>     Apache-2.0
 bzip2-0.9.1.jar                          === has license type ===>     MIT
 c3p0-0.9.5.2.jar                         === has license type ===>     Eclipse-1.0
+
+^^^ fully documented ---- may or may not be documented vvv
+
 caffeine-2.2.6.jar                       === has license type ===>     Apache-2.0
 cassandra-all-3.11.0-JJ.jar              === has license type ===>     Apache-2.0
 cassandra-driver-core-3.2.0.jar          === has license type ===>     Apache-2.0
