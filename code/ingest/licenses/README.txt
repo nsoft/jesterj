@@ -53,7 +53,7 @@ holding the respective license, and required notifications for each library.
 Please note that since there are no compliance requirements for Public Domain
 software, no separate directory needs to be maintained listing those libraries.
 
-This list was generated as shown at https://jsfiddle.net/cgy7s9z8/5/ using
+This list was generated as shown at https://jsfiddle.net/cgy7s9z8/8/ using
 JFrog Artifactory's License Management and AQL plugins. These were kindly
 provided to JesterJ.org at no cost by JFrog as part of their program to support
 open source software projects. Many thanks to them for speeding this process
@@ -80,11 +80,10 @@ boilerpipe-1.1.0.jar                     === has license type ===>     Apache-2.
 bzip2-0.9.1.jar                          === has license type ===>     MIT
 c3p0-0.9.5.2.jar                         === has license type ===>     Eclipse-1.0
 caffeine-2.2.6.jar                       === has license type ===>     Apache-2.0
-cassandra-driver-core-3.2.0.jar          === has license type ===>     Apache-2.0
 cassandra-all-3.11.0-JJ.jar              === has license type ===>     Apache-2.0
+cassandra-driver-core-3.2.0.jar          === has license type ===>     Apache-2.0
 cassandra-thrift-3.11.0-JJ.jar           === has license type ===>     Apache-2.0
 cdm-4.5.5.jar                            === has license type ===>     MIT
-jcl-over-slf4j-1.7.24.jar                === has license type ===>     Apache-2.0
 clojure-1.4.0.jar                        === has license type ===>     Eclipse-1.0
 commons-cli-1.3.1.jar                    === has license type ===>     Apache-2.0
 commons-codec-1.10.jar                   === has license type ===>     Apache-2.0
@@ -141,8 +140,9 @@ javassist-3.20.0-GA.jar                  === has license type ===>     Apache-2.
 javax.annotation-api-1.2.jar             === has license type ===>     CDDL-1.1
 javax.ws.rs-api-2.0.1.jar                === has license type ===>     CDDL-1.1
 jbcrypt-0.3m.jar                         === has license type ===>     ISC
-jcommander-1.35.jar                      === has license type ===>     Apache-2.0
 jcip-annotations-1.0.jar                 === has license type ===>     Public Domain
+jcl-over-slf4j-1.7.24.jar                === has license type ===>     Apache-2.0
+jcommander-1.35.jar                      === has license type ===>     Apache-2.0
 jctools-core-1.2.1.jar                   === has license type ===>     Apache-2.0
 jdom2-2.0.4.jar                          === has license type ===>     jdom
 jempbox-1.8.13.jar                       === has license type ===>     Apache-2.0
@@ -151,22 +151,22 @@ jflex-1.6.0.jar                          === has license type ===>     BSD-3-Cla
 jhighlight-1.0.2.jar                     === has license type ===>     CDDL-1.0
 jini-core-2.1.jar                        === has license type ===>     Apache-2.0
 jmatio-1.2.jar                           === has license type ===>     BSD-3-Clause
-joda-convert-1.2.jar                     === has license type ===>     Apache-2.0
-joda-time-2.8.2.jar                      === has license type ===>     Apache-2.0
 jna-4.4.0.jar                            === has license type ===>     Apache-2.0
 jnr-constants-0.9.0.jar                  === has license type ===>     Apache-2.0
 jnr-ffi-2.0.7.jar                        === has license type ===>     Apache-2.0
 jnr-posix-3.0.27.jar                     === has license type ===>     CPL-1.0
 jnr-x86asm-1.0.2.jar                     === has license type ===>     MIT
+joda-convert-1.2.jar                     === has license type ===>     Apache-2.0
+joda-time-2.8.2.jar                      === has license type ===>     Apache-2.0
 jsk-lib-2.2.2.jar                        === has license type ===>     Apache-2.0
 jsk-platform-2.2.2.jar                   === has license type ===>     Apache-2.0
 jsk-resources-2.2.2.jar                  === has license type ===>     Apache-2.0
-jsr-275-0.9.3.jar                        === has license type ===>     BSD-2-Clause
-jsr166e-1.1.0.jar                        === has license type ===>     Public Domain
-jsr305-3.0.0.jar                         === has license type ===>     Apache-2.0
 json-1.8.jar                             === has license type ===>     Apache-2.0
 json-simple-1.1.1.jar                    === has license type ===>     Apache-2.0
 jsoup-1.7.2.jar                          === has license type ===>     MIT
+jsr-275-0.9.3.jar                        === has license type ===>     BSD-2-Clause
+jsr166e-1.1.0.jar                        === has license type ===>     Public Domain
+jsr305-3.0.0.jar                         === has license type ===>     Apache-2.0
 jul-to-slf4j-1.7.24.jar                  === has license type ===>     MIT
 juniversalchardet-1.0.3.jar              === has license type ===>     Mozilla-1.1
 junrar-0.7.jar                           === has license type ===>     UnRar
@@ -176,7 +176,7 @@ log4j-api-2.6.jar                        === has license type ===>     Apache-2.
 log4j-core-2.6.jar                       === has license type ===>     Apache-2.0
 log4j-jcl-2.6.jar                        === has license type ===>     Apache-2.0
 log4j-jul-2.6.jar                        === has license type ===>     Apache-2.0
-jlog4j-over-slf4j-1.7.7.jar               === has license type ===>     Apache-2.0
+log4j-over-slf4j-1.7.7.jar               === has license type ===>     Apache-2.0
 log4j-slf4j-impl-2.6.jar                 === has license type ===>     Apache-2.0
 logback-classic-1.1.3.jar                === has license type ===>     Eclipse-1.0
 logback-core-1.1.3.jar                   === has license type ===>     Eclipse-1.0
@@ -226,16 +226,16 @@ quartz-2.2.0.jar                         === has license type ===>     Apache-2.
 reflections-0.9.10.jar                   === has license type ===>     WTFPL-2.0
 regexp-1.3.jar                           === has license type ===>     Apache-1.1
 reggie-2.2.2.jar                         === has license type ===>     Apache-2.0
-reporter-config3-3.0.3.jar               === has license type ===>     Apache-2.0
 reporter-config-base-3.0.3.jar           === has license type ===>     Apache-2.0
+reporter-config3-3.0.3.jar               === has license type ===>     Apache-2.0
 rome-1.5.1.jar                           === has license type ===>     Apache-2.0
 rome-utils-1.5.1.jar                     === has license type ===>     Apache-2.0
-sentiment-analysis-parser-0.1.jar        === has license type ===>     Apache-2.0
 securesm-1.0.jar                         === has license type ===>     Apache-2.0
+sentiment-analysis-parser-0.1.jar        === has license type ===>     Apache-2.0
 sigar-1.6.4.jar                          === has license type ===>     Apache-2.0
+sis-metadata-0.6.jar                     === has license type ===>     Apache-2.0
 sis-netcdf-0.6.jar                       === has license type ===>     Apache-2.0
 sis-referencing-0.6.jar                  === has license type ===>     Apache-2.0
-sis-metadata-0.6.jar                     === has license type ===>     Apache-2.0
 sis-storage-0.6.jar                      === has license type ===>     Apache-2.0
 sis-utility-0.6.jar                      === has license type ===>     Apache-2.0
 slf4j-api-1.7.24.jar                     === has license type ===>     MIT
@@ -246,8 +246,8 @@ solr-solrj-5.5.0.jar                     === has license type ===>     Apache-2.
 spatial4j-0.5.jar                        === has license type ===>     Apache-2.0
 stax2-api-3.1.4.jar                      === has license type ===>     BSD-2-Clause
 stream-2.5.2.jar                         === has license type ===>     Apache-2.0
-tagsoup-1.2.1.jar                        === has license type ===>     Apache-2.0
 t-digest-3.0.jar                         === has license type ===>     Apache-2.0
+tagsoup-1.2.1.jar                        === has license type ===>     Apache-2.0
 thrift-server-0.3.7.jar                  === has license type ===>     Apache-2.0
 tika-core-1.16.jar                       === has license type ===>     Apache-2.0
 tika-parsers-1.16.jar                    === has license type ===>     Apache-2.0
@@ -262,6 +262,3 @@ xmlschema-core-2.2.1.jar                 === has license type ===>     Apache-2.
 xmpcore-5.1.2.jar                        === has license type ===>     BSD-3-Clause
 xz-1.6.jar                               === has license type ===>     Public Domain
 zookeeper-3.4.6.jar                      === has license type ===>     Apache-2.0
-
-
-
