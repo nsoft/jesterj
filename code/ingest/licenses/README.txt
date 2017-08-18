@@ -59,11 +59,13 @@ provided to JesterJ.org at no cost by JFrog as part of their program to support
 open source software projects. Many thanks to them for speeding this process
 up greatly.
 
+HdrHistogram-2.1.6.jar                   === has license type ===>     Public Domain
+ST4-4.0.8.jar                            === has license type ===>     BSD-3-Clause
 ant-1.7.0.jar                            === has license type ===>     Apache-2.0
 ant-launcher-1.7.0.jar                   === has license type ===>     Apache-2.0
-
 antlr-3.5.2.jar                          === has license type ===>     BSD-3-Clause
 antlr-runtime-3.5.2.jar                  === has license type ===>     BSD-3-Clause
+
 apache-mime4j-core-0.8.1.jar             === has license type ===>     Apache-2.0
 apache-mime4j-dom-0.8.1.jar              === has license type ===>     Apache-2.0
 asm-5.0.4.jar                            === has license type ===>     BSD-3-Clause
@@ -117,7 +119,6 @@ geoapi-3.0.0.jar                         === has license type ===>     OGC-Licen
 grib-4.5.5.jar                           === has license type ===>     MIT
 gson-2.8.1.jar                           === has license type ===>     Apache-2.0
 guava-19.0.jar                           === has license type ===>     Apache-2.0
-HdrHistogram-2.1.6.jar                   === has license type ===>     Public Domain
 hibernate-validator-4.3.0.Final.jar      === has license type ===>     Apache-2.0
 high-scale-lib-1.0.6.jar                 === has license type ===>     Public Domain
 hppc-0.7.1.jar                           === has license type ===>     Apache-2.0
@@ -229,7 +230,6 @@ reporter-config3-3.0.3.jar               === has license type ===>     Apache-2.
 reporter-config-base-3.0.3.jar           === has license type ===>     Apache-2.0
 rome-1.5.1.jar                           === has license type ===>     Apache-2.0
 rome-utils-1.5.1.jar                     === has license type ===>     Apache-2.0
-ST4-4.0.8.jar                            === has license type ===>     BSD-2-Clause
 sentiment-analysis-parser-0.1.jar        === has license type ===>     Apache-2.0
 securesm-1.0.jar                         === has license type ===>     Apache-2.0
 sigar-1.6.4.jar                          === has license type ===>     Apache-2.0

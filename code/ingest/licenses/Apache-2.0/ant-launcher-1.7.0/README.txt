@@ -7,3 +7,7 @@ relative to this file.
 Copy of Notice File
 -------------------
 Can be found in this directory (near this file)
+
+This file was originally found at:
+
+https://github.com/apache/ant/blob/rel/1.7.0/NOTICE
