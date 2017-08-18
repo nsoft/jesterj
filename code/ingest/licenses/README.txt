@@ -41,7 +41,7 @@ If such a license is found to be included in a distributed archive please
 notify us at once so we can remove it. Note that in cases of Dual Licensing
 the chosen license is listed below.
 
-In the table below, the type on the right is the name of the sib directory
+In the table below, the type on the right is the name of the sub-directory
 holding the respective license, and required notifications for each library.
 
 ********************************************************************************
@@ -82,7 +82,7 @@ cassandra-driver-core-3.2.0.jar          === has license type ===>     Apache-2.
 cassandra-all-3.11.0-JJ.jar              === has license type ===>     Apache-2.0
 cassandra-thrift-3.11.0-JJ.jar           === has license type ===>     Apache-2.0
 cdm-4.5.5.jar                            === has license type ===>     MIT
-cl-over-slf4j-1.7.24.jar                === has license type ===>     Apache-2.0
+jcl-over-slf4j-1.7.24.jar                === has license type ===>     Apache-2.0
 clojure-1.4.0.jar                        === has license type ===>     Eclipse-1.0
 commons-cli-1.3.1.jar                    === has license type ===>     Apache-2.0
 commons-codec-1.10.jar                   === has license type ===>     Apache-2.0
