@@ -88,9 +88,6 @@ commons-cli-1.3.1.jar                    === has license type ===>     Apache-2.
 commons-codec-1.10.jar                   === has license type ===>     Apache-2.0
 commons-collections-3.2.1.jar            === has license type ===>     Apache-2.0
 commons-collections4-4.1.jar             === has license type ===>     Apache-2.0
-
-^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
-
 commons-compress-1.14.jar                === has license type ===>     Apache-2.0
 commons-csv-1.0.jar                      === has license type ===>     Apache-2.0
 commons-exec-1.3.jar                     === has license type ===>     Apache-2.0
@@ -101,6 +98,9 @@ commons-logging-1.2.jar                  === has license type ===>     Apache-2.
 commons-math3-3.2.jar                    === has license type ===>     Apache-2.0
 commons-vfs2-2.0.jar                     === has license type ===>     Apache-2.0
 compress-lzf-1.0.2.jar                   === has license type ===>     Apache-2.0
+
+^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
+
 concurrent-trees-2.4.0.jar               === has license type ===>     Apache-2.0
 concurrentlinkedhashmap-lru-1.4.jar      === has license type ===>     Apache-2.0
 curvesapi-1.04.jar                       === has license type ===>     BSD-3-Clause
