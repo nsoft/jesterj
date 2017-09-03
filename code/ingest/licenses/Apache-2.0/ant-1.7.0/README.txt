@@ -1,6 +1,6 @@
 Copy of License
 ---------------
-A copy of the BSD-3-Clause license can be found at ../BSD-3-Clause.txt
+A copy of the Apache-2.0 license can be found at ../Apache-2.0.txt
 relative to this file.
 
 

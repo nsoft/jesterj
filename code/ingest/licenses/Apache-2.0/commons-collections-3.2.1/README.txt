@@ -10,4 +10,4 @@ Can be found in this directory (near this file)
 
 This file was originally found at:
 
-https://github.com/kohlschutter/boilerpipe/blob/618a5dde07947888f701b54f1f9b193edd3e31d5/NOTICE.txt
+https://github.com/apache/commons-collections/blob/collections-3.2.1/NOTICE.txt

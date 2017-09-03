@@ -78,9 +78,6 @@ bcprov-jdk15on-1.54.jar                  === has license type ===>     Bouncy-Ca
 boilerpipe-1.1.0.jar                     === has license type ===>     Apache-2.0
 bzip2-0.9.1.jar                          === has license type ===>     MIT
 c3p0-0.9.5.2.jar                         === has license type ===>     Eclipse-1.0
-
-^^^ fully documented ---- may or may not be documented vvv
-
 caffeine-2.2.6.jar                       === has license type ===>     Apache-2.0
 cassandra-all-3.11.0-JJ.jar              === has license type ===>     Apache-2.0
 cassandra-driver-core-3.2.0.jar          === has license type ===>     Apache-2.0
@@ -91,6 +88,9 @@ commons-cli-1.3.1.jar                    === has license type ===>     Apache-2.
 commons-codec-1.10.jar                   === has license type ===>     Apache-2.0
 commons-collections-3.2.1.jar            === has license type ===>     Apache-2.0
 commons-collections4-4.1.jar             === has license type ===>     Apache-2.0
+
+^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
+
 commons-compress-1.14.jar                === has license type ===>     Apache-2.0
 commons-csv-1.0.jar                      === has license type ===>     Apache-2.0
 commons-exec-1.3.jar                     === has license type ===>     Apache-2.0
