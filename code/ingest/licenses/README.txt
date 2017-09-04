@@ -111,9 +111,6 @@ easier-mock-2.0.jar                      === has license type ===>     Apache-2.
 ecj-4.4.2.jar                            === has license type ===>     Eclipse-1.0
 ehcache-core-2.6.2.jar                   === has license type ===>     Apache-2.0
 elasticsearch-2.3.1.jar                  === has license type ===>     Apache-2.0
-
-^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
-
 fastutil-6.5.7.jar                       === has license type ===>     Apache-2.0
 fontbox-2.0.6.jar                        === has license type ===>     Apache-2.0
 geoapi-3.0.0.jar                         === has license type ===>     OGC-License
@@ -127,6 +124,9 @@ httpclient-4.4.1.jar                     === has license type ===>     Apache-2.
 httpcore-4.4.1.jar                       === has license type ===>     Apache-2.0
 httpmime-4.4.1.jar                       === has license type ===>     Apache-2.0
 httpservices-4.5.5.jar                   === has license type ===>     MIT
+
+^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
+
 isoparser-1.1.18.jar                     === has license type ===>     Apache-2.0
 jackcess-2.1.8.jar                       === has license type ===>     Apache-2.0
 jackcess-encrypt-2.1.2.jar               === has license type ===>     Apache-2.0
