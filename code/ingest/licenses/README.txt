@@ -98,9 +98,6 @@ commons-logging-1.2.jar                  === has license type ===>     Apache-2.
 commons-math3-3.2.jar                    === has license type ===>     Apache-2.0
 commons-vfs2-2.0.jar                     === has license type ===>     Apache-2.0
 compress-lzf-1.0.2.jar                   === has license type ===>     Apache-2.0
-
-^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
-
 concurrent-trees-2.4.0.jar               === has license type ===>     Apache-2.0
 concurrentlinkedhashmap-lru-1.4.jar      === has license type ===>     Apache-2.0
 curvesapi-1.04.jar                       === has license type ===>     BSD-3-Clause
@@ -114,6 +111,9 @@ easier-mock-2.0.jar                      === has license type ===>     Apache-2.
 ecj-4.4.2.jar                            === has license type ===>     Eclipse-1.0
 ehcache-core-2.6.2.jar                   === has license type ===>     Apache-2.0
 elasticsearch-2.3.1.jar                  === has license type ===>     Apache-2.0
+
+^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
+
 fastutil-6.5.7.jar                       === has license type ===>     Apache-2.0
 fontbox-2.0.6.jar                        === has license type ===>     Apache-2.0
 geoapi-3.0.0.jar                         === has license type ===>     OGC-License

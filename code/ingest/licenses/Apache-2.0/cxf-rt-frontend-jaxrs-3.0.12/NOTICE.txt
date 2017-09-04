@@ -1,0 +1,1 @@
+No notice file is included with this version of cxf-rt-frontend-jaxrs
