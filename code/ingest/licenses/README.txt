@@ -124,9 +124,6 @@ httpclient-4.4.1.jar                     === has license type ===>     Apache-2.
 httpcore-4.4.1.jar                       === has license type ===>     Apache-2.0
 httpmime-4.4.1.jar                       === has license type ===>     Apache-2.0
 httpservices-4.5.5.jar                   === has license type ===>     MIT
-
-^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
-
 isoparser-1.1.18.jar                     === has license type ===>     Apache-2.0
 jackcess-2.1.8.jar                       === has license type ===>     Apache-2.0
 jackcess-encrypt-2.1.2.jar               === has license type ===>     Apache-2.0
@@ -147,6 +144,9 @@ jcl-over-slf4j-1.7.24.jar                === has license type ===>     Apache-2.
 jcommander-1.35.jar                      === has license type ===>     Apache-2.0
 jctools-core-1.2.1.jar                   === has license type ===>     Apache-2.0
 jdom2-2.0.4.jar                          === has license type ===>     jdom
+
+^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
+
 jempbox-1.8.13.jar                       === has license type ===>     Apache-2.0
 jffi-1.2.10.jar                          === has license type ===>     Apache-2.0
 jflex-1.6.0.jar                          === has license type ===>     BSD-3-Clause
