@@ -169,9 +169,6 @@ jsr305-3.0.0.jar                         === has license type ===>     Apache-2.
 jul-to-slf4j-1.7.24.jar                  === has license type ===>     MIT
 juniversalchardet-1.0.3.jar              === has license type ===>     Mozilla-1.1
 junrar-0.7.jar                           === has license type ===>     UnRar
-
-^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
-
 libthrift-0.9.2.jar                      === has license type ===>     Apache-2.0
 log4j-1.2-api-2.6.jar                    === has license type ===>     Apache-2.0
 log4j-api-2.6.jar                        === has license type ===>     Apache-2.0
@@ -202,6 +199,9 @@ maven-scm-provider-svn-commons-1.4.jar   === has license type ===>     Apache-2.
 maven-scm-provider-svnexe-1.4.jar        === has license type ===>     Apache-2.0
 mchange-commons-java-0.2.11.jar          === has license type ===>     Eclipse-1.0
 metadata-extractor-2.9.1.jar             === has license type ===>     Apache-2.0
+
+^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
+
 metrics-core-3.1.2.jar                   === has license type ===>     Apache-2.0
 metrics-jvm-3.1.0.jar                    === has license type ===>     Apache-2.0
 netcdf4-4.5.5.jar                        === has license type ===>     MIT

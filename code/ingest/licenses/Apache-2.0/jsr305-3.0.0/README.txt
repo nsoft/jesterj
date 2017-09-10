@@ -6,7 +6,7 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of json-simple
+There is no Notice file for this version of jsr305
 
 There is no clear source code corresponding to the archive distributed
 via Maven Central:
