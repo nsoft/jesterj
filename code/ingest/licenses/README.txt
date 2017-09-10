@@ -144,9 +144,6 @@ jcl-over-slf4j-1.7.24.jar                === has license type ===>     Apache-2.
 jcommander-1.35.jar                      === has license type ===>     Apache-2.0
 jctools-core-1.2.1.jar                   === has license type ===>     Apache-2.0
 jdom2-2.0.4.jar                          === has license type ===>     jdom
-
-^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
-
 jempbox-1.8.13.jar                       === has license type ===>     Apache-2.0
 jffi-1.2.10.jar                          === has license type ===>     Apache-2.0
 jflex-1.6.0.jar                          === has license type ===>     BSD-3-Clause
@@ -172,6 +169,9 @@ jsr305-3.0.0.jar                         === has license type ===>     Apache-2.
 jul-to-slf4j-1.7.24.jar                  === has license type ===>     MIT
 juniversalchardet-1.0.3.jar              === has license type ===>     Mozilla-1.1
 junrar-0.7.jar                           === has license type ===>     UnRar
+
+^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
+
 libthrift-0.9.2.jar                      === has license type ===>     Apache-2.0
 log4j-1.2-api-2.6.jar                    === has license type ===>     Apache-2.0
 log4j-api-2.6.jar                        === has license type ===>     Apache-2.0
