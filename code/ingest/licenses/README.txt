@@ -199,9 +199,6 @@ maven-scm-provider-svn-commons-1.4.jar   === has license type ===>     Apache-2.
 maven-scm-provider-svnexe-1.4.jar        === has license type ===>     Apache-2.0
 mchange-commons-java-0.2.11.jar          === has license type ===>     Eclipse-1.0
 metadata-extractor-2.9.1.jar             === has license type ===>     Apache-2.0
-
-^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
-
 metrics-core-3.1.2.jar                   === has license type ===>     Apache-2.0
 metrics-jvm-3.1.0.jar                    === has license type ===>     Apache-2.0
 netcdf4-4.5.5.jar                        === has license type ===>     MIT
@@ -223,11 +220,14 @@ poi-3.17-beta1.jar                       === has license type ===>     Apache-2.
 poi-ooxml-3.17-beta1.jar                 === has license type ===>     Apache-2.0
 poi-ooxml-schemas-3.17-beta1.jar         === has license type ===>     Apache-2.0
 poi-scratchpad-3.17-beta1.jar            === has license type ===>     Apache-2.0
-protobuf-java-2.5.0.jar                  === has license type ===>     BSD-2-Clause
+protobuf-java-2.5.0.jar                  === has license type ===>     BSD-3-Clause
 quartz-2.2.0.jar                         === has license type ===>     Apache-2.0
 reflections-0.9.10.jar                   === has license type ===>     WTFPL-2.0
 regexp-1.3.jar                           === has license type ===>     Apache-1.1
 reggie-2.2.2.jar                         === has license type ===>     Apache-2.0
+
+^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
+
 reporter-config-base-3.0.3.jar           === has license type ===>     Apache-2.0
 reporter-config3-3.0.3.jar               === has license type ===>     Apache-2.0
 rome-1.5.1.jar                           === has license type ===>     Apache-2.0
