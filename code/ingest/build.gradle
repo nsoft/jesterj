@@ -208,6 +208,26 @@ task oneJar(type: OneJar) {
   targetConfiguration = configurations.oneJarPack
 }
 
+task generateNotices() {
+  doLast {
+    def toConcatenate = fileTree(file('licenses')) {
+      include '**/Apache-2.0/*/NOTICE.txt'
+    }
+    def header = new File("notice-header.txt")
+    def outputFileName = "NOTICE.txt"
+    def output = new File(outputFileName)
+    output.write('') // truncate output if needed
+    output << header.text
+    toConcatenate.each { f ->
+      output << "\n\n-------------------------------------------------------------------------------\n"
+      output << "       NOTICE for " + (file(f.parent).name)
+      output << "\n-------------------------------------------------------------------------------\n"
+
+      output << f.text
+    }
+  }
+}
+
 jacocoTestReport.dependsOn test
 
 artifactoryPublish.dependsOn oneJar

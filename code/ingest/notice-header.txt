@@ -1,0 +1,37 @@
+JesterJ's ingest can be obtained in one of two forms
+
+The JesterJ only library is named with the format:
+
+   jesterj-ingest-<VERSION>.jar
+
+The executable one-jar is
+
+   jesterj-node-<VERSION>.jar
+
+The contents of the JesterJ jar are licensed using Apache 2.0 License
+
+/*
+ * Copyright 2016 Needham Software LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+The executeable OneJar contains additional software. Full detail of all
+included software can be found in the /licenses directory of that jar, and
+also at https://github.com/nsoft/jesterj/tree/master/code/ingest/licenses
+for the current head revision, (with release tags being selectable in the
+Github user interface).
+
+Some of the included software is licensed under the Apache 2.0 license, and
+the required notices are collected below:
+
