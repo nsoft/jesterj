@@ -1,0 +1,7 @@
+The w3c-testcases included with this distribution are
+***Copyright (C) World Wide Web Consortium 2006, 2007***
+
+They are made available under the terms of the
+W3C DOCUMENT NOTICE AND LICENSE,
+available online at
+http://www.w3.org/Consortium/Legal/copyright-documents-19990405.html

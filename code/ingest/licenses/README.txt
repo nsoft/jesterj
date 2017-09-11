@@ -225,9 +225,6 @@ quartz-2.2.0.jar                         === has license type ===>     Apache-2.
 reflections-0.9.10.jar                   === has license type ===>     WTFPL-2.0
 regexp-1.3.jar                           === has license type ===>     Apache-1.1
 reggie-2.2.2.jar                         === has license type ===>     Apache-2.0
-
-^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
-
 reporter-config-base-3.0.3.jar           === has license type ===>     Apache-2.0
 reporter-config3-3.0.3.jar               === has license type ===>     Apache-2.0
 rome-1.5.1.jar                           === has license type ===>     Apache-2.0
@@ -263,4 +260,7 @@ xmlbeans-2.6.0.jar                       === has license type ===>     Apache-2.
 xmlschema-core-2.2.1.jar                 === has license type ===>     Apache-2.0
 xmpcore-5.1.2.jar                        === has license type ===>     BSD-3-Clause
 xz-1.6.jar                               === has license type ===>     Public Domain
+
+^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
+
 zookeeper-3.4.6.jar                      === has license type ===>     Apache-2.0
