@@ -12,7 +12,7 @@ Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki
 
 # Project Status
 
-Current release version: 0.1. (But current HEAD revision is *much* better, please build from source until 0.2)
+Current release version: 0.1. (But current HEAD revision is *much* better, please build from source until 1.0)
 
 # Slack Chanel
 If you want an invite to our slack channel just send mail to:
