@@ -125,7 +125,7 @@ configurations {
   oneJarPack.exclude group: 'c3p0', module: 'c3p0'
   oneJarPack.extendsFrom runtime
 }
-version = '0.2-SNAPSHOT'
+version = '1.0-SNAPSHOT'
 group = 'org.jesterj'
 
 publishing {
@@ -195,9 +195,13 @@ jacocoTestReport {
   jacocoClasspath += files {configurations.testCompile.resolve()}
 }
 
+jar {
+  archiveName = 'jesterj-ingest-'+project.version+'.jar'
+}
+
 task oneJar(type: OneJar) {
   mainClass = 'org.jesterj.ingest.Main'
-  archiveName = 'ingest-'+project.version+'-node.jar'
+  archiveName = 'jesterj-node-'+project.version+'.jar'
   useStable = false
   //noinspection GroovyAssignabilityCheck
   manifest {
@@ -206,6 +210,16 @@ task oneJar(type: OneJar) {
   }
   oneJarConfiguration = configurations.oneJarLib
   targetConfiguration = configurations.oneJarPack
+  doLast{
+    def dir = file('licenses').parent
+    ant.jar(update:true, destFile: file("build/libs/"+archiveName) ) {
+      fileset(dir: dir) {
+        include(name: 'licenses/**')
+        include(name: 'NOTICE.txt')
+        include(name: 'LICENSE.txt')
+      }
+    }
+  }
 }
 
 task generateNotices() {
@@ -214,9 +228,8 @@ task generateNotices() {
       include '**/Apache-2.0/*/NOTICE.txt'
     }
     def header = new File("notice-header.txt")
-    def outputFileName = "NOTICE.txt"
-    def output = new File(outputFileName)
-    output.write('') // truncate output if needed
+    def output = new File("NOTICE.txt")
+    output.write('') // truncate file
     output << header.text
     toConcatenate.each { f ->
       output << "\n\n-------------------------------------------------------------------------------\n"
