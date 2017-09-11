@@ -1,12 +1,16 @@
 Fundamental Objects:
 
-Item - thing that a scanner found that might end up in the search index
+Document - a thing that a scanner found that might end up in the search index
 
-Step - Something that needs to be done to an item before it can be sent to the search index
+Step - a place in the DAG where a document can be modified using a processor
 
 Scanner - Step that finds stuff that we might want to index.
 
 Plan - a list of steps which when complete should either drop the item, or send it to the search index
+
+Router - a something that chooses the next step algorithmically based on the document contents.
+
+Processor - a something that plugs into a step to do something specific with a document
 
 Node - a JVM instance
 
