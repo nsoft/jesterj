@@ -12,7 +12,7 @@ Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki
 
 # Project Status
 
-Current release version: 0.1. (But current HEAD revision is *much* better, please build from source until 0.2)
+Current release version: 0.1. (But current HEAD revision is *much* better, please build from source until 1.0)
 
 # Slack Chanel
 If you want an invite to our slack channel just send mail to:
@@ -47,7 +47,7 @@ Release 0.1 is intended to be the smallest functional unit. Plans and steps will
 in code etc and only run locally, only single node supported. Documents indexed will have fields for mod-time, 
 file name and file size.
 
-## Progress for 0.2
+## Progress for 1.0
  * JDBC scanner
  * Cassandra based FTI
  * Document hashing to detect changed docs (any scanner)
@@ -55,18 +55,18 @@ file name and file size.
  * Ability to load Java based config from a jar file - experimental. 
  * More processors: Fetch URL, Regex Replace Value, Delete Field, Parse Field as Template, URL Encode Field
  
-The Java config feature is experimental. I wanted to use what I had built for a project but the lack of externalized configuration was a blocker. It was a quick fix but it's turnning out to be quite pleasant to work with. The down side is I'm not sure how it would carry forward to later stages of the project so it might still go away. Feedback welcome.
+The Java config feature is experimental, but working out better than expected. I wanted to use what I had built for a project but the lack of externalized configuration was a blocker. It was a quick fix but it's turnning out to be quite pleasant to work with. The down side is I'm not sure how it would carry forward to later stages of the project so it might still go away. Feedback welcome.
 
-## TODO for 0.2
+## TODO for 1.0
  * 50% [test coverage](https://codecov.io/gh/nsoft/jesterj) 
  * Build a demo jar that can be run to demonstrate the java config usage
  * Demo/tutorial to demonstrate indexing a database and a filesystem simultaneously into solr
  * Up to date docs in wiki.
  * Publish jars on Maven Central
 
-Release 0.2 is intended to be the minimum usable single node system.  
+Release 1.0 is intended to be the usable for single node systems, and therefore suitable for production use on small to medium sized projects.  
  
-## TODO for 0.3
+## TODO for 2.0
  * Serialized format for a plan/steps.
  * JINI Registrar 
  * Register Node Service on JINI Registrar
@@ -77,10 +77,10 @@ Release 0.2 is intended to be the minimum usable single node system.
  * Availability on maven central.
  * Build and run the 0.2 scenario via the control web-app.
  
-Release 0.3 is intended to be similar to 0.2 but with a very basic web control UI. At this point it should be
+Release 2.0 is intended to be similar to 1.0 but with a very basic web control UI. At this point it should be
 possible to install the war file, start a node, 
 
-## TODO for 1.0
+## TODO for 3.0
  * secure connections among nodes and with the web app. (credential provider)
  * Ensure nodes namespace their cassandra data dirs to avoid disasters if more than one node run per user account
  * Cassandra cluster formation 
@@ -88,7 +88,7 @@ possible to install the war file, start a node,
  * Support for adding helper nodes that scale a step or several steps horizontally.
  * Make the control UI pretty.
 
-Release 1.0 is intended to be the first release to spread work across nodes. 
+Release 3.0 is intended to be the first release to spread work across nodes. 
 
 # What is FTI?
 
