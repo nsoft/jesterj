@@ -1,3 +1,5 @@
+import java.text.SimpleDateFormat
+
 /*
  * Copyright 2013-2017 Needham Software LLC
  *
@@ -81,10 +83,11 @@ artifactory {
 
 apply plugin: 'idea'
 apply plugin: 'java'
-apply plugin: 'application'
 apply plugin: 'gradle-one-jar'
 apply plugin: 'jacoco'
 apply plugin: 'maven-publish'
+apply plugin: 'maven'
+apply plugin: 'signing'
 
 idea {
   module {
@@ -125,14 +128,15 @@ configurations {
   oneJarPack.exclude group: 'c3p0', module: 'c3p0'
   oneJarPack.extendsFrom runtime
 }
-version = '1.0-SNAPSHOT'
+version = '1.0-LOCAL'
 group = 'org.jesterj'
+
 
 publishing {
   publications {
     mavenJava(MavenPublication) {
       groupId project.group
-      artifactId 'ingest'
+      artifactId 'jesterj-ingest'
       version project.version
       from components.java
       artifact oneJar {
@@ -142,7 +146,6 @@ publishing {
   }
 }
 
-mainClassName = 'foo.bar.FOO'
 
 dependencies {
   compile 'org.apache.tika:tika-parsers:1.16'
@@ -244,4 +247,171 @@ task generateNotices() {
 jacocoTestReport.dependsOn test
 
 artifactoryPublish.dependsOn oneJar
+
+/*
+ Maven Publishing stuff to publish to central. This also allows you to publish
+ to a local repository on your system byt setting the version to -LOCAL instead
+ of -SNAPSHOT. Specifically:
+
+  To test pom and artifact generation locally...
+
+  1. Ensure GPG keyring in .gnupg dir
+  2. Check that the value (above) for ext.
+  3. Change version to remove -SNAPSHOT and add -LOCAL
+  4. Run gradle uploadArchives
+  5. observe archives uploaded to ext.uploadRepo (adjust location as needed)
+
+
+  To release to central
+
+  1. Ensure GPG keyring in .gnupg dir
+  2. Ensure passwords for sonatype in gradle.properties
+  3. Test the production of artifacts locally with -LOCAL (see above)
+  4. No really, test it, and read everything...
+  5. Seriously, don't skip #3!
+  6. Change version to remove -SNAPSHOT
+  7. Run gradle uploadRelease
+  8. Hope to hell you didn't miss anything in step 3....
+  9. you skipped #3? OMG you suck... *sigh*
+
+ */
+
+ext.isSnapshot = version.endsWith('-SNAPSHOT')
+ext.isLocal = version.endsWith('-LOCAL')
+ext.isRelease = !(isLocal || isSnapshot)
+
+ext.releaseRepo = 'https://oss.sonatype.org/service/local/staging/deploy/maven2'
+ext.snapshotRepo = 'https://oss.sonatype.org/content/repositories/snapshots'
+ext.testingRepo = 'file:///tmp/myRepo/'
+ext.uploadRepo = isRelease ? releaseRepo : (isSnapshot ? snapshotRepo : testingRepo)
+
+
+task uploadSnapshot(dependsOn: uploadArchives) << {}
+task uploadRelease(dependsOn: uploadArchives) << {}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+  classifier = 'sources'
+  from sourceSets.main.allSource
+  archiveName = 'jesterj-ingest-'+project.version+'-sources.jar'
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+  classifier = 'javadoc'
+  from javadoc.destinationDir
+  archiveName = 'jesterj-ingest-'+project.version+'-javadoc.jar'
+}
+
+artifacts {
+  archives sourcesJar
+  archives javadocJar
+}
+
+// A little idiot proofing...
+task checkUploadDest {
+  doLast {
+    if (gradle.taskGraph.hasTask(':uploadRelease')) {
+      if (isSnapshot) {
+        ant.fail('Release should not have suffix of -SNAPSHOT')
+      }
+      if (isLocal) {
+        ant.fail('Release should not have suffix of -LOCAL')
+      }
+    } else if (gradle.taskGraph.hasTask(':uploadSnapshot')) {
+      if (!isSnapshot) {
+        ant.fail('Snapshot should have suffix of SNAPSHOT')
+      }
+    } else {
+      if (!isLocal) {
+        ant.fail('This is not a local version, ' +
+            'please use either uploadRelease or uploadSnapshot, or change the version suffix to -LOCAL')
+      }
+    }
+  }
+}
+
+// Uncomment this to do sonatype uploads (fails on all other machines looking for gpg key otherwise
+//
+signing {
+    required { !isLocalVersion && gradle.taskGraph.hasTask('uploadArchives') }
+    sign configurations.archives
+}
+
+
+ext.isLocalVersion = !version.endsWith("LOCAL")
+
+uploadArchives {
+  it.dependsOn checkUploadDest
+  repositories {
+    mavenDeployer {
+      beforeDeployment { deployment -> signing.signPom(deployment) }
+      repository(url: project.uploadRepo) {
+        authentication(userName: sonatypeUsername, password: sonatypePassword)
+      }
+      pom.project {
+        parent {
+          groupId 'org.sonatype.oss'
+          artifactId 'oss-parent'
+          //noinspection GroovyAssignabilityCheck
+          version '7'
+        }
+        artifactId 'jesterj-ingest'
+        name 'JesterJ Ingester'
+        description 'Document ingestion for search'
+        url 'https://github.com/nsoft/jesterj'
+        licenses {
+          license {
+            name 'The Apache Software License, Version 2.0'
+            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            distribution 'repo'
+          }
+        }
+        scm {
+          connection 'scm:git:git@github.com:nsoft/jesterj.git'
+          developerConnection 'scm:git:git@github.com:nsoft/jesterj.git'
+          url 'git@github.com:nsoft/jesterj.git'
+        }
+        developers {
+          developer {
+            id 'nsoft'
+            name 'Patrick Heck'
+            email 'gus@needhamsoftware.com'
+          }
+        }
+      }
+      pom.withXml { root ->
+        def children = root.asNode().children()
+        def versionIndex = children.indexOf(children.find { it.name().localPart == 'version' })
+        // Stuff that sonatype wants... there may be a way to make these appear automatically but...
+        // http://issues.gradle.org/browse/GRADLE-1285
+        children.add(versionIndex + 1, new Node(null, 'packaging', 'jar'))
+      }
+    }
+  }
+}
+
+jar.manifest.attributes getManifestAttributes()
+sourcesJar.manifest.attributes getManifestAttributes()
+javadocJar.manifest.attributes getManifestAttributes()
+
+@SuppressWarnings("GroovyAssignabilityCheck")
+def getManifestAttributes() {
+  Map<String, String> attrs = new LinkedHashMap<>();
+  attrs.put('Implementation-Title', project.name)
+  attrs.put('Implementation-Version', version)
+  attrs.put('Build-Timestamp', getTimestamp())
+  attrs.put('Build-Jdk', getJdk())
+  attrs.put('Build-Tool', GradleVersion.current())
+  return attrs
+}
+
+def getTimestamp() {
+  def dt = new Date()
+  def df = new SimpleDateFormat('yyyy-MM-dd HH:mm:ss', Locale.ENGLISH)
+  df.format(dt)
+}
+
+def getJdk() {
+  "${System.getProperty('java.version')} (${System.getProperty('java.vm.vendor')} ${System.getProperty('java.vm.version')})"
+}
+
 
