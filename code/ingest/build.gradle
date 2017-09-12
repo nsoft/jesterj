@@ -128,7 +128,7 @@ configurations {
   oneJarPack.exclude group: 'c3p0', module: 'c3p0'
   oneJarPack.extendsFrom runtime
 }
-version = '1.0-LOCAL'
+version = '1.0-SNAPSHOT'
 group = 'org.jesterj'
 
 
