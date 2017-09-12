@@ -249,6 +249,7 @@ jacocoTestReport.dependsOn test
 artifactoryPublish.dependsOn oneJar
 
 /*
+
  Maven Publishing stuff to publish to central. This also allows you to publish
  to a local repository on your system byt setting the version to -LOCAL instead
  of -SNAPSHOT. Specifically:
