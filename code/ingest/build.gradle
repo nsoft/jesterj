@@ -106,8 +106,8 @@ repositories {
   }
   maven {
     credentials {
-      username = project.hasProperty("jj_artifactory_user") ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
-      password = project.hasProperty("jj_artifactory_password") ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
+      username = propOrDefault("jj_artifactory_user", System.env.ARTIFACTORY_USER)
+      password = propOrDefault("jj_artifactory_password", System.env.ARTIFACTORY_PASSWORD)
     }
     url 'https://jesterj.jfrog.io/jesterj/libs-release/'
   }
@@ -346,7 +346,7 @@ uploadArchives {
     mavenDeployer {
       beforeDeployment { deployment -> signing.signPom(deployment) }
       repository(url: project.uploadRepo) {
-        authentication(userName: sonatypeUsername, password: sonatypePassword)
+        authentication(userName: propOrDefault('sonatypeUsername','foo'), password: propOrDefault('sonatypePassword','foo'))
       }
       pom.project {
         parent {
@@ -415,4 +415,6 @@ def getJdk() {
   "${System.getProperty('java.version')} (${System.getProperty('java.vm.vendor')} ${System.getProperty('java.vm.version')})"
 }
 
-
+def propOrDefault(String prop, String defaultVal) {
+  return project.hasProperty(prop) ? project.getProperty(prop) : defaultVal
+}
