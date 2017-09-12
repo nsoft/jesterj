@@ -58,7 +58,7 @@ public interface JiniServiceProvider {
   /**
    * Get the readiness of this object for jini service connections
    *
-   * @return
+   * @return true if the object is ready for connections
    */
   boolean readyForJiniRequests();
 }

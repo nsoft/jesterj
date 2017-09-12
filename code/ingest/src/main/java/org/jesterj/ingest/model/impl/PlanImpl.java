@@ -181,6 +181,7 @@ public class PlanImpl implements Plan {
      * @param step         the step to add, must not be null
      * @param predecessors the stepsMap that this step should follow. If null, step must build a scanner. The step must have a
      *                     step name that is unique.
+     * @return this builder object for chaining
      */
     public Builder addStep(StepImpl.Builder step, String... predecessors) {
       if (!step.isValid()) {

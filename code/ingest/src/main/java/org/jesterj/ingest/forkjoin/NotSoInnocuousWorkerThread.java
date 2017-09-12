@@ -18,7 +18,6 @@ package org.jesterj.ingest.forkjoin;
 
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
-
 /*
  * Created with IntelliJ IDEA.
  * User: gus
@@ -26,8 +25,10 @@ import java.util.concurrent.ForkJoinWorkerThread;
  */
 
 /**
- * A worker thread without all the crazy restrictions of {@link InnocuousForkJoinWorkerThread}. This
- * thread should be a normal thread with normal permissions just like the rest of the application.
+ * A worker thread without all the crazy restrictions of
+ * <tt>java.util.concurrent.ForkJoinWorkerThread.InnocuousForkJoinWorkerThread</tt>.
+ * This thread should be a normal thread with normal permissions just like the
+ * rest of the application.
  */
 public class NotSoInnocuousWorkerThread extends ForkJoinWorkerThread {
   /**

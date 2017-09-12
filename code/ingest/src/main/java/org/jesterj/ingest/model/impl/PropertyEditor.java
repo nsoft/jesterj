@@ -25,8 +25,6 @@ package org.jesterj.ingest.model.impl;
 
 /**
  * Just a sketch... subject to radical change. DONT USE YET
- *
- * @param <T>
  */
 public interface PropertyEditor<T> {
   String encode(T value);

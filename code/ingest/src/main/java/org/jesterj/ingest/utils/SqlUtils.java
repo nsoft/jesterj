@@ -45,6 +45,8 @@ public class SqlUtils {
    *          the JDBC user
    * @param jdbcPassword
    *          the JDBC password
+   * @param autoCommit
+   *          whether or not the connection should autocommit
    * @return a connection JDBC connection
    * @throws ConfigurationException
    *           on configuration error
@@ -59,7 +61,7 @@ public class SqlUtils {
     boolean autoCommit)
     throws ConfigurationException, PersistenceException {
 
-    Connection connection = null;
+    Connection connection;
 
     try {
       // Register the driver

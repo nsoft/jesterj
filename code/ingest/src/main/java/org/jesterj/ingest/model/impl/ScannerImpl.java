@@ -528,7 +528,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     /**
      * The scanning frequency. 25ms is the minimum. Smaller intervals will be treated as 25ms
      *
-     * @param interval a number of milliseconds >= 25
+     * @param interval a number of milliseconds &gt;= 25
      * @return This builder object for further configuration.
      */
     public ScannerImpl.Builder scanFreqMS(long interval) {

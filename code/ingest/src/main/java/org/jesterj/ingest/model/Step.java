@@ -49,13 +49,13 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Documen
    * Get the getNext step in the plan for the given document
    *
    * @return the getNext step
+   * @param d the document for which a next step should be determined.
    */
   Step[] getNext(Document d);
 
   /**
    * Get all the steps to which a document might travel
    *
-   * @experimental
    * @return downstream steps
    */
   Step[] getSubsequentSteps();
@@ -67,12 +67,12 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Documen
    */
   Plan getPlan();
 
-  /**
-   * Determine if this step is the last step in a helper node. Implementations that need to overide the
-   * default behavior are almost inconceivable.
-   *
-   * @return true if this is the last step in a helper node, false otherwise.
-   */
+//  /**
+//   * Determine if this step is the last step in a helper node. Implementations that need to overide the
+//   * default behavior are almost inconceivable.
+//   *
+//   * @return true if this is the last step in a helper node, false otherwise.
+//   */
 //  default boolean isFinalHelper() {
 //    Plan plan = getPlan();
 //    if (plan == null) {

@@ -35,6 +35,7 @@ public interface ConfiguredBuildable<T> extends Buildable<T> {
   /**
    * Represent the state of the supplied object as Yaml.
    *
+   * @param obj the object to convert to yaml
    * @return a yaml string
    */
   String toYaml(T obj);
@@ -47,12 +48,12 @@ public interface ConfiguredBuildable<T> extends Buildable<T> {
    */
   ConfiguredBuildable<T> fromYaml(String yaml);
 
-  /**
-   * Construct an object from yaml and replace the current internal object with the newly constructed one.
-   *
-   * @param stream A UTF-8 stream containing yaml
-   * @return this buildable object
-   */
+//  /**
+//   * Construct an object from yaml and replace the current internal object with the newly constructed one.
+//   *
+//   * @param stream A UTF-8 stream containing yaml
+//   * @return this buildable object
+//   */
 //  default ConfiguredBuildable<T> fromYaml(InputStream stream) throws IOException {
 //    return fromYaml(IOUtils.toString(stream, "UTF-8"));
 //  }

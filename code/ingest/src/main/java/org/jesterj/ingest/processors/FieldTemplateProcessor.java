@@ -31,7 +31,7 @@ import java.util.List;
  * the fields being referenced can contain multiple values, so one usually wants to write <code>$foobar[0]</code>, not
  * $<code>foobar</code>. The latter will lead to replacement with <code>[foo]</code> if only one value or
  * <code>[foo,bar,baz]</code> if 3 values are presently held in the field.
- * <p>
+ * <p>&nbsp;
  * <p>WARNING: this uses the velocity templating engine which is a powerful, but potentially dangerous technique!!
  * You want to ensure that the template is NOT derived from and does NOT CONTAIN any text that is provided by users
  * or other untrustworthy sources before it is interpreted by this processor. If you allow user data to be interpreted

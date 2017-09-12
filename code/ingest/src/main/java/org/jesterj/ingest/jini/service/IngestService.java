@@ -39,6 +39,8 @@ public interface IngestService {
    * Install the supplied plan into this ingestion node. Installation of a plan removes the existing plan
    * from the node. The installed plan will be in the deactivated state until {@link #activate(Plan)} is
    * called.
+   *
+   * @param plan the plan to install.
    */
   void installPlan(Plan plan);
 

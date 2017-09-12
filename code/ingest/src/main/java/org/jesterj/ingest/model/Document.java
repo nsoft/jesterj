@@ -94,6 +94,8 @@ public interface Document extends ListMultimap<String, String>, Serializable {
 
   /**
    * Returns the identifier for this document. This should be identical to get(getIdField()).
+   *
+   * @return the id
    */
   String getId();
 

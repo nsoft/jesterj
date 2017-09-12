@@ -40,7 +40,6 @@ public interface Scanner extends Step {
    * scanning process. The default transformation is an identity transform.
    *
    * @return the function to map ID to new ID
-   * @experimental This may go away...
    */
   Function<String, String> getIdFunction();
 
@@ -62,7 +61,7 @@ public interface Scanner extends Step {
    * doing work, and {@link org.jesterj.ingest.model.impl.ScannerImpl#scanFinished()}
    * when it has completed any work for which concurrency might be relevant.
    * <p>
-   * return a {@link Runnable} object that locates documents.
+   * @return a {@link Runnable} object that locates documents.
    */
   Runnable getScanOperation();
 
