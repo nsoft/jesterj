@@ -80,7 +80,7 @@ public class ShakespeareConfig implements PlanProvider {
             .named("tika")
         );
     sendToSolrBuilder
-        .named("solr sender")
+        .named("solr_sender")
         .withProcessor(
             new SendToSolrCloudProcessor.Builder()
                 .withZookeeper("localhost:9983")

@@ -84,4 +84,6 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Documen
 
   void sendToNext(Document doc);
 
+  Step[] getPossibleSideEffects();
+
 }

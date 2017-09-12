@@ -43,6 +43,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -87,6 +88,8 @@ public class StepImpl implements Step {
   private Cloner<Document> cloner = new Cloner<>();
 
   private List<Runnable> deferred = new ArrayList<>();
+  private final Object sideEffectListLock = new Object();
+  private Step[] possibleSideEffects;
 
   StepImpl() {
   }
@@ -304,6 +307,39 @@ public class StepImpl implements Step {
   @Override
   public void sendToNext(Document doc) {
     pushToNextIfOk(doc);
+  }
+
+  @Override
+  public Step[] getPossibleSideEffects() {
+    if (this.possibleSideEffects == null) {
+      synchronized (sideEffectListLock) {
+        if (this.possibleSideEffects == null) {
+          if (nextSteps.isEmpty()) {
+            if (processor.hasExternalSideEffects()) {
+              possibleSideEffects = new Step[] {this};
+            } else {
+              // oddball case! but shoudlnt
+              possibleSideEffects = new Step[0];
+            }
+          } else {
+            Step[][] subEffects = new Step[nextSteps.size()][];
+            ArrayList<Step> values = new ArrayList<>(nextSteps.values());
+            for (int i = 0; i < values.size(); i++) {
+              subEffects[i] = values.get(i).getPossibleSideEffects();
+            }
+            ArrayList<Step> tmp = new ArrayList<>();
+            for (Step[] subEffect : subEffects) {
+              Collections.addAll(tmp, subEffect);
+            }
+            if (processor.hasExternalSideEffects()) {
+              tmp.add(this);
+            }
+            possibleSideEffects = tmp.toArray(new Step[tmp.size()]);
+          }
+        }
+      }
+    }
+    return possibleSideEffects;
   }
 
   private void pushToNextIfOk(Document document) {

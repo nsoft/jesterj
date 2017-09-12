@@ -36,4 +36,9 @@ public interface DocumentProcessor extends Configurable {
    */
   Document[] processDocument(Document document);
 
+  default boolean hasExternalSideEffects() {
+    return false;
+  }
+
+  ;
 }

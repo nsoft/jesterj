@@ -66,6 +66,11 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
   }
 
   @Override
+  public boolean hasExternalSideEffects() {
+    return true;
+  }
+
+  @Override
   protected void individualFallbackOperation(ConcurrentBiMap<Document, SolrInputDocument> oldBatch, Exception e) {
     // TODO: send in bisected batches to avoid massive traffic down due to one doc when batches are large
     for (Document document : oldBatch.keySet()) {

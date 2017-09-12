@@ -71,6 +71,11 @@ public class ElasticSender extends BatchProcessor<ActionRequest> {
     }
   }
 
+  @Override
+  public boolean hasExternalSideEffects() {
+    return true;
+  }
+
   void handleRetryResult(Exception e, Map<ActionFuture, ActionRequest> futures, ActionFuture individualRetry, ConcurrentBiMap<Document, ActionRequest> oldBatch) {
     ActionRequest request = futures.get(individualRetry);
     Document document = oldBatch.inverse().get(request);
