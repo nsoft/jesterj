@@ -12,7 +12,26 @@ Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki
 
 # Project Status
 
-Current release version: 0.1. (But current HEAD revision is *much* better, please build from source until 1.0)
+Current release version: 1.0-beta1. Final 1.0 expected before 2018.
+
+Can be used with gradle configuration:
+
+    repositories {
+      mavenCentral()
+      maven {
+        url 'https://jesterj.jfrog.io/jesterj/libs-release/'
+      }
+      maven {
+        url 'https://clojars.org/repo'
+      }
+    }
+
+    dependencies {
+      compile ('org.jesterj:ingest:1.0-SNAPSHOT')
+    }
+
+The extra repos are for a patched version of cassandra, and should go away in future releases (see https://issues.apache.org/jira/browse/CASSANDRA-13396). The clojars repo is for is for a clojure based implementation
+of docopt, which will hopefully become unnecessary in future versions.
 
 # Slack Chanel
 If you want an invite to our slack channel just send mail to:
@@ -54,15 +73,16 @@ file name and file size.
  * Node and Transport style senders for Elastic
  * Ability to load Java based config from a jar file - experimental. 
  * More processors: Fetch URL, Regex Replace Value, Delete Field, Parse Field as Template, URL Encode Field
+ * Publish jars on Maven Central
+ * Up to date docs in wiki.
  
 The Java config feature is experimental, but working out better than expected. I wanted to use what I had built for a project but the lack of externalized configuration was a blocker. It was a quick fix but it's turnning out to be quite pleasant to work with. The down side is I'm not sure how it would carry forward to later stages of the project so it might still go away. Feedback welcome.
 
-## TODO for 1.0
+## TODO for 1.0 final
  * 50% [test coverage](https://codecov.io/gh/nsoft/jesterj) 
+ * fix https://github.com/nsoft/jesterj/issues/84
  * Build a demo jar that can be run to demonstrate the java config usage
  * Demo/tutorial to demonstrate indexing a database and a filesystem simultaneously into solr
- * Up to date docs in wiki.
- * Publish jars on Maven Central
 
 Release 1.0 is intended to be the usable for single node systems, and therefore suitable for production use on small to medium sized projects.  
  
