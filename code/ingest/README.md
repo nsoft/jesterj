@@ -1,28 +1,22 @@
+# Ingest
+
+This portion of jesterj defines a software package that can be run to effect the transport of documents into a search engine. This software is entirely back end with no UI other than log file output. (A UI will be created in subseqent releases). The primary things that set the current release of Jesterj appart from tradditional ETL and many other solutions for getting documents into search engines are:
+
+1. It is built for search. Transformations are performed on ket to list of value datastructures, not rows (Documents), gone are the days of repeatedly splitting and joining delimited lists when manipulating data for multivalue fields! 
+1. Zero config startup for simple to moderate projects
+1. Built in fault tolerance out of the box
+1. Ability to handle branched and joined paths
 
 # Running
 
+1. Download the "node" jar [for our latest release](https://github.com/nsoft/jesterj/releases/download/1.0-beta1/jesterj-node-1.0-beta1.jar) 
+
 To run the ingest node use the following command line. 
 
-java -jar build/libs/ingest-node.jar 
+java -jar build/libs/jesterj-node-1.0-beta1.jar 
 
 This will print usage info. This jar contains all dependencies, and thus can be copied to any machine and run
-without any additional setup. It will create &lt;user_home_dir&gt;/.jj and place cassandra related files there.
+without any additional setup. It will create &lt;user_home_dir&gt;/.jj and place logs and files needed for it's embedded cassandra database there. These directories can be relocated via symlinks if desired after they have been created.
 
-# Watch It Go
+However without an implementation of a PlanProvider, we can't do much useful, so next you'll want to check out our [Documentation](https://github.com/nsoft/jesterj/wiki/Documentation)
 
-If you set up a solr cloud with zookeeper at 9983 on localhost and a collection named jjtest that is configured 
-similarly to the dynamic schema example that comes with solr, the following command will index the complete works 
-of William Shakespeare into your index:
-
-    java -Djj.example=solr -jar ingest-node.jar foo bar
- 
-If you prefer elastic set up elastic on port localhost:9300 and use the command
- 
-    java -Djj.example=elastic -jar ingest-node.jar foo bar
- 
-And if you prefer overkill set both up and use:
-
-     java -Djj.example=both -jar ingest-node.jar foo bar
-
-The code that sets this up and runs it starts at 
-[Line 162 of Main.java](https://github.com/nsoft/jesterj/blob/master/code/ingest/src/main/java/org/jesterj/ingest/Main.java#L162)
