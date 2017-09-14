@@ -9,11 +9,8 @@ This portion of jesterj defines a software package that can be run to effect the
 
 # Running
 
-1. Download the "node" jar [for our latest release](https://github.com/nsoft/jesterj/releases/download/1.0-beta1/jesterj-node-1.0-beta1.jar) 
-
-To run the ingest node use the following command line. 
-
-java -jar build/libs/jesterj-node-1.0-beta1.jar 
+1. Download the "node" jar [for our latest release](https://github.com/nsoft/jesterj/releases/download/1.0-beta1/jesterj-node-1.0-beta1.jar)
+1. java -jar jesterj-node-1.0-beta1.jar 
 
 This will print usage info. This jar contains all dependencies, and thus can be copied to any machine and run
 without any additional setup. It will create &lt;user_home_dir&gt;/.jj and place logs and files needed for it's embedded cassandra database there. These directories can be relocated via symlinks if desired after they have been created.
