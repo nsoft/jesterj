@@ -3,7 +3,7 @@
 This portion of jesterj defines a software package that can be run to effect the transport of documents into a search engine. This software is entirely back end with no UI other than log file output. (A UI will be created in subseqent releases). The primary things that set the current release of Jesterj appart from tradditional ETL and many other solutions for getting documents into search engines are:
 
 1. It is built for search. Transformations are performed on ket to list of value datastructures, not rows (Documents), gone are the days of repeatedly splitting and joining delimited lists when manipulating data for multivalue fields! 
-1. Zero config startup for simple to moderate projects
+1. Zero infrastructure config for simple to moderate projects. No database to setup or connect, no hadoop or spark cluster to build out, no need to push configs or state into zookeeper. All you need is the data source, the search engine, a Plan for processing the data and this jar file.
 1. Built in fault tolerance out of the box
 1. Ability to handle branched and joined paths
 
