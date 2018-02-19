@@ -48,7 +48,8 @@ public class FetchUrl implements DocumentProcessor {
   private long throttleMs;
   private String errorField;
   private String httpStatusField;
-  private int timeOut = 5000; //defaulting to 5000 ms
+  private int ConnectionTimeOut = 5000; //defaulting to 5000 ms
+  private int ReadTimeOut = 5000; //defaulting to 5000 ms
 
   @Override
   public Document[] processDocument(Document document) {
@@ -162,8 +163,13 @@ public class FetchUrl implements DocumentProcessor {
       return this;
     }
 
-    public FetchUrl.Builder withTimeOut (int timeOut) {
-      getObj().timeOut = timeOut;
+    public FetchUrl.Builder withConnectionTimeOut (int timeOut) {
+      getObj().ConnectionTimeOut = timeOut;
+      return this;
+    }
+
+    public FetchUrl.Builder withReadTimeOut (int timeOut) {
+      getObj().ReadTimeOut = timeOut;
       return this;
     }
 
