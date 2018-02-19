@@ -165,6 +165,7 @@ public class FetchUrl implements DocumentProcessor {
     public FetchUrl.Builder withTimeOut (int timeOut) {
       getObj().timeOut = timeOut;
       return this;
+    }
 
     private void setObj(FetchUrl obj) {
       this.obj = obj;
