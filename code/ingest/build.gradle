@@ -1,7 +1,7 @@
 import java.text.SimpleDateFormat
 
 /*
- * Copyright 2013-2017 Needham Software LLC
+ * Copyright 2013-2018 Needham Software LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,11 @@ import java.text.SimpleDateFormat
 buildscript {
   repositories {
     maven {
-      credentials {
-        username = project.hasProperty("jj_artifactory_user") ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
-        password = project.hasProperty("jj_artifactory_password") ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
-      }
       url 'https://jesterj.jfrog.io/jesterj/libs-release/'
     }
     flatDir {
       dir 'onejar'
     }
-
   }
   dependencies {
     //Check for the latest version here: http://plugins.gradle.org/plugin/com.jfrog.artifactory

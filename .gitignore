@@ -45,6 +45,7 @@ build
 *~
 .~lock.*
 workspace.xml
+.idea
 
 # Eclipse related #
 ###################
