@@ -26,6 +26,11 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.BindException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.nio.channels.ServerSocketChannel;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.Callable;
@@ -89,6 +94,24 @@ public class Cassandra {
 
       ConfigurationLoader cl = new YamlConfigurationLoader();
       Config conf = cl.loadConfig();
+
+      try {
+        ServerSocket s = new ServerSocket(0);
+        int freePort = s.getLocalPort();
+        s.close();
+        ServerSocketChannel testSocket = ServerSocketChannel.open();
+        InetSocketAddress addr = new InetSocketAddress(conf.listen_address, freePort);
+        // the line below is what has to work when cassandra tries to do it (only on cassandra's port)
+        testSocket.bind(addr);
+        testSocket.close();
+      } catch (BindException e) {
+        // try not to blow up every time we want to demo something on someone else's wireless...
+        System.out.println("WARNING: ipAddress has changed, temporarily picking new address");
+        CassandraConfig cfg = new CassandraConfig(cassandraDir.getCanonicalPath());
+        cfg.guessIp();
+        conf.listen_address = cfg.getListen_address();
+      }
+
       listenAddress = conf.listen_address;
 
       System.out.println("Listen Address:" + listenAddress);
