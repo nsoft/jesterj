@@ -28,6 +28,8 @@ import org.reflections.Reflections;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -118,7 +120,20 @@ public class Main {
 
           // Next check our args and die if they are FUBAR
           Map<String, Object> parsedArgs = usage(args);
+          String outfile = (String) parsedArgs.get("-z");
 
+          String javaConfig = System.getProperty("jj.javaConfig");
+          System.out.println("Looking for configuration class in " + javaConfig);
+          if (outfile != null) {
+            // in this case we aren't starting a node, and we don't care if logging doesn't make it to
+            // cassandra (in fact better if it doesn't) so go ahead and call what we like INSIDE this if
+            // block only.
+            Plan p = runJavaConfig(javaConfig);
+            System.out.println("Generating visualization for " + p.getName() + " into " + outfile);
+            BufferedImage img = p.visualize();
+            ImageIO.write(img, "PNG", new File(outfile));
+            System.exit(0);
+          }
           startCassandra(parsedArgs);
 
           // now we are allowed to look at log4j2.xml
@@ -129,10 +144,10 @@ public class Main {
             log.trace(prop + "=" + sysProps.get(prop));
           }
 
-          String javaConfig = System.getProperty("jj.javaConfig");
           if (javaConfig != null) {
-            log.info("Looking for configuration class in {}", javaConfig);
-            runJavaConfig(javaConfig);
+            Plan p = runJavaConfig(javaConfig);
+            log.info("Activating Plan: {}", p.getName());
+            p.activate();
           } else {
             System.out.println("Please specify the java config via -Djj.javaConfig=<location of jar file>");
             System.exit(1);
@@ -160,7 +175,7 @@ public class Main {
 
       });
       // unfortunately due to the hackery necessary to get things playing nice with one-jar, the contextClassLoader
-      // is now out of sync with the system class loader, which messe up the Reflections library. So hack on hack...
+      // is now out of sync with the system class loader, which messes up the Reflections library. So hack on hack...
       Field _f_contextClassLoader = Thread.class.getDeclaredField("contextClassLoader");
       _f_contextClassLoader.setAccessible(true);
       _f_contextClassLoader.set(contextClassLoaderFix, ClassLoader.getSystemClassLoader());
@@ -189,7 +204,7 @@ public class Main {
   }
 
 
-  static void runJavaConfig(String javaConfig) throws InstantiationException, IllegalAccessException {
+  static Plan runJavaConfig(String javaConfig) throws InstantiationException, IllegalAccessException {
     ClassLoader onejarLoader = null;
     File file = new File(javaConfig);
     if (!file.exists()) {
@@ -219,13 +234,13 @@ public class Main {
     Reflections reflections = new Reflections(new ConfigurationBuilder().addUrls(ClasspathHelper.forClassLoader(onejarLoader)));
     ArrayList<Class> planProducers = new ArrayList<>(reflections.getTypesAnnotatedWith(JavaPlanConfig.class));
 
-    log.info("Found the following @JavaPlanConfig classes (first in list will be used):{}", planProducers);
-
+    if (log != null) {
+      // can be null when outputting a visualization
+      log.info("Found the following @JavaPlanConfig classes (first in list will be used):{}", planProducers);
+    }
     Class config = planProducers.get(0);
     PlanProvider provider = (PlanProvider) config.newInstance();
-    Plan plan = provider.getPlan();
-    log.info("Activating Plan: {}", plan.getName());
-    plan.activate();
+    return provider.getPlan();
   }
 
   // will come back in some form when we serialize config to a file.. 
@@ -299,7 +314,7 @@ public class Main {
         System.out.printf("   %s:%s\n", s, result.get(s));
       }
     }
-    if (result == null || result.get("--help") != null) {
+    if (result == null || ((boolean) (result.get("--help")))) {
       System.out.println(usageStr);
       System.exit(1);
     }
@@ -313,12 +328,11 @@ public class Main {
    * @return true if the system is shutting down
    */
 
-  public static boolean isShuttingDown()
-  {
+  public static boolean isShuttingDown() {
     try {
       Runtime.getRuntime().addShutdownHook(DUMMY_HOOK);
       Runtime.getRuntime().removeShutdownHook(DUMMY_HOOK);
-    } catch ( IllegalStateException e ) {
+    } catch (IllegalStateException e) {
       return true;
     }
 

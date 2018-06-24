@@ -172,6 +172,7 @@ dependencies {
   compile('com.needhamsoftware:easier-mock:2.0')
   compile 'net.jini:jsk-platform:2.2.2'
   compile 'docopt:docopt:0.6.1'
+  compile 'guru.nidi:graphviz-java:0.5.2'
 
   testCompile 'junit:junit:4.11'
   testCompile 'com.needhamsoftware:easier-mock:2.0'

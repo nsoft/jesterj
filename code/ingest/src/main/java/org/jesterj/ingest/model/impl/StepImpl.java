@@ -342,6 +342,10 @@ public class StepImpl implements Step {
     return possibleSideEffects;
   }
 
+  LinkedHashMap<String, Step> getNextSteps() {
+    return nextSteps;
+  }
+
   private void pushToNextIfOk(Document document) {
     log.trace("starting push to next if ok {} for {}", getName(), document.getId());
     if (document.getStatus() == Status.PROCESSING) {

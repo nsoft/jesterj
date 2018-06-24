@@ -18,6 +18,8 @@ package org.jesterj.ingest.model;
 
 import org.jesterj.ingest.config.Transient;
 
+import java.awt.image.BufferedImage;
+
 /*
  * Created with IntelliJ IDEA.
  * User: gus
@@ -72,5 +74,12 @@ public interface Plan extends JiniServiceProvider, Active, Configurable {
    * @return the step if found or null if the name does not match any steps.
    */
   Step findStep(String stepName);
+
+  /**
+   * Produce an image visualization of this plan
+   *
+   * @return An image visualizing the plan as a directed graph.
+   */
+  BufferedImage visualize();
 
 }
