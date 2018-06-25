@@ -17,6 +17,8 @@
 package org.jesterj.ingest.model.impl;
 
 import com.google.common.collect.ArrayListMultimap;
+import guru.nidi.graphviz.attribute.Color;
+import guru.nidi.graphviz.attribute.Style;
 import guru.nidi.graphviz.engine.Format;
 import guru.nidi.graphviz.engine.Graphviz;
 import guru.nidi.graphviz.model.Factory;
@@ -55,7 +57,7 @@ public class PlanImpl implements Plan {
 
   @Override
   public Step[] getExecutableSteps() {
-    // for now... 
+    // for now...
     return getStepsMap().values().toArray(new Step[getStepsMap().values().size()]);
   }
 
@@ -90,7 +92,6 @@ public class PlanImpl implements Plan {
     }
     List<String> linkedSteps = new ArrayList<>();
     for (Step step : scanners) {
-      linkedSteps.add(step.getName());
       linkUp(nodes, linkedSteps, (StepImpl) step); // build nodes recursively
     }
     Graph g = graph("visualize").directed();
@@ -102,23 +103,27 @@ public class PlanImpl implements Plan {
     return tmp.render(Format.PNG).toImage();
   }
 
-  private void linkUp(Map<String, Node> nodes, List<String> linkedSteps, StepImpl step) {
+  private void linkUp(Map<String, Node> nodes, List<String> knownSteps, StepImpl step) {
     LinkedHashMap<String, Step> nextSteps = step.getNextSteps();
+    Node node = nodes.computeIfAbsent(step.getName(), Factory::node);
+    if (step instanceof Scanner) {
+      node= node.with(Color.BLUE,Style.lineWidth(3));
+      nodes.replace(step.getName(), node);
+    }
+    knownSteps.add(step.getName());
     if (nextSteps.size() == 0) {
-      nodes.computeIfAbsent(step.getName(), Factory::node);
       return;
     }
     for (Step subsequentStep : nextSteps.values()) {
-      if (linkedSteps.contains(subsequentStep.getName())) {
-        // we've already visited the next step
-        continue;
+      if (!knownSteps.contains(subsequentStep.getName())) {
+        // new node, need to recurse
+        linkUp(nodes, knownSteps, (StepImpl) subsequentStep);  // yuck but I don't really want to expose next steps in interface either
       }
-      linkedSteps.add(subsequentStep.getName());
-      linkUp(nodes, linkedSteps, (StepImpl) subsequentStep);  // yuck but I don't really want to expose next steps in interface either
-      Node linked = nodes.computeIfAbsent(step.getName(), Factory::node).link(nodes.get(subsequentStep.getName()));
+      Node nextNode = nodes.get(subsequentStep.getName());
+      node = node.link(nextNode);
       // link returns an immutable copy of the node we just created, so we need
       // to throw out the original and keep the copy
-      nodes.put(step.getName(), linked);
+      nodes.put(step.getName(), node);
     }
   }
 
