@@ -33,6 +33,10 @@ Can be used with gradle configuration:
 The extra repos are for a patched version of cassandra, and should go away in future releases (see https://issues.apache.org/jira/browse/CASSANDRA-13396). The clojars repo is for is for a clojure based implementation
 of docopt, which will hopefully become unnecessary in future versions.
 
+# JDK versions
+
+Presently only JDK 8 has been supported. JDK 9/10 will not be explicitly supported. Now that JDK 11 is out as an LTS version, support for it will commence.
+
 # Slack Chanel
 If you want an invite to our slack channel just send mail to:
 ```
