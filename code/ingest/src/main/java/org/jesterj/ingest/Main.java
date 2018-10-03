@@ -122,13 +122,13 @@ public class Main {
           Map<String, Object> parsedArgs = usage(args);
           String outfile = (String) parsedArgs.get("-z");
 
-          String javaConfig = System.getProperty("jj.javaConfig");
+          String javaConfig = (String) parsedArgs.get("<plan.jar>");
           System.out.println("Looking for configuration class in " + javaConfig);
           if (outfile != null) {
             // in this case we aren't starting a node, and we don't care if logging doesn't make it to
             // cassandra (in fact better if it doesn't) so go ahead and call what we like INSIDE this if
             // block only.
-            Plan p = runJavaConfig(javaConfig);
+            Plan p = loadJavaConfig(javaConfig);
             System.out.println("Generating visualization for " + p.getName() + " into " + outfile);
             BufferedImage img = p.visualize();
             ImageIO.write(img, "PNG", new File(outfile));
@@ -145,7 +145,7 @@ public class Main {
           }
 
           if (javaConfig != null) {
-            Plan p = runJavaConfig(javaConfig);
+            Plan p = loadJavaConfig(javaConfig);
             log.info("Activating Plan: {}", p.getName());
             p.activate();
           } else {
@@ -204,7 +204,7 @@ public class Main {
   }
 
 
-  static Plan runJavaConfig(String javaConfig) throws InstantiationException, IllegalAccessException {
+  static Plan loadJavaConfig(String javaConfig) throws InstantiationException, IllegalAccessException {
     ClassLoader onejarLoader = null;
     File file = new File(javaConfig);
     if (!file.exists()) {

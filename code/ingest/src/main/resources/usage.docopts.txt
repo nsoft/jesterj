@@ -3,9 +3,9 @@ Start an ingester process supplying a password required to configure it. A prefi
 java -jar is presumed for all usage below.
 
 Usage:
-  ingest-node.jar [options] <id> <secret>
+  ingest-node.jar [options] <plan.jar> <id> <secret>
 
 Options:
   --help -h                show this message
-  -z OUT_PNG             visualize the plan with graphviz instead of running it
+  -z OUT_PNG               visualize the plan with graphviz instead of running it
   --cassandra-home=<dir>   cassandra db location (defaults to ~/.jj/cassandra).
