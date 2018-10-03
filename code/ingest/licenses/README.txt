@@ -260,7 +260,7 @@ xmlbeans-2.6.0.jar                       === has license type ===>     Apache-2.
 xmlschema-core-2.2.1.jar                 === has license type ===>     Apache-2.0
 xmpcore-5.1.2.jar                        === has license type ===>     BSD-3-Clause
 xz-1.6.jar                               === has license type ===>     Public Domain
+zookeeper-3.4.6.jar                      === has license type ===>     Apache-2.0
 
 ^^^ fully documented ^^^ ---- vvv may or may not be documented vvv
 
-zookeeper-3.4.6.jar                      === has license type ===>     Apache-2.0
