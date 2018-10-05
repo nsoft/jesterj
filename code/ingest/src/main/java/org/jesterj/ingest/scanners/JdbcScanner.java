@@ -85,17 +85,6 @@ public class JdbcScanner extends ScannerImpl {
   private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_INSTANT;
 
   @Override
-  public Function<String, String> getIdFunction() {
-    return s -> s;
-  }
-
-  @Override
-  public Consumer<Document> getDocumentTracker() {
-    return document -> {
-    };
-  }
-
-  @Override
   public void activate() {
     ready = true;
     super.activate();

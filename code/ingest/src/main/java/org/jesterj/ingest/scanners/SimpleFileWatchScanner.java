@@ -68,19 +68,6 @@ public class SimpleFileWatchScanner extends ScannerImpl {
 
   @Transient
   @Override
-  public Function<String, String> getIdFunction() {
-    return s -> s;
-  }
-
-  @Transient
-  @Override
-  public Consumer<Document> getDocumentTracker() {
-    return document -> {
-    };
-  }
-
-  @Transient
-  @Override
   public Runnable getScanOperation() {
     return () -> {
       // set up our watcher if needed
