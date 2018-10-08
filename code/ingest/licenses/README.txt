@@ -171,9 +171,9 @@ juniversalchardet-1.0.3.jar              === has license type ===>     Mozilla-1
 junrar-0.7.jar                           === has license type ===>     UnRar
 libthrift-0.9.2.jar                      === has license type ===>     Apache-2.0
 log4j-1.2-api-2.6.jar                    === has license type ===>     Apache-2.0
-log4j-api-2.6.jar                        === has license type ===>     Apache-2.0
-log4j-core-2.6.jar                       === has license type ===>     Apache-2.0
-log4j-jcl-2.6.jar                        === has license type ===>     Apache-2.0
+log4j-api-2.6.1.jar                      === has license type ===>     Apache-2.0
+log4j-core-2.6.1.jar                     === has license type ===>     Apache-2.0
+log4j-jcl-2.6.1.jar                      === has license type ===>     Apache-2.0
 log4j-jul-2.6.jar                        === has license type ===>     Apache-2.0
 log4j-over-slf4j-1.7.7.jar               === has license type ===>     Apache-2.0
 log4j-slf4j-impl-2.6.jar                 === has license type ===>     Apache-2.0
