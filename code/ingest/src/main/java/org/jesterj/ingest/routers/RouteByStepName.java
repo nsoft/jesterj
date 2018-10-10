@@ -16,6 +16,8 @@
 
 package org.jesterj.ingest.routers;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.Step;
@@ -30,13 +32,19 @@ import java.util.LinkedHashMap;
  * will never duplicate the document.
  */
 public class RouteByStepName implements Router {
+  private static final Logger log = LogManager.getLogger();
 
   public static final String JESTERJ_NEXT_STEP_NAME = "__JESTERJ_NEXT_STEP_NAME__";
   private String name;
 
   @Override
   public Step[] route(Document doc, LinkedHashMap<String, Step> nextSteps) {
-    return new Step[]{nextSteps.get(doc.getFirstValue(JESTERJ_NEXT_STEP_NAME))};
+    Step dest = nextSteps.get(doc.getFirstValue(JESTERJ_NEXT_STEP_NAME));
+    if (dest == null) {
+      log.warn("Document " + doc.getId() + " dropped! no value for " + JESTERJ_NEXT_STEP_NAME +
+          " You probably want to either set a different router or provide a value.");
+    }
+    return new Step[]{dest};
   }
 
   @Override
