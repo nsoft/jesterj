@@ -384,20 +384,21 @@ public class StepImpl implements Step {
   }
 
   private void pushToStep(Document document, Step step) {
-    if (this.outputSpace == null) {
-      // local processing is our only option, do blocking put.
-      try {
-        log.trace("starting put ( {} into {} )", getName(), step.getName());
-        step.put(document);
-        log.trace("completed put ( {} into {} )", getName(), step.getName());
-      } catch (InterruptedException e) {
-        String message = "Exception while offering to " + step.getName();
-        reportException(document, e, message);
-      }
-    } else {
-      log.error("This code path (javaspaces) not yet supported");
-      System.err.println("This code path (java spaces) not yet supported");
-      System.exit(2);
+    if (step != null) {
+      if (this.outputSpace == null) {
+        // local processing is our only option, do blocking put.
+        try {
+          log.trace("starting put ( {} into {} )", getName(), step.getName());
+          step.put(document);
+          log.trace("completed put ( {} into {} )", getName(), step.getName());
+        } catch (InterruptedException e) {
+          String message = "Exception while offering to " + step.getName();
+          reportException(document, e, message);
+        }
+      } else {
+        log.error("This code path (javaspaces) not yet supported");
+        System.err.println("This code path (java spaces) not yet supported");
+        System.exit(2);
 //      if (this.isFinalHelper)) {
 //        // remote processing is our only option.
 //        log.debug("todo: send to JavaSpace");
@@ -412,6 +413,7 @@ public class StepImpl implements Step {
 //          // todo: put in JavaSpace
 //        }
 //      }
+      }
     }
   }
 
