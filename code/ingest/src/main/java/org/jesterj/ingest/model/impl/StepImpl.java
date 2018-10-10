@@ -574,12 +574,18 @@ public class StepImpl implements Step {
     }
 
     public Builder routingBy(ConfiguredBuildable<? extends Router> router) {
-      getObj().addDeferred(() -> getObj().router = router.build());
+      StepImpl obj = getObj();
+      getObj().addDeferred(() -> {
+        obj.router = router.build();
+      });
       return this;
     }
 
     public Builder withProcessor(ConfiguredBuildable<? extends DocumentProcessor> processor) {
-      getObj().addDeferred(() -> getObj().processor = processor.build());
+      StepImpl obj = getObj();
+      getObj().addDeferred(() -> {
+        obj.processor = processor.build();
+      });
       return this;
     }
 
@@ -603,7 +609,6 @@ public class StepImpl implements Step {
      */
     public StepImpl build() {
       StepImpl object = getObj();
-      object.executeDeferred();
       int batchSize = object.batchSize;
       object.queue = new LinkedBlockingQueue<>(batchSize > 0 ? batchSize : 50);
       setObj(new StepImpl());
