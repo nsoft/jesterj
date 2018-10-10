@@ -192,10 +192,10 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   public void sendToNext(Document doc) {
     if (isRemembering()) {
       try {
-      Session session = getCassandra().getSession();
-      PreparedStatement preparedQuery = getCassandra().getPreparedQuery(UPDATE_HASH_U);
-      BoundStatement bind = preparedQuery.bind(doc.getHash(), doc.getId(), doc.getSourceScannerName());
-      session.execute(bind);
+        Session session = getCassandra().getSession();
+        PreparedStatement preparedQuery = getCassandra().getPreparedQuery(UPDATE_HASH_U);
+        BoundStatement bind = preparedQuery.bind(doc.getHash(), doc.getId(), doc.getSourceScannerName());
+        session.execute(bind);
       } catch (NoHostAvailableException e) {
         if (!Main.isShuttingDown()) {
           log.error("Could not contact our internal Cassandra!!!" + e);
