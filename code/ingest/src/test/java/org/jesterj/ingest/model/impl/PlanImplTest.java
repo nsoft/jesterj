@@ -102,6 +102,7 @@ public class PlanImplTest {
     plan.denyJiniRequests();
     plan.advertise();
     plan.stopAdvertising();
+    assertNotNull(plan.visualize());
     assertFalse(plan.readyForJiniRequests());
     assertFalse(plan.isActive());
 
