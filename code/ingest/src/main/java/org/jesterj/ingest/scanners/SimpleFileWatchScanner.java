@@ -265,6 +265,7 @@ public class SimpleFileWatchScanner extends ScannerImpl {
     @Override
     public ScannerImpl build() {
       SimpleFileWatchScanner tmp = obj;
+      super.build();
       this.obj = new SimpleFileWatchScanner();
       return tmp;
     }

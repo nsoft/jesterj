@@ -25,13 +25,7 @@ import org.apache.logging.log4j.core.appender.AppenderLoggingException;
 import org.jesterj.ingest.Main;
 import org.jesterj.ingest.config.Transient;
 import org.jesterj.ingest.logging.JesterJAppender;
-import org.jesterj.ingest.model.ConfiguredBuildable;
-import org.jesterj.ingest.model.Document;
-import org.jesterj.ingest.model.DocumentProcessor;
-import org.jesterj.ingest.model.Plan;
-import org.jesterj.ingest.model.Router;
-import org.jesterj.ingest.model.Status;
-import org.jesterj.ingest.model.Step;
+import org.jesterj.ingest.model.*;
 import org.jesterj.ingest.processors.DefaultWarningProcessor;
 import org.jesterj.ingest.routers.RouteByStepName;
 import org.jesterj.ingest.utils.Cloner;
@@ -574,18 +568,14 @@ public class StepImpl implements Step {
     }
 
     public Builder routingBy(ConfiguredBuildable<? extends Router> router) {
-      StepImpl obj = getObj();
-      getObj().addDeferred(() -> {
-        obj.router = router.build();
-      });
+      StepImpl currObj = getObj(); // make sure that this cant' change after build() called.
+      getObj().addDeferred(() -> currObj.router = router.build());
       return this;
     }
 
     public Builder withProcessor(ConfiguredBuildable<? extends DocumentProcessor> processor) {
-      StepImpl obj = getObj();
-      getObj().addDeferred(() -> {
-        obj.processor = processor.build();
-      });
+      StepImpl currObj = getObj(); // make sure that this cant' change after build() called.
+      getObj().addDeferred(() -> currObj.processor = processor.build());
       return this;
     }
 
@@ -598,20 +588,17 @@ public class StepImpl implements Step {
       return getObj().stepName;
     }
 
-    private void setObj(StepImpl obj) {
-      this.obj = obj;
-    }
-
     /**
      * Should only be called by a PlanImpl
      *
      * @return the immutable step instance.
      */
     public StepImpl build() {
-      StepImpl object = getObj();
+      StepImpl object = getObj(); // if subclassed we want subclass not our obj. This is intentional
+      object.executeDeferred();
       int batchSize = object.batchSize;
       object.queue = new LinkedBlockingQueue<>(batchSize > 0 ? batchSize : 50);
-      setObj(new StepImpl());
+      obj = new StepImpl(); // subclasses such as scanners will mask this with thier own obj field which is ok.
       return object;
     }
 

@@ -304,7 +304,6 @@ public class PlanImpl implements Plan {
         builder.addNextStep(steps.get(successor));
       }
       StepImpl step = builder.build();
-      step.executeDeferred();
       String stepName = step.getName();
       steps.put(stepName, step);
     }

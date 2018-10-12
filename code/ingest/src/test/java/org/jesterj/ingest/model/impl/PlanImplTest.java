@@ -28,12 +28,14 @@ import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.processors.LogAndDrop;
+import org.jesterj.ingest.routers.DuplicateToAll;
 import org.jesterj.ingest.scanners.SimpleFileWatchScanner;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -75,13 +77,14 @@ public class PlanImplTest {
   }
 
   @Test
-  public void testSimple2Step() {
+  public void testSimple2Step() throws NoSuchFieldException, IllegalAccessException {
     replay();
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
     SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
     StepImpl.Builder dropStepBuilder = new StepImpl.Builder();
 
-    scannerBuilder.withRoot(new File("/Users/gus/foo/bar")).named(SCAN_FOO_BAR).batchSize(10);
+    scannerBuilder.withRoot(new File("/Users/gus/foo/bar")).named(SCAN_FOO_BAR).batchSize(10)
+    .routingBy(new DuplicateToAll.Builder().named("foo-dup"));
 
     dropStepBuilder.named(LOG_AND_DROP).batchSize(10).withProcessor(
         new LogAndDrop.Builder().withLogLevel(Level.ERROR)
@@ -116,6 +119,11 @@ public class PlanImplTest {
     Step dropStep = plan.findStep(LOG_AND_DROP);
     assertNotNull(scanStep);
     assertNotNull(dropStep);
+    Field router = StepImpl.class.getDeclaredField("router");
+    router.setAccessible(true);
+    Object object = router.get(scanStep);
+    assertNotNull(object);
+    assertEquals(object.getClass(), DuplicateToAll.class);
     assertEquals(SCAN_FOO_BAR, scanStep.getName());
     assertEquals(LOG_AND_DROP, dropStep.getName());
     Step[] foo = scanStep.getNext(new DocumentImpl(null, "foo", plan, Document.Operation.NEW, (Scanner) scanStep));

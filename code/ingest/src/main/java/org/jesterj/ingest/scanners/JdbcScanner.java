@@ -400,7 +400,8 @@ public class JdbcScanner extends ScannerImpl {
         throw new IllegalStateException("jdbc driver, password, user, url, and the table being represented " +
             "must be supplied");
       }
-      JdbcScanner tmp = obj;
+      super.build();
+      JdbcScanner tmp = getObj();
       this.obj = new JdbcScanner();
       return tmp;
     }

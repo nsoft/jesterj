@@ -565,9 +565,6 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       return this;
     }
 
-    public abstract ScannerImpl build();
-
-
   }
 
 
