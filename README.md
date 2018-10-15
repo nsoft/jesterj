@@ -12,7 +12,7 @@ Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki
 
 # Project Status
 
-Current release version: 1.0-beta1. 
+Current release version: 1.0-beta2. 
 
 Can be used with gradle configuration:
 
@@ -27,7 +27,7 @@ Can be used with gradle configuration:
     }
 
     dependencies {
-      compile ('org.jesterj:ingest:1.0-beta1')
+      compile ('org.jesterj:ingest:1.0-beta2')
     }
 
 The extra repos are for a patched version of cassandra, and should go away in future releases (see https://issues.apache.org/jira/browse/CASSANDRA-13396). The clojars repo is for is for a clojure based implementation
