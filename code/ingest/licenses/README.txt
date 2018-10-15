@@ -72,6 +72,24 @@ asm-analysis-5.0.3.jar                   === has license type ===>     BSD-3-Cla
 asm-commons-5.0.3.jar                    === has license type ===>     BSD-3-Clause
 asm-tree-5.0.3.jar                       === has license type ===>     BSD-3-Clause
 asm-util-5.0.3.jar                       === has license type ===>     BSD-3-Clause
+batik-anim-1.9.jar                       === has license type ===>     Apache-2.0
+batik-awt-util-1.9.jar                   === has license type ===>     Apache-2.0
+batik-bridge-1.9.jar                     === has license type ===>     Apache-2.0
+batik-codec-1.9.jar                      === has license type ===>     Apache-2.0
+batik-constants-1.9.jar                  === has license type ===>     Apache-2.0
+batik-css-1.9.jar                        === has license type ===>     Apache-2.0
+batik-dom-1.9.jar                        === has license type ===>     Apache-2.0
+batik-ext-1.9.jar                        === has license type ===>     Apache-2.0
+batik-gvt-1.9.jar                        === has license type ===>     Apache-2.0
+batik-i18n-1.9.jar                       === has license type ===>     Apache-2.0
+batik-rasterizer-1.9.jar                 === has license type ===>     Apache-2.0
+batik-script-1.9.jar                     === has license type ===>     Apache-2.0
+batik-svg-dom-1.9.jar                    === has license type ===>     Apache-2.0
+batik-svg-rasterizer-1.9.jar             === has license type ===>     Apache-2.0
+batik-svggen-1.9.jar                     === has license type ===>     Apache-2.0
+batik-transcoder-1.9.jar                 === has license type ===>     Apache-2.0
+batik-util-1.9.jar                       === has license type ===>     Apache-2.0
+batik-xml-1.9.jar                        === has license type ===>     Apache-2.0
 bcmail-jdk15on-1.54.jar                  === has license type ===>     Bouncy-Castle
 bcpkix-jdk15on-1.54.jar                  === has license type ===>     Bouncy-Castle
 bcprov-jdk15on-1.54.jar                  === has license type ===>     Bouncy-Castle
@@ -114,6 +132,7 @@ elasticsearch-2.3.1.jar                  === has license type ===>     Apache-2.
 fastutil-6.5.7.jar                       === has license type ===>     Apache-2.0
 fontbox-2.0.6.jar                        === has license type ===>     Apache-2.0
 geoapi-3.0.0.jar                         === has license type ===>     OGC-License
+graphviz-java-0.5.3.jar                  === has license type ===>     Apache-2.0
 grib-4.5.5.jar                           === has license type ===>     MIT
 gson-2.8.1.jar                           === has license type ===>     Apache-2.0
 guava-19.0.jar                           === has license type ===>     Apache-2.0
@@ -125,6 +144,10 @@ httpcore-4.4.1.jar                       === has license type ===>     Apache-2.
 httpmime-4.4.1.jar                       === has license type ===>     Apache-2.0
 httpservices-4.5.5.jar                   === has license type ===>     MIT
 isoparser-1.1.18.jar                     === has license type ===>     Apache-2.0
+j2v8-linux_x86_64-4.6.0.jar              === has license type ===>     Eclipse-1.0
+j2v8-macosx_x86_64-4.6.0.jar             === has license type ===>     Eclipse-1.0
+j2v8-win32_x86-4.6.0.jar                 === has license type ===>     Eclipse-1.0
+j2v8-win32_x86_64-4.6.0.jar              === has license type ===>     Eclipse-1.0
 jackcess-2.1.8.jar                       === has license type ===>     Apache-2.0
 jackcess-encrypt-2.1.2.jar               === has license type ===>     Apache-2.0
 jackson-core-2.8.1.jar                   === has license type ===>     Apache-2.0
@@ -140,7 +163,7 @@ javax.annotation-api-1.2.jar             === has license type ===>     CDDL-1.1
 javax.ws.rs-api-2.0.1.jar                === has license type ===>     CDDL-1.1
 jbcrypt-0.3m.jar                         === has license type ===>     ISC
 jcip-annotations-1.0.jar                 === has license type ===>     Public Domain
-jcl-over-slf4j-1.7.24.jar                === has license type ===>     Apache-2.0
+jcl-over-slf4j-1.7.25.jar                === has license type ===>     MIT
 jcommander-1.35.jar                      === has license type ===>     Apache-2.0
 jctools-core-1.2.1.jar                   === has license type ===>     Apache-2.0
 jdom2-2.0.4.jar                          === has license type ===>     jdom
@@ -166,7 +189,7 @@ jsoup-1.7.2.jar                          === has license type ===>     MIT
 jsr-275-0.9.3.jar                        === has license type ===>     BSD-2-Clause
 jsr166e-1.1.0.jar                        === has license type ===>     Public Domain
 jsr305-3.0.0.jar                         === has license type ===>     Apache-2.0
-jul-to-slf4j-1.7.24.jar                  === has license type ===>     MIT
+jul-to-slf4j-1.7.25.jar                  === has license type ===>     MIT
 juniversalchardet-1.0.3.jar              === has license type ===>     Mozilla-1.1
 junrar-0.7.jar                           === has license type ===>     UnRar
 libthrift-0.9.2.jar                      === has license type ===>     Apache-2.0
@@ -201,6 +224,7 @@ mchange-commons-java-0.2.11.jar          === has license type ===>     Eclipse-1
 metadata-extractor-2.9.1.jar             === has license type ===>     Apache-2.0
 metrics-core-3.1.2.jar                   === has license type ===>     Apache-2.0
 metrics-jvm-3.1.0.jar                    === has license type ===>     Apache-2.0
+nashorn-promise-0.1.1.jar                === has license type ===>     MIT
 netcdf4-4.5.5.jar                        === has license type ===>     MIT
 netty-3.10.5.Final.jar                   === has license type ===>     Apache-2.0
 netty-all-4.0.44.Final.jar               === has license type ===>     Apache-2.0
@@ -237,7 +261,7 @@ sis-netcdf-0.6.jar                       === has license type ===>     Apache-2.
 sis-referencing-0.6.jar                  === has license type ===>     Apache-2.0
 sis-storage-0.6.jar                      === has license type ===>     Apache-2.0
 sis-utility-0.6.jar                      === has license type ===>     Apache-2.0
-slf4j-api-1.7.24.jar                     === has license type ===>     MIT
+slf4j-api-1.7.25.jar                     === has license type ===>     MIT
 snakeyaml-1.15.jar                       === has license type ===>     Apache-2.0
 snappy-java-1.1.1.7.jar                  === has license type ===>     Apache-2.0
 snowball-stemmer-1.3.0.581.1.jar         === has license type ===>     BSD-3-Clause
@@ -256,6 +280,9 @@ velocity-1.7.jar                         === has license type ===>     Apache-2.
 vorbis-java-core-0.8.jar                 === has license type ===>     Apache-2.0
 vorbis-java-tika-0.8.jar                 === has license type ===>     Apache-2.0
 woodstox-core-asl-4.4.1.jar              === has license type ===>     Apache-2.0
+xalan-2.7.2.jar                          === has license type ===>     Apache-2.0
+xml-apis-1.3.04.jar                      === has license type ===>     Apache-2.0
+xml-apis-ext-1.3.04.jar                  === has license type ===>     Apache-2.0
 xmlbeans-2.6.0.jar                       === has license type ===>     Apache-2.0
 xmlschema-core-2.2.1.jar                 === has license type ===>     Apache-2.0
 xmpcore-5.1.2.jar                        === has license type ===>     BSD-3-Clause

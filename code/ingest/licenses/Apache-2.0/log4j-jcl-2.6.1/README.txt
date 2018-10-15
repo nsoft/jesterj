@@ -10,4 +10,4 @@ Can be found in this directory (near this file)
 
 This file was originally found at:
 
-https://github.com/apache/logging-log4j2/blob/log4j-2.6.2/NOTICE.txt
+https://github.com/apache/logging-log4j2/blob/log4j-2.6.1/NOTICE.txt

@@ -6,8 +6,8 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of jcl-over-slf4j
+Can be found in this directory (near this file)
 
-This was verified at:
+This file was originally found at:
 
-https://github.com/qos-ch/slf4j/tree/v_1.7.24/jcl-over-slf4j
+https://github.com/apache/xml-graphics-commons/blob/commons-2_2/NOTICE

@@ -10,4 +10,4 @@ There is no Notice file for this version of gson
 
 This was verified at:
 
-https://github.com/google/gson/tree/gson-parent-2.8.1
+https://github.com/nidi3/graphviz-java/tree/graphviz-java-parent-0.5

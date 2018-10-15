@@ -6,8 +6,8 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of gson
+Can be found in this directory (near this file)
 
-This was verified at:
+This file was originally found at:
 
-https://github.com/google/gson/tree/gson-parent-2.8.1
+https://github.com/apache/xalan-j/blob/xalan-j_2_7_2/NOTICE.txt
