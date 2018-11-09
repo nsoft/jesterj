@@ -2,7 +2,7 @@ JesterJ
 =======
 [![License](https://img.shields.io/badge/license-Apache%202.0-B70E23.svg?style=plastic)](http://www.opensource.org/licenses/Apache-2.0) [![Build Status](https://travis-ci.org/nsoft/jesterj.svg?branch=master)](https://travis-ci.org/nsoft/jesterj)
 
-A new highly flexible, highly scaleable document ingestion system. 
+A new highly flexible, highly scalable document ingestion system. 
 
 See the [web site](http://www.jesterj.org) and the [documentation](https://github.com/nsoft/jesterj/wiki/Documentation) for more info
 
@@ -80,7 +80,7 @@ file name and file size.
  * Publish jars on Maven Central
  * Up to date docs in wiki.
  
-The Java config feature is experimental, but working out better than expected. I wanted to use what I had built for a project but the lack of externalized configuration was a blocker. It was a quick fix but it's turnning out to be quite pleasant to work with. The down side is I'm not sure how it would carry forward to later stages of the project so it might still go away. Feedback welcome.
+The Java config feature is experimental but working out better than expected. I wanted to use what I had built for a project, but the lack of externalized configuration was a blocker. It was a quick fix but it's turning out to be quite pleasant to work with. The down side is I'm not sure how it would carry forward to later stages of the project so it might still go away. Feedback welcome.
 
 ## TODO for 1.0 final
  * 50% [test coverage](https://codecov.io/gh/nsoft/jesterj) 
