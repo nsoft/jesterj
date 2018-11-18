@@ -40,9 +40,8 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 import java.util.LinkedHashMap;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
@@ -70,62 +69,77 @@ public class SimpleFileWatchScanner extends ScannerImpl {
   @Override
   public Runnable getScanOperation() {
     return () -> {
-      // set up our watcher if needed
-      scanStarted();
-      synchronized (watcherLock) {
-        if (watchers.size() == 0) {
-          this.ready = false; // ensure initial walk completes before new scans are started.
-          try {
-            Files.walkFileTree(rootDir.toPath(), new RootWalker());
-          } catch (IOException e) {
-            log.error("failed to walk filesystem!", e);
-            throw new RuntimeException(e);
-          }
-          this.ready = true;
-        }
-      }
-      // Process pending events. Not very likely to have concurrent scans, and even so, it doesn't
-      // seem likely to cause problems.
-      for (File dir : watchers.keySet()) {
-        WatchService watcher = watchers.get(dir);
-        for (WatchKey key; (key = watcher.poll()) != null; ) {
-          for (WatchEvent<?> event : key.pollEvents()) {
-            if (OVERFLOW == event.kind()) {
-              //TODO need to look into what causes this and how to avoid this case...
-              log.error("too many simultaneous watch events. Some filesystem were lost!", key);
-            }
-            @SuppressWarnings("unchecked")
-            WatchEvent<Path> fileEvent = (WatchEvent<Path>) event;
-            Path resolvedPath = dir.toPath().resolve(fileEvent.context());
-            if (resolvedPath.toFile().isDirectory()) {
-              continue;
-            }
-
-            if (ENTRY_DELETE == fileEvent.kind()) {
-              makeDoc(resolvedPath, Document.Operation.DELETE, null);
-              continue;
-            }
-
-            BasicFileAttributeView view = Files.getFileAttributeView(resolvedPath, BasicFileAttributeView.class);
-            BasicFileAttributes attrs = null;
+      try {
+        // set up our watcher if needed
+        scanStarted();
+        synchronized (watcherLock) {
+          if (watchers.size() == 0) {
+            this.ready = false; // ensure initial walk completes before new scans are started.
             try {
-              attrs = view.readAttributes();
+              Files.walkFileTree(rootDir.toPath(), new RootWalker());
             } catch (IOException e) {
-              log.warn("Could not read attributes for file:{}", resolvedPath);
-            }
-
-            if (ENTRY_CREATE == fileEvent.kind()) {
-
-              makeDoc(resolvedPath, Document.Operation.NEW, attrs);
-            }
-            if (ENTRY_MODIFY == fileEvent.kind()) {
-              makeDoc(resolvedPath, Document.Operation.UPDATE, attrs);
+              log.error("failed to walk filesystem!", e);
+              throw new RuntimeException(e);
+            } finally {
+              this.ready = true;
             }
           }
-          key.reset();
         }
+        // Process pending events. Not very likely to have concurrent scans, and even so, it doesn't
+        // seem likely to cause problems.
+        for (File dir : watchers.keySet()) {
+          WatchService watcher = watchers.get(dir);
+          for (WatchKey key; (key = watcher.poll()) != null; ) {
+            for (WatchEvent<?> event : key.pollEvents()) {
+              if (OVERFLOW == event.kind()) {
+                //TODO need to look into what causes this and how to avoid this case...
+                log.error("too many simultaneous watch events. Some filesystem were lost!", key);
+              }
+              @SuppressWarnings("unchecked")
+              WatchEvent<Path> fileEvent = (WatchEvent<Path>) event;
+              Path resolvedPath = dir.toPath().resolve(fileEvent.context());
+              if (resolvedPath.toFile().isDirectory()) {
+                continue;
+              }
+
+              if (ENTRY_DELETE == fileEvent.kind()) {
+                makeDoc(resolvedPath, Document.Operation.DELETE, null);
+                continue;
+              }
+
+              BasicFileAttributeView view = Files.getFileAttributeView(resolvedPath, BasicFileAttributeView.class);
+              BasicFileAttributes attrs = null;
+              try {
+                attrs = view.readAttributes();
+              } catch (IOException e) {
+                log.warn("Could not read attributes for file:{}", resolvedPath);
+              }
+
+              if (ENTRY_CREATE == fileEvent.kind()) {
+
+                makeDoc(resolvedPath, Document.Operation.NEW, attrs);
+              }
+              if (ENTRY_MODIFY == fileEvent.kind()) {
+                makeDoc(resolvedPath, Document.Operation.UPDATE, attrs);
+              }
+            }
+            key.reset();
+          }
+        }
+      } catch (Exception e) {
+        log.error("Exception while processing files!", e);
+      } finally {
+        // bad stuff happened, unknown state, start over.
+        for (File file : watchers.keySet()) {
+          try {
+            watchers.get(file).close();
+          } catch (IOException e) {
+            log.error("Additionally an error occured closing the watcher for {}", file);
+          }
+        }
+        watchers.clear();
+        scanFinished();
       }
-      scanFinished();
     };
   }
 
@@ -188,9 +202,18 @@ public class SimpleFileWatchScanner extends ScannerImpl {
           SimpleFileWatchScanner.this
       );
       if (attributes != null) {
-        doc.put("modified", String.valueOf(attributes.lastModifiedTime().toMillis()));
-        doc.put("accessed", String.valueOf(attributes.lastAccessTime().toMillis()));
-        doc.put("created", String.valueOf(attributes.creationTime().toMillis()));
+        FileTime modifiedTime = attributes.lastModifiedTime();
+        FileTime accessTime = attributes.lastAccessTime();
+        FileTime creationTime = attributes.creationTime();
+        if (modifiedTime != null) {
+          doc.put("modified", String.valueOf(modifiedTime.toMillis()));
+        }
+        if (accessTime != null) {
+          doc.put("accessed", String.valueOf(accessTime.toMillis()));
+        }
+        if (creationTime != null) {
+          doc.put("created", String.valueOf(creationTime.toMillis()));
+        }
         doc.put("file_size", String.valueOf(attributes.size()));
       }
       SimpleFileWatchScanner.this.docFound(doc);

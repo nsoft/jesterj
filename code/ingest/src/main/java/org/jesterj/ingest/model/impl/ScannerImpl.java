@@ -149,7 +149,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   public void run() {
     nanoInterval = interval * 1000000;
     Future<?> scanner = null;
-    long last = 0;
+    long last = System.nanoTime() - 1; // minus 1 in case we get to the next call really really fast.
     if (isActive()) {
       scanner = safeSubmit();
       last = System.nanoTime();
