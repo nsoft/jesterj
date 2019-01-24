@@ -19,6 +19,7 @@ package org.jesterj.ingest.processors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tika.Tika;
+import org.apache.tika.config.TikaConfig;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.jesterj.ingest.model.Document;
@@ -41,6 +42,8 @@ public class TikaProcessor implements DocumentProcessor {
   private static final Logger log = LogManager.getLogger();
   private String name;
   private String suffix;
+  private int maxLength = -1; // process all text by default
+  private TikaConfig tikaConfig = TikaConfig.getDefaultConfig();
 
   @Override
   public Document[] processDocument(Document document) {
@@ -50,11 +53,11 @@ public class TikaProcessor implements DocumentProcessor {
       return new Document[]{document};
     }
     try {
-      Tika tika = new Tika();
+      Tika tika = new Tika(tikaConfig);
       tika.setMaxStringLength(document.getRawData().length);
       Metadata metadata = new Metadata();
       try (ByteArrayInputStream bais = new ByteArrayInputStream(rawData)) {
-        String textContent = tika.parseToString(bais, metadata);
+        String textContent = tika.parseToString(bais, metadata, maxLength);
         document.setRawData(textContent.getBytes(Charset.forName("UTF-8")));
         for (String name : metadata.names()) {
           document.put(sanitize(name) + plusSuffix(), metadata.get(name));
@@ -113,6 +116,33 @@ public class TikaProcessor implements DocumentProcessor {
 
     public Builder appendingSuffix(String suffix) {
       getObj().suffix = suffix;
+      return this;
+    }
+
+    /**
+     * Convenience override for safety valve to guard against large documents. By
+     * default this is set to -1 for no limit on the amount of data to process
+     * with Tika.
+     *
+     * @param chars The limit
+     * @return This builder for further configuration
+     */
+    public Builder truncatingTextTo(int chars) {
+      getObj().maxLength = chars;
+      return this;
+    }
+
+    /**
+     * Specify a tika configuration via an XML document you have loaded via filesystem/classpath or other method
+     * of your choice.
+     *
+     * @param config The configuration
+     * @return This builder for further config
+     * @throws TikaException if Tika doesn't like your config
+     * @throws IOException if Tika can't find something it needed?
+     */
+    public Builder configuredWith(org.w3c.dom.Document config) throws TikaException, IOException {
+      getObj().tikaConfig = new TikaConfig(config);
       return this;
     }
 
