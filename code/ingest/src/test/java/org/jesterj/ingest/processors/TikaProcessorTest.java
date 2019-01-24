@@ -96,7 +96,7 @@ public class TikaProcessorTest {
     ByteArrayInputStream input = new ByteArrayInputStream(XML_CONFIG.getBytes("UTF-8"));
     org.w3c.dom.Document doc = builder.parse(input);
 
-    TikaProcessor proc = new TikaProcessor.Builder().named("foo").appendingSuffix("_tk").truncatingTextTo(20)
+    TikaProcessor proc = new TikaProcessor.Builder().named("foo").truncatingTextTo(20)
         .configuredWith(doc)
         .build();
     System.out.println(new String(new byte[] {32, 32, 32, 84, 104, 101, 32, 116, 105, 116, 108, 101, 32, 84, 104, 105, 115, 32, 105, 115}));
@@ -135,6 +135,40 @@ public class TikaProcessorTest {
         .build();
     expect(mockDocument.getRawData()).andReturn(XML_BROKEN.getBytes()).anyTimes();
     mockDocument.setStatus(Status.ERROR);
+    replay();
+    proc.processDocument(mockDocument);
+  }
+
+  @Test
+  public void testEmptyDoc() throws ParserConfigurationException, IOException, SAXException, TikaException {
+    DocumentBuilderFactory factory =
+        DocumentBuilderFactory.newInstance();
+    DocumentBuilder builder = factory.newDocumentBuilder();
+    ByteArrayInputStream input = new ByteArrayInputStream(XML_CONFIG.getBytes("UTF-8"));
+    org.w3c.dom.Document doc = builder.parse(input);
+
+    TikaProcessor proc = new TikaProcessor.Builder().named("foo").appendingSuffix("_tk").truncatingTextTo(20)
+        .configuredWith(doc)
+        .build();
+    expect(mockDocument.getRawData()).andReturn(null).anyTimes();
+
+    replay();
+    proc.processDocument(mockDocument);
+  }
+
+  @Test(expected = RuntimeException.class)
+  public void testRandomException() throws ParserConfigurationException, IOException, SAXException, TikaException {
+    DocumentBuilderFactory factory =
+        DocumentBuilderFactory.newInstance();
+    DocumentBuilder builder = factory.newDocumentBuilder();
+    ByteArrayInputStream input = new ByteArrayInputStream(XML_CONFIG.getBytes("UTF-8"));
+    org.w3c.dom.Document doc = builder.parse(input);
+
+    TikaProcessor proc = new TikaProcessor.Builder().named("foo").appendingSuffix("_tk").truncatingTextTo(20)
+        .configuredWith(doc)
+        .build();
+    expect(mockDocument.getRawData()).andThrow(new RuntimeException());
+
     replay();
     proc.processDocument(mockDocument);
   }

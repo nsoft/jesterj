@@ -72,8 +72,6 @@ public class TikaProcessor implements DocumentProcessor {
       boolean isSecurity = t instanceof SecurityException;
       if (!isAccessControl && !isSecurity) {
         throw t;
-      } else {
-        System.out.println("gotcha!");
       }
     }
     return new Document[]{document};
