@@ -39,7 +39,30 @@ public class TikaProcessorTest {
           "    </parser>\n" +
           "    <!-- Use a different parser for XML -->\n" +
           "    <parser class=\"org.apache.tika.parser.XmlParser\">\n" +
-          "      <mime>text/xml</mime>\n" +
+          "      <mime>application/xml</mime>\n" +
+          "    </parser>\n" +
+          "  </parsers>\n" +
+          "</properties>";
+  private static final String XML_CONFIG_BAD=
+      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+          "<properties>\n" +
+          "  <parsers>\n" +
+          "    <!-- Default Parser for most things, except for 2 mime types, and never\n" +
+          "         use the Executable Parser -->\n" +
+          "    <parser class=\"org.apache.tika.parser.NotAParser\">\n" +
+          "      <mime-exclude>image/jpeg</mime-exclude>\n" +
+          "      <mime-exclude>application/pdf</mime-exclude>\n" +
+          "      <parser-exclude class=\"org.apache.tika.parser.executable.ExecutableParser\"/>\n" +
+          "    </parser>\n" +
+          "    <!-- Use a different parser for PDF -->\n" +
+          "    <parser class=\"org.apache.tika.parser.AlsoNotAParser\">\n" +
+          "      <mime>application/pdf</mime>\n" +
+          "    </parser>\n" +
+          "    <!-- Use a different parser for XML -->\n" +
+          "  </parsers>\n" +
+          "  <parsers>\n" + // tika doesn't allow two of these, the funny class names appear to be ignored
+          "    <parser class=\"org.apache.tika.parser.XmlParserxxxdx\">\n" +
+          "      <mime>application/xml</mime>\n" +
           "    </parser>\n" +
           "  </parsers>\n" +
           "</properties>";
@@ -94,5 +117,19 @@ public class TikaProcessorTest {
 
     replay();
     proc.processDocument(mockDocument);
+  }
+
+  @Test(expected = TikaException.class)
+  public void testBadConfig() throws ParserConfigurationException, IOException, SAXException, TikaException {
+    DocumentBuilderFactory factory =
+        DocumentBuilderFactory.newInstance();
+    DocumentBuilder builder = factory.newDocumentBuilder();
+    ByteArrayInputStream input = new ByteArrayInputStream(XML_CONFIG_BAD.getBytes("UTF-8"));
+    org.w3c.dom.Document doc = builder.parse(input);
+    replay();
+
+    new TikaProcessor.Builder().named("foo").appendingSuffix("_tk").truncatingTextTo(20)
+        .configuredWith(doc)
+        .build();
   }
 }
