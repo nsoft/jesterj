@@ -14,6 +14,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.security.AccessControlException;
 
 import static com.copyright.easiertest.EasierMocks.*;
 import static org.easymock.EasyMock.aryEq;
@@ -172,4 +173,22 @@ public class TikaProcessorTest {
     replay();
     proc.processDocument(mockDocument);
   }
+
+  @Test(expected = AccessControlException.class)
+  public void testExceptionToIgnoreFromTika() throws ParserConfigurationException, IOException, SAXException, TikaException {
+    DocumentBuilderFactory factory =
+        DocumentBuilderFactory.newInstance();
+    DocumentBuilder builder = factory.newDocumentBuilder();
+    ByteArrayInputStream input = new ByteArrayInputStream(XML_CONFIG.getBytes("UTF-8"));
+    org.w3c.dom.Document doc = builder.parse(input);
+
+    TikaProcessor proc = new TikaProcessor.Builder().named("foo").appendingSuffix("_tk").truncatingTextTo(20)
+        .configuredWith(doc)
+        .build();
+    expect(mockDocument.getRawData()).andThrow(new AccessControlException("Oh no you don't!"));
+
+    replay();
+    proc.processDocument(mockDocument);
+  }
+
 }
