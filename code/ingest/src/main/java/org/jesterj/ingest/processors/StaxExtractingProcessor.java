@@ -1,0 +1,346 @@
+package org.jesterj.ingest.processors;
+
+import org.codehaus.stax2.XMLInputFactory2;
+import org.codehaus.stax2.XMLStreamReader2;
+import org.jesterj.ingest.model.Document;
+import org.jesterj.ingest.model.DocumentProcessor;
+import org.jesterj.ingest.model.Status;
+import org.jesterj.ingest.model.impl.NamedBuilder;
+import org.jesterj.ingest.trie.PatriciaTrie;
+
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.events.XMLEvent;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.CharBuffer;
+import java.util.*;
+import java.util.regex.Pattern;
+
+/**
+ * A class for extracting fields from an xml document using a memory efficient Stax parsing.
+ *
+ * WARNING: This class is experimental, not production ready and may not even work at all.
+ * WARNING: You probably want to wait for me to write some unit tests before using this...
+ */
+public class StaxExtractingProcessor implements DocumentProcessor {
+
+  private String name;
+  private int capacity;
+  //private AbstractBitwiseTrie<CharBuffer, String> extractMapping = new CustomPatriciaTrie<>();
+  private PatriciaTrie<List<ElementSpec>> extractMapping = new PatriciaTrie<>();
+  private boolean failOnLongPath = false; // default
+
+
+  @Override
+  public Document[] processDocument(Document document) {
+    List<LimitedStaxHandler> handlers = new ArrayList<>();
+    CharBuffer path = CharBuffer.allocate(this.capacity);
+
+    InputStream xmlInputStream = new ByteArrayInputStream(document.getRawData());
+    XMLInputFactory2 xmlInputFactory = (XMLInputFactory2) XMLInputFactory
+        .newFactory("com.fasterxml.aalto.stax.InputFactoryImpl", this.getClass().getClassLoader());
+    XMLStreamReader2 xmlStreamReader;
+    try {
+      xmlStreamReader = (XMLStreamReader2) xmlInputFactory.createXMLStreamReader(xmlInputStream);
+      while (xmlStreamReader.hasNext()) {
+        int eventType = xmlStreamReader.next();
+        switch (eventType) {
+          case XMLEvent.START_ELEMENT:
+            if (!addToPath(xmlStreamReader.getName().toString(), path) && failOnLongPath) {
+              document.setStatus(Status.ERROR);
+              return new Document[]{document};
+            }
+            List<ElementSpec> specList = extractMapping.get(path);
+            if (specList != null) {
+              for (ElementSpec spec : specList) {
+                handlers.add(spec.handleIfMatches(xmlStreamReader, spec));
+              }
+            }
+            for (LimitedStaxHandler handler : handlers) {
+              handler.onStartElement(xmlStreamReader);
+            }
+            break;
+          case XMLEvent.END_ELEMENT:
+            List<ElementSpec> specEndingList = extractMapping.get(path);
+            if (specEndingList != null) {
+              for (LimitedStaxHandler handler : handlers) {
+                handler.onEndElement(xmlStreamReader);
+                for (ElementSpec elementSpec : specEndingList) {
+                  if (handler.getSpec() == elementSpec) {
+                    document.put(elementSpec.getDestField(), handler.toString());
+                  }
+                }
+              }
+            }
+            decrementPath(path);
+            break;
+          case XMLEvent.CHARACTERS:
+            for (LimitedStaxHandler handler : handlers) {
+              handler.onCharacters(xmlStreamReader);
+            }
+            break;
+          default:
+            //do nothing
+            break;
+        }
+      }
+    } catch (XMLStreamException e) {
+      e.printStackTrace();
+    }
+
+    return new Document[0];
+  }
+
+  private List<ElementSpec> fieldForPath(CharBuffer path) {
+    return extractMapping.get(path);
+  }
+
+  private boolean pathIsExtracted(CharBuffer path) {
+    return extractMapping.get(path.toString()) != null;
+  }
+
+  private void decrementPath(CharBuffer path) {
+    int lastSlash = 0;
+    for (int i = 0; i < path.limit(); i++) {
+      if (path.charAt(i) == '/') {
+        lastSlash = i;
+      }
+    }
+    path.limit(lastSlash);
+  }
+
+  private boolean addToPath(String s, CharBuffer path) {
+    int i = 0;
+    while (path.limit() < path.capacity()) {
+      if (s.length() <= i) {
+        return true; // all chars were added.
+      }
+      path.append(s.charAt(i++));
+    }
+    return false;
+  }
+
+  @Override
+  public String getName() {
+    return name;
+  }
+
+  public static class Builder extends NamedBuilder<StaxExtractingProcessor> {
+
+    StaxExtractingProcessor obj = new StaxExtractingProcessor();
+
+    @Override
+    public Builder named(String name) {
+      getObj().name = name;
+      return this;
+    }
+
+    public Builder withPathBuffer(int size) {
+      getObj().capacity = size;
+      return this;
+    }
+
+    public Builder failOnLongPath(boolean fail) {
+      getObj().failOnLongPath = fail;
+      return this;
+    }
+
+    public Builder extracting(String path, ElementSpec field) {
+      getObj().extractMapping.computeIfAbsent(path, (f) -> new ArrayList<>()).add(field);
+      return this;
+    }
+
+    @Override
+    protected StaxExtractingProcessor getObj() {
+      return obj;
+    }
+
+    private void setObj(StaxExtractingProcessor obj) {
+      this.obj = obj;
+    }
+
+    public StaxExtractingProcessor build() {
+      StaxExtractingProcessor object = getObj();
+      setObj(new StaxExtractingProcessor());
+      return object;
+    }
+
+  }
+
+  public static class Attribute {
+
+    private String namespace;
+
+    public String getNamespace() {
+      return namespace;
+    }
+
+    private String qname;
+
+    public String getQname() {
+      return qname;
+    }
+
+    public Attribute(String key, String qname) {
+      this.namespace = key;
+      this.qname = qname;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      Attribute attribute = (Attribute) o;
+      return Objects.equals(namespace, attribute.namespace) &&
+          Objects.equals(qname, attribute.qname);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(namespace, qname);
+    }
+  }
+
+
+  /**
+   * An class to describe an element and what to do with it when it's encountered.
+   */
+  public static class ElementSpec {
+    private final String destField;
+    private final Set<Attribute> attrsToInclude = new LinkedHashSet<>();
+    private final Map<Attribute, Pattern> attrValueMatchers = new LinkedHashMap<>();
+    private final LimitedStaxHandlerFactory fact;
+
+    public ElementSpec(String destField, LimitedStaxHandlerFactory factory) {
+      this.destField = destField;
+      this.fact = factory;
+    }
+
+    public ElementSpec(String destField) {
+      this(destField, new DefaultHandlerFactory());
+    }
+
+    /**
+     * Causes the value of the supplied attributes to be prepended to any characters from the element.
+     * Attributes will be prepended in the order they are supplied to this method and separated by a single space,
+     * but only once per attribute. This method should NEVER be called during document processing only
+     * during configuration.
+     *
+     * @param attrName the attribute to append
+     * @param namespaceUri the namespace for the attribute (or null for default)
+     * @return this object for further configuration.
+     */
+    public ElementSpec inclAttributeText(String namespaceUri, String attrName) {
+      attrsToInclude.add(new Attribute(namespaceUri, attrName));
+      return this;
+    }
+
+    /**
+     * Causes the element to only match if the value of ALL specified attributes matches the supplied regex.
+     *
+     * @param namespaceUri The name space for the attribute (may be null for default ns)
+     * @param attrName     The qname for the attribute
+     * @param pattern      The compiled regex pattern to use for matching.
+     * @return this object for further configuration.
+     */
+    public ElementSpec matchOnAttrValue(String namespaceUri, String attrName, Pattern pattern) {
+      attrValueMatchers.put(new Attribute(namespaceUri, attrName), pattern);
+      return this;
+    }
+
+    /**
+     * Attempt to match the current element and return a handler if successful. Note that the question of whether
+     * or not the path to this element matches is already determined by this point and only the attribute
+     * matching needs to be determined.
+     *
+     * @param reader The reader, typically during {@link javax.xml.stream.XMLStreamConstants#START_ELEMENT}
+     * @param spec The specification of how to handle the element
+     * @return A handler if we match null otherwise.
+     */
+    public LimitedStaxHandler handleIfMatches(XMLStreamReader2 reader, ElementSpec spec) {
+      if (matches(reader)) {
+        StringBuilder perMatchAccumulator = new StringBuilder();
+        for (Attribute attr : attrsToInclude) {
+          perMatchAccumulator.append(reader.getAttributeValue(attr.getNamespace(), attr.getQname()));
+          perMatchAccumulator.append(" ");
+        }
+        return fact.newInstance(perMatchAccumulator, spec);
+      } else {
+        return null;
+      }
+    }
+
+    protected boolean matches(XMLStreamReader2 reader) {
+      for (Map.Entry<Attribute, Pattern> attributePatt : attrValueMatchers.entrySet()) {
+        Attribute attr = attributePatt.getKey();
+        if (reader.getAttributeIndex(attr.getNamespace(), attr.getQname()) < 0) {
+          return false;
+        }
+        String attributeValue = reader.getAttributeValue(attr.getNamespace(), attr.getQname());
+        if (!attributePatt.getValue().matcher(attributeValue).matches()) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    public String getDestField() {
+      return destField;
+    }
+  }
+
+  /**
+   * A factory for generating handlers given an accumulator supplied on a per-match basis.
+   */
+  public interface LimitedStaxHandlerFactory {
+    LimitedStaxHandler newInstance(StringBuilder accumulator, ElementSpec spec);
+  }
+
+  public static class DefaultHandlerFactory implements LimitedStaxHandlerFactory {
+
+    @Override
+    public LimitedStaxHandler newInstance(StringBuilder accumulator, ElementSpec spec) {
+      return new LimitedStaxHandler(accumulator, spec);
+    }
+  }
+
+  /**
+   * A base implementation to be extended to handle the elements within the matched elements.
+   * For example a &lt;person&gt; that contains &lt;firstname&gt; and &lt;lastname&gt; elements
+   * that need to be combined into a single value. "Bob Smith" The default implementation is a
+   * very thin wrapper on a string buffer and will simply collect all characters. All implementations
+   * should produce their results via the toString method which merely reflects the value of the
+   * accumulator. The most common use will be to maintain flags turning on/off capture of a selected
+   * number of sub elements (i.e. just the names but not the age or sex from a &lt;person&gt; element.
+   */
+  public static class LimitedStaxHandler {
+
+    private final StringBuilder accumulator;
+    private final ElementSpec spec;
+
+    protected LimitedStaxHandler(StringBuilder accumulator, ElementSpec spec) {
+      this.accumulator = accumulator;
+      this.spec = spec;
+    }
+
+    void onCharacters(XMLStreamReader2 xmlStreamReader) {
+      accumulator.append(xmlStreamReader.getText());
+    }
+
+    void onStartElement(XMLStreamReader2 xmlStreamReader) {
+    }
+
+    void onEndElement(XMLStreamReader2 xmlStreamReader) {
+    }
+
+    public final String toString() {
+      return accumulator.toString();
+    }
+
+    public ElementSpec getSpec() {
+      return spec;
+    }
+  }
+
+}

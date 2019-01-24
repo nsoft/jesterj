@@ -173,6 +173,7 @@ dependencies {
   compile 'net.jini:jsk-platform:2.2.2'
   compile 'docopt:docopt:0.6.1'
   compile 'guru.nidi:graphviz-java:0.5.2'
+  compile 'com.fasterxml:aalto-xml:1.1.1'
 
   testCompile 'junit:junit:4.11'
   testCompile 'com.needhamsoftware:easier-mock:2.0'
@@ -189,6 +190,12 @@ dependencies {
   // using testCompile so we don't package these...
   testCompile (group: 'org.jacoco', name:'org.jacoco.report', version:'0.7.7.201606060606')
   testCompile (group: 'org.jacoco', name:'org.jacoco.core', version:'0.7.7.201606060606')
+}
+
+// these are just support classes for the Trie Tests swiped from commons/collections
+// they don't actually have test methods which causes Junit to complain. Just don't run them.
+test {
+  exclude '**/Abstract*.class', '**/BulkTest.class'
 }
 
 jacocoTestReport {
