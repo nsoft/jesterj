@@ -101,6 +101,7 @@ public class TikaProcessor implements DocumentProcessor {
     return name;
   }
 
+  @SuppressWarnings("WeakerAccess")
   public static class Builder extends NamedBuilder<TikaProcessor> {
 
     TikaProcessor obj = new TikaProcessor();
@@ -114,6 +115,12 @@ public class TikaProcessor implements DocumentProcessor {
       return this;
     }
 
+    /**
+     * Add a suffix to all fields names output by tika.
+     *
+     * @param suffix the suffix to add
+     * @return This builder for further configuration
+     */
     public Builder appendingSuffix(String suffix) {
       getObj().suffix = suffix;
       return this;
