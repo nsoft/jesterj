@@ -3,6 +3,7 @@ package org.jesterj.ingest.processors;
 import com.copyright.easiertest.Mock;
 import org.apache.tika.exception.TikaException;
 import org.jesterj.ingest.model.Document;
+import org.jesterj.ingest.model.Status;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,23 +23,12 @@ public class TikaProcessorTest {
 
   private static final String HTML = "<html><head><title>The title</title></head><body>This is some body text</body></html>";
   private static final String XML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root><peer><child>The title</child></peer><peer>This is some body text</peer></root>";
+  private static final String XML_BROKEN = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root><peer><child>The title</peer><peer>This is some body text</peer></root>";
   private static final String XML_CONFIG=
       "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
           "<properties>\n" +
           "  <parsers>\n" +
-          "    <!-- Default Parser for most things, except for 2 mime types, and never\n" +
-          "         use the Executable Parser -->\n" +
-          "    <parser class=\"org.apache.tika.parser.DefaultParser\">\n" +
-          "      <mime-exclude>image/jpeg</mime-exclude>\n" +
-          "      <mime-exclude>application/pdf</mime-exclude>\n" +
-          "      <parser-exclude class=\"org.apache.tika.parser.executable.ExecutableParser\"/>\n" +
-          "    </parser>\n" +
-          "    <!-- Use a different parser for PDF -->\n" +
-          "    <parser class=\"org.apache.tika.parser.EmptyParser\">\n" +
-          "      <mime>application/pdf</mime>\n" +
-          "    </parser>\n" +
-          "    <!-- Use a different parser for XML -->\n" +
-          "    <parser class=\"org.apache.tika.parser.XmlParser\">\n" +
+          "    <parser class=\"org.apache.tika.parser.xml.XMLParser\">\n" +
           "      <mime>application/xml</mime>\n" +
           "    </parser>\n" +
           "  </parsers>\n" +
@@ -131,5 +121,21 @@ public class TikaProcessorTest {
     new TikaProcessor.Builder().named("foo").appendingSuffix("_tk").truncatingTextTo(20)
         .configuredWith(doc)
         .build();
+  }
+
+  @Test
+  public void testBadDoc() throws ParserConfigurationException, IOException, SAXException, TikaException {
+    DocumentBuilderFactory factory =
+        DocumentBuilderFactory.newInstance();
+    DocumentBuilder builder = factory.newDocumentBuilder();
+    ByteArrayInputStream input = new ByteArrayInputStream(XML_CONFIG.getBytes("UTF-8"));
+    org.w3c.dom.Document doc = builder.parse(input);
+    TikaProcessor proc = new TikaProcessor.Builder().named("foo").appendingSuffix("_tk").truncatingTextTo(20)
+        .configuredWith(doc)
+        .build();
+    expect(mockDocument.getRawData()).andReturn(XML_BROKEN.getBytes()).anyTimes();
+    mockDocument.setStatus(Status.ERROR);
+    replay();
+    proc.processDocument(mockDocument);
   }
 }

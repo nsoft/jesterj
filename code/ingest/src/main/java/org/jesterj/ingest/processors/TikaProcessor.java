@@ -63,9 +63,9 @@ public class TikaProcessor implements DocumentProcessor {
           document.put(sanitize(name) + plusSuffix(), metadata.get(name));
         }
       } catch (IOException | TikaException e) {
-        log.warn("Tika processing failure!", e);
+        log.debug("Tika processing failure!", e);
         // if tika can't parse it we certainly don't want random binary crap in the index
-        document.setStatus(Status.DROPPED);
+        document.setStatus(Status.ERROR);
       }
     } catch (Throwable t) {
       boolean isAccessControl = t instanceof AccessControlException;
