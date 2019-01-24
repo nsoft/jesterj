@@ -47,12 +47,12 @@ public class TikaProcessor implements DocumentProcessor {
 
   @Override
   public Document[] processDocument(Document document) {
-    byte[] rawData = document.getRawData();
-    if (rawData == null) {
-      log.debug("Skipping document without data in " + getName());
-      return new Document[]{document};
-    }
     try {
+      byte[] rawData = document.getRawData();
+      if (rawData == null) {
+        log.debug("Skipping document without data in " + getName());
+        return new Document[]{document};
+      }
       Tika tika = new Tika(tikaConfig);
       tika.setMaxStringLength(document.getRawData().length);
       Metadata metadata = new Metadata();

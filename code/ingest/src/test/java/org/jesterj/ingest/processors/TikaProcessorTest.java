@@ -174,7 +174,7 @@ public class TikaProcessorTest {
     proc.processDocument(mockDocument);
   }
 
-  @Test(expected = AccessControlException.class)
+  @Test
   public void testExceptionToIgnoreFromTika() throws ParserConfigurationException, IOException, SAXException, TikaException {
     DocumentBuilderFactory factory =
         DocumentBuilderFactory.newInstance();
