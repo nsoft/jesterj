@@ -102,8 +102,8 @@ public class TikaProcessorTest {
     System.out.println(new String(new byte[] {32, 32, 32, 84, 104, 101, 32, 116, 105, 116, 108, 101, 32, 84, 104, 105, 115, 32, 105, 115}));
     expect(mockDocument.getRawData()).andReturn(XML.getBytes()).anyTimes();
     mockDocument.setRawData(aryEq("   The title This is".getBytes()));
-    expect(mockDocument.put("X_Parsed_By_tk", "org.apache.tika.parser.CompositeParser")).andReturn(true);
-    expect(mockDocument.put("Content_Type_tk", "application/xml")).andReturn(true);
+    expect(mockDocument.put("X_Parsed_By", "org.apache.tika.parser.CompositeParser")).andReturn(true);
+    expect(mockDocument.put("Content_Type", "application/xml")).andReturn(true);
 
     replay();
     proc.processDocument(mockDocument);
