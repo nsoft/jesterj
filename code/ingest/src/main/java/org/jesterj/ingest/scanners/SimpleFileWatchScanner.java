@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.WatchEvent;
@@ -58,10 +57,11 @@ public class SimpleFileWatchScanner extends ScannerImpl {
   private static final Logger log = LogManager.getLogger();
 
   private File rootDir;
-  LinkedHashMap<File, WatchService> watchers = new LinkedHashMap<>();
+  private LinkedHashMap<File, WatchService> watchers = new LinkedHashMap<>();
   private final Object watcherLock = new Object();
   private transient volatile boolean ready;
 
+  @SuppressWarnings("WeakerAccess")
   protected SimpleFileWatchScanner() {
   }
 
@@ -128,16 +128,17 @@ public class SimpleFileWatchScanner extends ScannerImpl {
         }
       } catch (Exception e) {
         log.error("Exception while processing files!", e);
-      } finally {
         // bad stuff happened, unknown state, start over.
         for (File file : watchers.keySet()) {
           try {
             watchers.get(file).close();
-          } catch (IOException e) {
+          } catch (IOException e2) {
             log.error("Additionally an error occured closing the watcher for {}", file);
           }
         }
         watchers.clear();
+      } finally {
+
         scanFinished();
       }
     };
@@ -150,7 +151,7 @@ public class SimpleFileWatchScanner extends ScannerImpl {
 
   private class RootWalker extends SimpleFileVisitor<Path> {
     @Override
-    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
       try {
         watchers.put(dir.toFile(), FileSystems.getDefault().newWatchService());
       } catch (IOException e) {
@@ -161,19 +162,19 @@ public class SimpleFileWatchScanner extends ScannerImpl {
     }
 
     @Override
-    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
       makeDoc(file, Document.Operation.NEW, attrs);
       return FileVisitResult.CONTINUE;
     }
 
     @Override
-    public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+    public FileVisitResult visitFileFailed(Path file, IOException exc) {
       log.warn("unable to scan file " + file, exc);
       return FileVisitResult.CONTINUE;
     }
 
     @Override
-    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+    public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
       try {
         //todo investigate BarbaryWatchService for osx... even with the sun package modifier this takes 2 seconds :(
         dir.register(watchers.get(dir.toFile()), new WatchEvent.Kind[]{ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY}, SensitivityWatchEventModifier.HIGH);
@@ -184,7 +185,7 @@ public class SimpleFileWatchScanner extends ScannerImpl {
     }
   }
 
-  void makeDoc(Path file, Document.Operation operation, BasicFileAttributes attributes) {
+  private void makeDoc(Path file, Document.Operation operation, BasicFileAttributes attributes) {
     byte[] rawData = new byte[0];
     try {
       rawData = Files.readAllBytes(file);
@@ -193,7 +194,7 @@ public class SimpleFileWatchScanner extends ScannerImpl {
     }
     String id;
     try {
-      id = file.toRealPath(new LinkOption[0]).toUri().toASCIIString();
+      id = file.toRealPath().toUri().toASCIIString();
       DocumentImpl doc = new DocumentImpl(
           rawData,
           id,
