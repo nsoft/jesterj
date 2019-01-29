@@ -19,10 +19,7 @@ import java.util.regex.Pattern;
 
 /**
  * A class for extracting fields from an xml document using a memory efficient Stax parsing.
- *
- * WARNING: This class is experimental, not production ready and may not even work at all.
- * WARNING: You probably want to wait for me to write some unit tests before using this...
- */
+\ */
 public class StaxExtractingProcessor implements DocumentProcessor {
 
   private String name;
