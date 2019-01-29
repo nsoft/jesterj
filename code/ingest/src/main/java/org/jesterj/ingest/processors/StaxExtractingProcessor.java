@@ -27,7 +27,6 @@ public class StaxExtractingProcessor implements DocumentProcessor {
 
   private String name;
   private int capacity;
-  //private AbstractBitwiseTrie<CharBuffer, String> extractMapping = new CustomPatriciaTrie<>();
   private PatriciaTrie<List<ElementSpec>> extractMapping = new PatriciaTrie<>();
   private boolean failOnLongPath = false; // default
 
@@ -77,6 +76,9 @@ public class StaxExtractingProcessor implements DocumentProcessor {
                 }
               }
               handlers.removeIf(handler -> specEndingList.contains(handler.getSpec()));
+            }
+            for (LimitedStaxHandler handler : handlers) {
+              handler.onEndElement(xmlStreamReader);
             }
             decrementPath(path);
             break;
@@ -346,7 +348,7 @@ public class StaxExtractingProcessor implements DocumentProcessor {
     void onEndElement(XMLStreamReader2 xmlStreamReader) {
     }
 
-    public final String toString() {
+    public String toString() {
       return accumulator.toString();
     }
 

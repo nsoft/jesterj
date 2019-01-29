@@ -1,8 +1,8 @@
 package org.jesterj.ingest.processors;
 
 import com.copyright.easiertest.Mock;
-import com.fasterxml.aalto.stax.InputFactoryImpl;
 import org.bouncycastle.util.io.Streams;
+import org.codehaus.stax2.XMLStreamReader2;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.processors.StaxExtractingProcessor.ElementSpec;
 import org.junit.After;
@@ -55,9 +55,9 @@ public class StaxExtractingProcessorTest {
         .build();
     expect(mockDocument.getRawData()).andReturn(xmlBytes);
     // note that the default element spec ignores internal tags such as <italic>
+    // also note that whitespace is not collapsed, this is not html.
     expect(mockDocument.put("title_s", "Determinants of Pair-Living in Red-Tailed Sportive Lemurs " +
-        "(Lepilemur\n                    ruficaudatus)\n" +
-        "                ")).andReturn(true);
+        "(Lepilemur\n                    ruficaudatus)\n                ")).andReturn(true);
 
     replay();
     proc.processDocument(mockDocument);
@@ -96,6 +96,102 @@ public class StaxExtractingProcessorTest {
     expect(mockDocument.getRawData()).andReturn(xmlBytes);
     // note that the default element spec ignores internal tags such as <italic>
     expect(mockDocument.put("journal_id_s", "Ethology")).andReturn(true);
+
+    replay();
+    proc.processDocument(mockDocument);
+
+  }
+
+  @Test
+  public void testExtractSamePathToMultipleFieldsByAttribute() {
+    Pattern nlmta = Pattern.compile("nlm-ta");
+    Pattern iso = Pattern.compile("iso-abbrev");
+    Pattern pub = Pattern.compile("publisher-id");
+
+    ElementSpec journal_nlm_ta = new ElementSpec("journal_nlm_ta");
+    journal_nlm_ta.matchOnAttrValue(null,"journal-id-type", nlmta);
+    ElementSpec journal_iso = new ElementSpec("journal_iso");
+    journal_iso.matchOnAttrValue(null,"journal-id-type", iso);
+    ElementSpec journal_pub = new ElementSpec("journal_pub");
+    journal_pub.matchOnAttrValue(null,"journal-id-type", pub);
+    StaxExtractingProcessor proc = new StaxExtractingProcessor.Builder()
+        .named("testExtractSamePathToMultipleFieldsByAttribute")
+        .failOnLongPath(true)
+        .withPathBuffer(2048)
+        .extracting("/article/front/journal-meta/journal-id", journal_nlm_ta)
+        .extracting("/article/front/journal-meta/journal-id", journal_iso)
+        .extracting("/article/front/journal-meta/journal-id", journal_pub)
+        .build();
+    expect(mockDocument.getRawData()).andReturn(xmlBytes);
+    // note that the default element spec ignores internal tags such as <italic>
+    expect(mockDocument.put("journal_nlm_ta", "Ethology")).andReturn(true);
+    expect(mockDocument.put("journal_iso", "Ethology")).andReturn(true);
+    expect(mockDocument.put("journal_pub", "eth")).andReturn(true);
+
+    replay();
+    proc.processDocument(mockDocument);
+  }
+
+  @Test
+  public void testCustomHandler() {
+    Pattern nlmta = Pattern.compile("author");
+    ElementSpec author = new ElementSpec("author_s", (accumulator, spec) -> new StaxExtractingProcessor.LimitedStaxHandler(accumulator,spec) {
+      StringBuilder surname = new StringBuilder();
+      StringBuilder givenName = new StringBuilder();
+      boolean inSurname = false;
+      boolean inGivenName = false;
+
+      @Override
+      void onCharacters(XMLStreamReader2 xmlStreamReader) {
+        if(inSurname) {
+          surname.append(xmlStreamReader.getText());
+        }
+        if(inGivenName) {
+          givenName.append(xmlStreamReader.getText());
+        }
+      }
+
+      @Override
+      void onStartElement(XMLStreamReader2 xmlStreamReader) {
+        if ("surname".equals(xmlStreamReader.getName().getLocalPart())) {
+          inSurname = true;
+        }
+        if ("given-names".equals(xmlStreamReader.getName().getLocalPart())) {
+          inGivenName = true;
+        }
+      }
+
+      @Override
+      void onEndElement(XMLStreamReader2 xmlStreamReader) {
+        if(inSurname && "surname".equals(xmlStreamReader.getName().getLocalPart())) {
+          surname.append(" ");
+          inSurname  = false;
+        }
+        if(inGivenName && "given-names".equals(xmlStreamReader.getName().getLocalPart())) {
+          givenName.append(" ");
+          inGivenName = false;
+        }
+      }
+
+      @Override
+      public String toString() {
+        return (givenName.toString() + surname.toString()).trim();
+      }
+    }) ;
+    author.matchOnAttrValue(null,"contrib-type", nlmta);
+
+    StaxExtractingProcessor proc = new StaxExtractingProcessor.Builder()
+        .named("testCustomHandler")
+        .failOnLongPath(true)
+        .withPathBuffer(2048)
+        .extracting("/article/front/article-meta/contrib-group/contrib", author)
+        .build();
+    expect(mockDocument.getRawData()).andReturn(xmlBytes);
+    // note that the default element spec ignores internal tags such as <italic>
+    expect(mockDocument.put("author_s", "Roland Hilgartner")).andReturn(true);
+    expect(mockDocument.put("author_s", "Claudia Fichtel")).andReturn(true);
+    expect(mockDocument.put("author_s", "Peter M Kappeler")).andReturn(true);
+    expect(mockDocument.put("author_s", "Dietmar Zinner")).andReturn(true);
 
     replay();
     proc.processDocument(mockDocument);
