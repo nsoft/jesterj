@@ -4,6 +4,7 @@ import com.copyright.easiertest.Mock;
 import com.fasterxml.aalto.stax.InputFactoryImpl;
 import org.bouncycastle.util.io.Streams;
 import org.jesterj.ingest.model.Document;
+import org.jesterj.ingest.processors.StaxExtractingProcessor.ElementSpec;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -11,13 +12,14 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.regex.Pattern;
 
 import static com.copyright.easiertest.EasierMocks.*;
 import static org.easymock.EasyMock.expect;
 
 public class StaxExtractingProcessorTest {
 
-  static byte[] xmlBytes;
+  private static byte[] xmlBytes;
 
   @Mock
   private Document mockDocument;
@@ -49,7 +51,7 @@ public class StaxExtractingProcessorTest {
         .failOnLongPath(true)
         .withPathBuffer(2048)
         .extracting("/article/front/article-meta/title-group/article-title",
-            new StaxExtractingProcessor.ElementSpec("title_s"))
+            new ElementSpec("title_s"))
         .build();
     expect(mockDocument.getRawData()).andReturn(xmlBytes);
     // note that the default element spec ignores internal tags such as <italic>
@@ -59,7 +61,44 @@ public class StaxExtractingProcessorTest {
 
     replay();
     proc.processDocument(mockDocument);
-//    InputFactoryImpl
   }
 
+  @Test
+  public void testSimpleMultipleValue() {
+    StaxExtractingProcessor proc = new StaxExtractingProcessor.Builder()
+        .named("testSimpleMultipleValue")
+        .failOnLongPath(true)
+        .withPathBuffer(2048)
+        .extracting("/article/front/journal-meta/journal-id",
+            new ElementSpec("journal_id_s"))
+        .build();
+    expect(mockDocument.getRawData()).andReturn(xmlBytes);
+    // note that the default element spec ignores internal tags such as <italic>
+    expect(mockDocument.put("journal_id_s", "Ethology")).andReturn(true);
+    expect(mockDocument.put("journal_id_s", "Ethology")).andReturn(true);
+    expect(mockDocument.put("journal_id_s", "eth")).andReturn(true);
+
+    replay();
+    proc.processDocument(mockDocument);
+  }
+
+  @Test
+  public void testSimpleFilterByAttribute() {
+    Pattern nlmta = Pattern.compile("nlm-ta");
+    ElementSpec journal_id_s = new ElementSpec("journal_id_s");
+    journal_id_s.matchOnAttrValue(null,"journal-id-type", nlmta);
+    StaxExtractingProcessor proc = new StaxExtractingProcessor.Builder()
+        .named("testSimpleFilterByAttribute")
+        .failOnLongPath(true)
+        .withPathBuffer(2048)
+        .extracting("/article/front/journal-meta/journal-id", journal_id_s)
+        .build();
+    expect(mockDocument.getRawData()).andReturn(xmlBytes);
+    // note that the default element spec ignores internal tags such as <italic>
+    expect(mockDocument.put("journal_id_s", "Ethology")).andReturn(true);
+
+    replay();
+    proc.processDocument(mockDocument);
+
+  }
 }

@@ -54,7 +54,10 @@ public class StaxExtractingProcessor implements DocumentProcessor {
             List<ElementSpec> specList = extractMapping.get(path);
             if (specList != null) {
               for (ElementSpec spec : specList) {
-                handlers.add(spec.handleIfMatches(xmlStreamReader, spec));
+                LimitedStaxHandler handler = spec.handleIfMatches(xmlStreamReader, spec);
+                if (handler != null) {
+                  handlers.add(handler);
+                }
               }
             }
             for (LimitedStaxHandler handler : handlers) {
@@ -69,9 +72,11 @@ public class StaxExtractingProcessor implements DocumentProcessor {
                 for (ElementSpec elementSpec : specEndingList) {
                   if (handler.getSpec() == elementSpec) {
                     document.put(elementSpec.getDestField(), handler.toString());
+                    handler.reset();
                   }
                 }
               }
+              handlers.removeIf(handler -> specEndingList.contains(handler.getSpec()));
             }
             decrementPath(path);
             break;
@@ -90,14 +95,6 @@ public class StaxExtractingProcessor implements DocumentProcessor {
     }
 
     return new Document[0];
-  }
-
-  private List<ElementSpec> fieldForPath(CharBuffer path) {
-    return extractMapping.get(path);
-  }
-
-  private boolean pathIsExtracted(CharBuffer path) {
-    return extractMapping.get(path.toString()) != null;
   }
 
   private void decrementPath(CharBuffer path) {
@@ -137,6 +134,7 @@ public class StaxExtractingProcessor implements DocumentProcessor {
     return name;
   }
 
+  @SuppressWarnings("WeakerAccess")
   public static class Builder extends NamedBuilder<StaxExtractingProcessor> {
 
     StaxExtractingProcessor obj = new StaxExtractingProcessor();
@@ -179,6 +177,7 @@ public class StaxExtractingProcessor implements DocumentProcessor {
 
   }
 
+  @SuppressWarnings("WeakerAccess")
   public static class Attribute {
 
     private String namespace;
@@ -217,6 +216,7 @@ public class StaxExtractingProcessor implements DocumentProcessor {
   /**
    * An class to describe an element and what to do with it when it's encountered.
    */
+  @SuppressWarnings("WeakerAccess")
   public static class ElementSpec {
     private final String destField;
     private final Set<Attribute> attrsToInclude = new LinkedHashSet<>();
@@ -325,6 +325,7 @@ public class StaxExtractingProcessor implements DocumentProcessor {
    * accumulator. The most common use will be to maintain flags turning on/off capture of a selected
    * number of sub elements (i.e. just the names but not the age or sex from a &lt;person&gt; element.
    */
+  @SuppressWarnings("WeakerAccess")
   public static class LimitedStaxHandler {
 
     private final StringBuilder accumulator;
@@ -351,6 +352,10 @@ public class StaxExtractingProcessor implements DocumentProcessor {
 
     public ElementSpec getSpec() {
       return spec;
+    }
+
+    public void reset() {
+      accumulator.delete(0,accumulator.length());
     }
   }
 
