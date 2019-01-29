@@ -108,19 +108,38 @@ public class CharSequenceAnalyzer extends KeyAnalyzer<CharSequence> {
       throw new IllegalArgumentException(
           "Cannot determine prefix outside of Character boundaries");
     }
-    final String s1 = prefix.toString().substring(offsetInBits / LENGTH, lengthInBits / LENGTH);
+    int start = offsetInBits / LENGTH;
+    int distance = lengthInBits / LENGTH;
+    int pos = start;
+    while (pos < distance) {
+      if (pos >= prefix.length() || (pos - start) >= key.length() || key.charAt(pos - start) != prefix.charAt(pos)) {
+        return false;
+      }
+      pos++;
+    }
 
-    return key.toString().startsWith(s1);
-//    int start = offsetInBits / LENGTH;
-//    int distance = lengthInBits / LENGTH;
-//    int pos = start;
-//    while (pos < distance) {
-//      if (pos >= prefix.length() || (pos - start) >= key.length() || key.charAt(pos - start) != prefix.charAt(pos)) {
-//        return false;
-//      }
-//      pos++;
-//    }
-//
-//    return true;
+    return true;
+  }
+
+  @Override
+  public int compare(CharSequence o1, CharSequence o2) {
+    if (o1 == null) {
+      return o2 == null ? 0 : -1;
+    } else if (o2 == null) {
+      return 1;
+    }
+
+    if (o1.getClass() == o2.getClass()) {
+      return super.compare(o1, o2);
+    } else {
+      // need to compare on the basis of characters only ignoring implementation class.
+      for (int i = 0; i < o1.length() && i < o2.length(); i++) {
+        if (o1.charAt(i) == o2.charAt(i)) {
+          continue;
+        }
+        return o1.charAt(i) - o2.charAt(i);
+      }
+      return o1.length() - o2.length();
+    }
   }
 }

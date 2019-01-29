@@ -36,10 +36,10 @@ public class StaxExtractingProcessor implements DocumentProcessor {
   public Document[] processDocument(Document document) {
     List<LimitedStaxHandler> handlers = new ArrayList<>();
     CharBuffer path = CharBuffer.allocate(this.capacity);
-
+    path.flip();
     InputStream xmlInputStream = new ByteArrayInputStream(document.getRawData());
     XMLInputFactory2 xmlInputFactory = (XMLInputFactory2) XMLInputFactory
-        .newFactory("com.fasterxml.aalto.stax.InputFactoryImpl", this.getClass().getClassLoader());
+        .newFactory("javax.xml.stream.XMLInputFactory", Thread.currentThread().getContextClassLoader());
     XMLStreamReader2 xmlStreamReader;
     try {
       xmlStreamReader = (XMLStreamReader2) xmlInputFactory.createXMLStreamReader(xmlInputStream);
@@ -102,6 +102,7 @@ public class StaxExtractingProcessor implements DocumentProcessor {
 
   private void decrementPath(CharBuffer path) {
     int lastSlash = 0;
+    path.rewind();
     for (int i = 0; i < path.limit(); i++) {
       if (path.charAt(i) == '/') {
         lastSlash = i;
@@ -112,13 +113,23 @@ public class StaxExtractingProcessor implements DocumentProcessor {
 
   private boolean addToPath(String s, CharBuffer path) {
     int i = 0;
+    boolean result = false;
     while (path.limit() < path.capacity()) {
       if (s.length() <= i) {
-        return true; // all chars were added.
+        result = true; // all chars were added.
+        break;
       }
+      if (i == 0) {
+        path.position(path.limit());
+        path.limit(path.limit() + 1);
+        path.append('/');
+      }
+      path.position(path.limit());
+      path.limit(path.limit() + 1);
       path.append(s.charAt(i++));
     }
-    return false;
+    path.rewind();
+    return result;
   }
 
   @Override
