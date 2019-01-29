@@ -103,6 +103,27 @@ public class StaxExtractingProcessorTest {
   }
 
   @Test
+  public void testIncludeAttributeText() {
+    Pattern nlmta = Pattern.compile("nlm-ta");
+    ElementSpec journal_id_s = new ElementSpec("journal_id_s");
+    journal_id_s.matchOnAttrValue(null,"journal-id-type", nlmta);
+    journal_id_s.inclAttributeText(null, "journal-id-type");
+    StaxExtractingProcessor proc = new StaxExtractingProcessor.Builder()
+        .named("testIncludeAttributeText")
+        .failOnLongPath(true)
+        .withPathBuffer(2048)
+        .extracting("/article/front/journal-meta/journal-id", journal_id_s)
+        .build();
+    expect(mockDocument.getRawData()).andReturn(xmlBytes);
+    // note that the default element spec ignores internal tags such as <italic>
+    expect(mockDocument.put("journal_id_s", "nlm-ta Ethology")).andReturn(true);
+
+    replay();
+    proc.processDocument(mockDocument);
+
+  }
+
+  @Test
   public void testExtractSamePathToMultipleFieldsByAttribute() {
     Pattern nlmta = Pattern.compile("nlm-ta");
     Pattern iso = Pattern.compile("iso-abbrev");
