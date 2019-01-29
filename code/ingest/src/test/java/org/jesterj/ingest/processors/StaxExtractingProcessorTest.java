@@ -156,14 +156,15 @@ public class StaxExtractingProcessorTest {
   @Test
   public void testCustomHandler() {
     Pattern nlmta = Pattern.compile("author");
-    ElementSpec author = new ElementSpec("author_s", (accumulator, spec) -> new StaxExtractingProcessor.LimitedStaxHandler(accumulator,spec) {
+    ElementSpec author = new ElementSpec("author_s", (accumulator, spec) ->
+        new StaxExtractingProcessor.LimitedStaxHandler(accumulator,spec) {
       StringBuilder surname = new StringBuilder();
       StringBuilder givenName = new StringBuilder();
       boolean inSurname = false;
       boolean inGivenName = false;
 
       @Override
-      void onCharacters(XMLStreamReader2 xmlStreamReader) {
+      protected void onCharacters(XMLStreamReader2 xmlStreamReader) {
         if(inSurname) {
           surname.append(xmlStreamReader.getText());
         }
@@ -173,7 +174,7 @@ public class StaxExtractingProcessorTest {
       }
 
       @Override
-      void onStartElement(XMLStreamReader2 xmlStreamReader) {
+      protected void onStartElement(XMLStreamReader2 xmlStreamReader) {
         if ("surname".equals(xmlStreamReader.getName().getLocalPart())) {
           inSurname = true;
         }
@@ -183,7 +184,7 @@ public class StaxExtractingProcessorTest {
       }
 
       @Override
-      void onEndElement(XMLStreamReader2 xmlStreamReader) {
+      protected void onEndElement(XMLStreamReader2 xmlStreamReader) {
         if(inSurname && "surname".equals(xmlStreamReader.getName().getLocalPart())) {
           surname.append(" ");
           inSurname  = false;

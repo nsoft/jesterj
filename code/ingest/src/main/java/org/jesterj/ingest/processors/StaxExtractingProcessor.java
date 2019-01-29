@@ -335,14 +335,14 @@ public class StaxExtractingProcessor implements DocumentProcessor {
       this.spec = spec;
     }
 
-    void onCharacters(XMLStreamReader2 xmlStreamReader) {
+    protected void onCharacters(XMLStreamReader2 xmlStreamReader) {
       accumulator.append(xmlStreamReader.getText());
     }
 
-    void onStartElement(XMLStreamReader2 xmlStreamReader) {
+    protected void onStartElement(XMLStreamReader2 xmlStreamReader) {
     }
 
-    void onEndElement(XMLStreamReader2 xmlStreamReader) {
+    protected void onEndElement(XMLStreamReader2 xmlStreamReader) {
     }
 
     public String toString() {
