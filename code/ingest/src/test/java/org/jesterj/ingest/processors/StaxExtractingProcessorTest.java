@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 
 import static com.copyright.easiertest.EasierMocks.*;
 import static org.easymock.EasyMock.expect;
+import static org.junit.Assert.assertEquals;
 
 public class StaxExtractingProcessorTest {
 
@@ -60,7 +61,9 @@ public class StaxExtractingProcessorTest {
         "(Lepilemur\n                    ruficaudatus)\n                ")).andReturn(true);
 
     replay();
-    proc.processDocument(mockDocument);
+    Document[] documents = proc.processDocument(mockDocument);
+    assertEquals(1, documents.length);
+    assertEquals(mockDocument,documents[0]);
   }
 
   @Test

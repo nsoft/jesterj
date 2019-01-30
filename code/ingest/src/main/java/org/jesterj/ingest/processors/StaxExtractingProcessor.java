@@ -1,5 +1,7 @@
 package org.jesterj.ingest.processors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.codehaus.stax2.XMLInputFactory2;
 import org.codehaus.stax2.XMLStreamReader2;
 import org.jesterj.ingest.model.Document;
@@ -21,6 +23,7 @@ import java.util.regex.Pattern;
  * A class for extracting fields from an xml document using a memory efficient Stax parsing.
 \ */
 public class StaxExtractingProcessor implements DocumentProcessor {
+  private static final Logger log = LogManager.getLogger();
 
   private String name;
   private int capacity;
@@ -33,6 +36,9 @@ public class StaxExtractingProcessor implements DocumentProcessor {
     List<LimitedStaxHandler> handlers = new ArrayList<>();
     CharBuffer path = CharBuffer.allocate(this.capacity);
     path.flip();
+    if (log.isTraceEnabled()) {
+      log.trace(new String(document.getRawData()));
+    }
     InputStream xmlInputStream = new ByteArrayInputStream(document.getRawData());
     XMLInputFactory2 xmlInputFactory = (XMLInputFactory2) XMLInputFactory
         .newFactory("javax.xml.stream.XMLInputFactory", Thread.currentThread().getContextClassLoader());
@@ -93,7 +99,7 @@ public class StaxExtractingProcessor implements DocumentProcessor {
       e.printStackTrace();
     }
 
-    return new Document[0];
+    return new Document[] {document};
   }
 
   private void decrementPath(CharBuffer path) {
