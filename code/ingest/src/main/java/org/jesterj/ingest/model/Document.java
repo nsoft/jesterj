@@ -34,8 +34,8 @@ public interface Document extends ListMultimap<String, String>, Serializable {
    * The 'file_size' field which holds the size of the original content for an input document as
    * the framework first pulled it in.
    */
-  String FIELD_FILE_SIZE = "file_size";
-  
+  String DOC_RAW_SIZE = "doc_raw_size";
+
   /**
    * Get the raw bytes from which this item was constructed. This is usually only used by the first or
    * second step in the pipeline which converts the binary form into entries in this map.
@@ -107,7 +107,7 @@ public interface Document extends ListMultimap<String, String>, Serializable {
   String getHash();
 
   String getIdField();
-  
+
   Operation getOperation();
 
   String getSourceScannerName();

@@ -80,7 +80,7 @@ public class DocumentImpl implements Document {
     this.delegate.put(idField, id);
 
     if (this.rawData != null) {
-      this.delegate.put(FIELD_FILE_SIZE, String.valueOf(this.rawData.length));
+      this.delegate.put(DOC_RAW_SIZE, String.valueOf(this.rawData.length));
     }
   }
 
