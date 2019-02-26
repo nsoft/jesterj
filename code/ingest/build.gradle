@@ -294,8 +294,8 @@ ext.testingRepo = 'file:///tmp/myRepo/'
 ext.uploadRepo = isRelease ? releaseRepo : (isSnapshot ? snapshotRepo : testingRepo)
 
 
-task uploadSnapshot(dependsOn: uploadArchives) << {}
-task uploadRelease(dependsOn: uploadArchives) << {}
+task uploadSnapshot(dependsOn: uploadArchives) {}
+task uploadRelease(dependsOn: uploadArchives) {}
 
 task sourcesJar(type: Jar, dependsOn: classes) {
   classifier = 'sources'
