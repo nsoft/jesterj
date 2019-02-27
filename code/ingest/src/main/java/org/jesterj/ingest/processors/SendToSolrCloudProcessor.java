@@ -33,6 +33,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /*
@@ -259,9 +260,7 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
     public SendToSolrCloudProcessor build() {
       SendToSolrCloudProcessor tmp = getObj();
       setObj(new SendToSolrCloudProcessor());
-      String zkConnection = StringUtils.join(zkList, ',');
-      zkConnection = chroot == null ? zkConnection : zkConnection + chroot;
-      tmp.setSolrClient(new CloudSolrClient(zkConnection));
+      tmp.setSolrClient(new CloudSolrClient.Builder(this.zkList,Optional.ofNullable(chroot)).build());
       tmp.getSolrClient().setDefaultCollection(tmp.collection);
       return tmp;
     }
