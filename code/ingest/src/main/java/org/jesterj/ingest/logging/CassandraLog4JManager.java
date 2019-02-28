@@ -18,6 +18,7 @@ package org.jesterj.ingest.logging;
 
 import com.datastax.driver.core.Session;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractManager;
 import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.persistence.CassandraSupport;
@@ -71,7 +72,7 @@ public class CassandraLog4JManager extends AbstractManager {
   // everything. This includes calling System.exit() since that gets checked in another JVM thread and
   // the JVM thread tries to start a JUL logger!
   protected CassandraLog4JManager(String name) {
-    super(name);
+    super(LoggerContext.getContext(), name);
 
     Callable<Object> makeTables = new Callable<Object>() {
 
@@ -120,11 +121,6 @@ public class CassandraLog4JManager extends AbstractManager {
       }
       System.exit(3);
     });
-  }
-
-  @Override
-  protected void releaseSub() {
-
   }
 
 

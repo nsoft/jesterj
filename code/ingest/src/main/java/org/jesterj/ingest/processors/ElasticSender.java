@@ -22,7 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionWriteResponse;
+import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
@@ -31,7 +31,8 @@ import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.jesterj.ingest.config.Required;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Status;
@@ -82,7 +83,7 @@ public class ElasticSender extends BatchProcessor<ActionRequest> {
     String id = document.getId();
     putIdInThreadContext(document);
     try {
-      ActionWriteResponse resp = (ActionWriteResponse) individualRetry.actionGet();
+      DocWriteResponse resp = (DocWriteResponse) individualRetry.actionGet();
       checkResponse(document, resp);
     } catch (Exception ex) {
       log.info(Status.ERROR.getMarker(), "{} could not be sent to elastic because of {}", id, ex.getMessage());
@@ -90,8 +91,8 @@ public class ElasticSender extends BatchProcessor<ActionRequest> {
     }
   }
 
-  void checkResponse(Document document, ActionWriteResponse resp) {
-    ActionWriteResponse.ShardInfo shardInfo = resp.getShardInfo();
+  void checkResponse(Document document, DocWriteResponse resp) {
+    DocWriteResponse.ShardInfo shardInfo = resp.getShardInfo();
     if (shardInfo.status().getStatus() >= 400) {
       String id = document.getId();
       if (shardInfo.getSuccessful() == 0) {
@@ -106,7 +107,7 @@ public class ElasticSender extends BatchProcessor<ActionRequest> {
   }
 
   @Override
-  protected void batchOperation(ConcurrentBiMap<Document, ActionRequest> oldBatch) throws Exception {
+  protected void batchOperation(ConcurrentBiMap<Document, ActionRequest> oldBatch) {
     BulkRequestBuilder builder = getClient().prepareBulk();
     for (ActionRequest request : oldBatch.values()) {
       if (request instanceof UpdateRequest) {
@@ -225,18 +226,17 @@ public class ElasticSender extends BatchProcessor<ActionRequest> {
       ElasticSender obj = getObj();
       try {
 
-        TransportClient.Builder clientBuilder = TransportClient.builder();
+        Settings.Builder settings = Settings.builder();
+
         if (connectSetting) {
-          Settings.Builder settings = Settings.settingsBuilder();
           settings.put("transport.tcp.connect_timeout", obj.connectTimout + "ms");
-          clientBuilder.settings(settings);
         }
-        TransportClient transportClient = clientBuilder.build();
+        TransportClient client = new PreBuiltTransportClient(settings.build());
         for (Map.Entry<String, String> host : hosts.entrySet()) {
           int port = Integer.valueOf(host.getValue());
-          transportClient.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(host.getKey()), port));
+          client.addTransportAddress(new TransportAddress(InetAddress.getByName(host.getKey()), port));
         }
-        obj.setClient(transportClient);
+        obj.setClient(client);
       } catch (UnknownHostException e) {
         log.error("Could not find elastic!", e);
         throw new RuntimeException(e);

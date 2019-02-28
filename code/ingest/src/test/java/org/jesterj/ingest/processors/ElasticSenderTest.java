@@ -23,7 +23,7 @@ import org.apache.cassandra.utils.ConcurrentBiMap;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
-import org.elasticsearch.action.ActionWriteResponse;
+import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
@@ -67,7 +67,7 @@ public class ElasticSenderTest {
   @Mock private ActionFuture<IndexResponse> futureMockIndex;
   @Mock private ActionFuture<DeleteResponse> futureMockDelete;
   @Mock private IndexResponse mockIndexResponse;
-  @Mock private ActionWriteResponse.ShardInfo shardInfoMock;
+  @Mock private DocWriteResponse.ShardInfo shardInfoMock;
 
 
   public ElasticSenderTest() {
