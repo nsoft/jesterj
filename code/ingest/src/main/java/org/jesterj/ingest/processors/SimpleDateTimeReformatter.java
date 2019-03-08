@@ -37,6 +37,7 @@ public class SimpleDateTimeReformatter implements DocumentProcessor {
 
   private String inputField;
   private String outputField;
+  private boolean overwrite = true;
   private DateTimeFormatter inputFormat;
   private DateTimeFormatter outputFormat = DateTimeFormatter.ISO_INSTANT; // default to what lucene likes
   private String name;
@@ -63,6 +64,9 @@ public class SimpleDateTimeReformatter implements DocumentProcessor {
       }
       if (instant == null) {
         continue;
+      }
+      if (overwrite) {
+        document.removeAll(outputField);
       }
       document.put(outputField, outputFormat.format(instant));
       updated = true;
@@ -91,6 +95,11 @@ public class SimpleDateTimeReformatter implements DocumentProcessor {
 
     public Builder into(String toField) {
       getObj().outputField = toField;
+      return this;
+    }
+
+    public Builder replaceDestination(boolean overwrite) {
+      getObj().overwrite = overwrite;
       return this;
     }
 
