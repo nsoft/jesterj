@@ -29,19 +29,16 @@ import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.jesterj.ingest.config.Required;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Status;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * @deprecated until someone wants to maintain this and deal with elastic breaking stuff... #helpwanted
+ */
 public class ElasticSender extends BatchProcessor<ActionRequest> {
   private static final Logger log = LogManager.getLogger();
 
@@ -223,25 +220,7 @@ public class ElasticSender extends BatchProcessor<ActionRequest> {
 
     @Override
     public ElasticSender build() {
-      ElasticSender obj = getObj();
-      try {
-
-        Settings.Builder settings = Settings.builder();
-
-        if (connectSetting) {
-          settings.put("transport.tcp.connect_timeout", obj.connectTimout + "ms");
-        }
-        TransportClient client = new PreBuiltTransportClient(settings.build());
-        for (Map.Entry<String, String> host : hosts.entrySet()) {
-          int port = Integer.valueOf(host.getValue());
-          client.addTransportAddress(new TransportAddress(InetAddress.getByName(host.getKey()), port));
-        }
-        obj.setClient(client);
-      } catch (UnknownHostException e) {
-        log.error("Could not find elastic!", e);
-        throw new RuntimeException(e);
-      }
-      return obj;
+      throw new UnsupportedOperationException("Elastic support is suspended, I don't have time to chase down their backwards incompatible changes, please contribute if you want elastic support");
     }
 
     @Override

@@ -37,6 +37,7 @@ import org.elasticsearch.rest.RestStatus;
 import org.jesterj.ingest.model.Document;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -53,7 +54,9 @@ import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.isA;
 
+@Ignore // removing elastic support until I or someone needs it, because they keep doing backwards incompatible stuff.
 public class ElasticSenderTest {
+  @SuppressWarnings("deprecation")
   @ObjectUnderTest private ElasticSender obj;
   @Mock private Client mockClient;
   @Mock private BulkRequestBuilder mockBulkReq;
@@ -85,7 +88,7 @@ public class ElasticSenderTest {
   }
 
   @Test
-  public void testBatchOperation() throws Exception {
+  public void testBatchOperation() {
     expect(obj.getClient()).andReturn(mockClient);
     expect(mockClient.prepareBulk()).andReturn(mockBulkReq);
     ArrayList<ActionRequest> values = new ArrayList<>();
@@ -106,8 +109,9 @@ public class ElasticSenderTest {
     obj.batchOperation(mockBatch);
   }
 
+  @SuppressWarnings("deprecation")
   @Test(expected = ElasticSender.ESBulkFail.class)
-  public void testBatchOperationHasFailures() throws Exception {
+  public void testBatchOperationHasFailures() {
     expect(obj.getClient()).andReturn(mockClient);
     expect(mockClient.prepareBulk()).andReturn(mockBulkReq);
     ArrayList<ActionRequest> values = new ArrayList<>();
@@ -125,7 +129,7 @@ public class ElasticSenderTest {
   }
 
   @Test(expected = IllegalStateException.class)
-  public void testBatchOperationWrongObj() throws Exception {
+  public void testBatchOperationWrongObj() {
     expect(obj.getClient()).andReturn(mockClient);
     expect(mockClient.prepareBulk()).andReturn(mockBulkReq);
     ArrayList<ActionRequest> values = new ArrayList<>();
@@ -177,6 +181,7 @@ public class ElasticSenderTest {
 
   @Test
   public void testRetryIndividualDocs() {
+    @SuppressWarnings("deprecation")
     ElasticSender.ESBulkFail e = new ElasticSender.ESBulkFail();
     Collection<ActionRequest> actionRequests = new ArrayList<>();
     actionRequests.add(mockUpdate);
@@ -199,6 +204,7 @@ public class ElasticSenderTest {
 
   @Test
   public void testHandleRetryResult() {
+    @SuppressWarnings("deprecation")
     ElasticSender.ESBulkFail e = new ElasticSender.ESBulkFail();
     Map<ActionFuture, ActionRequest> actionFutureActionRequestMap = new HashMap<>();
     actionFutureActionRequestMap.put(futureMockIndex, mockIndex);
@@ -215,6 +221,7 @@ public class ElasticSenderTest {
 
   @Test
   public void testHandleRetryResultException() {
+    @SuppressWarnings("deprecation")
     ElasticSender.ESBulkFail e = new ElasticSender.ESBulkFail();
     Map<ActionFuture, ActionRequest> actionFutureActionRequestMap = new HashMap<>();
     actionFutureActionRequestMap.put(futureMockIndex, mockIndex);
@@ -260,6 +267,7 @@ public class ElasticSenderTest {
 
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testSimpleProperties() {
     replay();
     BeanTester tester = new BeanTester();

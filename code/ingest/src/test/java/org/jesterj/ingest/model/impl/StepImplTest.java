@@ -99,7 +99,9 @@ public class StepImplTest {
   @Test
   public void testSideEffectsLastStep() {
     replay();
-    testStep = new StepImpl.Builder().withProcessor(new ElasticSender.Builder().named("foo")).build();
+    testStep = new StepImpl.Builder().withProcessor(new SendToSolrCloudProcessor.Builder()
+        .named("foo")
+        .withZookeeper("localhost:9983")).build();
     Step[] possibleSideEffects = testStep.getPossibleSideEffects();
     assertEquals(1, possibleSideEffects.length);
   }
@@ -109,7 +111,7 @@ public class StepImplTest {
     replay();
     testStep = getPlan().findStep(SHAKESPEARE);
     Step[] possibleSideEffects = testStep.getPossibleSideEffects();
-    assertEquals(2, possibleSideEffects.length);
+    assertEquals(1, possibleSideEffects.length);
   }
 
   public Plan getPlan() {
@@ -181,24 +183,24 @@ public class StepImplTest {
         );
 //            String home = Main.JJ_DIR + System.getProperty("file.separator") + "jj_elastic_client_node";
 
-    sendToElasticBuilder
-        .named("elastic_sender")
-//            .withProcessor(
-//                new ElasticNodeSender.Builder()
-//                    .named("elastic_node_processor")
-//                    .usingCluster("elasticsearch")
-//                    .nodeName("jj_elastic_client_node")
-//                    .locatedInDir(home)
-//                    .forIndex("shakespeare")
-//                    .forObjectType("work")
-        .withProcessor(
-            new ElasticSender.Builder()
-                .named("elastic_node_processor")
-                .forIndex("shakespeare")
-                .forObjectType("work")
-                .withServer("localhost", 9300)
-            //.withServer("es.example.com", "9300")  // can have multiple servers
-        );
+//    sendToElasticBuilder
+//        .named("elastic_sender")
+////            .withProcessor(
+////                new ElasticNodeSender.Builder()
+////                    .named("elastic_node_processor")
+////                    .usingCluster("elasticsearch")
+////                    .nodeName("jj_elastic_client_node")
+////                    .locatedInDir(home)
+////                    .forIndex("shakespeare")
+////                    .forObjectType("work")
+//        .withProcessor(
+//            new ElasticSender.Builder()
+//                .named("elastic_node_processor")
+//                .forIndex("shakespeare")
+//                .forObjectType("work")
+//                .withServer("localhost", 9300)
+//            //.withServer("es.example.com", "9300")  // can have multiple servers
+//        );
     planBuilder
         .named("myPlan")
         .withIdField("id")
@@ -209,7 +211,7 @@ public class StepImplTest {
         .addStep(renameFileszieToInteger, ACCESSED)
         .addStep(tikaBuilder, SIZE_TO_INT);
     planBuilder.addStep(sendToSolrBuilder, TIKA);
-    planBuilder.addStep(sendToElasticBuilder, TIKA);
+//    planBuilder.addStep(sendToElasticBuilder, TIKA);
     return planBuilder.build();
 
   }
