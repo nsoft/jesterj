@@ -195,12 +195,14 @@ dependencies {
   // using testCompile so we don't package these...
   testCompile (group: 'org.jacoco', name:'org.jacoco.report', version:'0.7.7.201606060606')
   testCompile (group: 'org.jacoco', name:'org.jacoco.core', version:'0.7.7.201606060606')
+  testCompile 'org.apache.solr:solr-test-framework:7.6.0'
 }
 
 // these are just support classes for the Trie Tests swiped from commons/collections
 // they don't actually have test methods which causes Junit to complain. Just don't run them.
 test {
   exclude '**/Abstract*.class', '**/BulkTest.class'
+  systemProperty "java.security.egd", "file:/dev/./urandom"
 }
 
 jacocoTestReport {

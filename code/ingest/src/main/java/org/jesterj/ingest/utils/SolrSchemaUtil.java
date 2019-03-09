@@ -108,8 +108,8 @@ public class SolrSchemaUtil {
 
   private final XPath xpath = XPathFactory.newInstance().newXPath();
 
-  public Document getSchemaDocument(String schemaFile) throws ParserConfigurationException, SAXException, IOException {
-    InputStream resourceAsStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(schemaFile);
+  public Document getSchemaDocument(String schemaFile, ClassSubPathResourceLoader classLoader) throws ParserConfigurationException, SAXException, IOException {
+    InputStream resourceAsStream = classLoader.openResource(schemaFile);
     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
     DocumentBuilder db = dbf.newDocumentBuilder();
     return db.parse(resourceAsStream);
@@ -121,7 +121,7 @@ public class SolrSchemaUtil {
     return objenesis.getInstantiatorOf(classToMock).newInstance();
   }
 
-  public FieldType getFieldType(Document doc, String fieldTypeName, String luceneMatch, float schemaVersion) throws XPathExpressionException, InstantiationException, IllegalAccessException {
+  public FieldType getFieldType(Document doc, String fieldTypeName, String luceneMatch, float schemaVersion, ClassSubPathResourceLoader loader) throws XPathExpressionException, InstantiationException, IllegalAccessException {
     FieldType ft = null;
     Node node = null;
     String expression = getFieldTypeXPathExpressions();
@@ -148,16 +148,16 @@ public class SolrSchemaUtil {
     // a SolrResourceLoader and omissions noted below
     expression = "./analyzer[@type='query']";
     Node anode = (Node) xpath.evaluate(expression, node, XPathConstants.NODE);
-    Analyzer queryAnalyzer = readAnalyzer(anode, luceneMatch);
+    Analyzer queryAnalyzer = readAnalyzer(anode, luceneMatch, loader);
 
     expression = "./analyzer[@type='multiterm']";
     anode = (Node) xpath.evaluate(expression, node, XPathConstants.NODE);
-    Analyzer multiAnalyzer = readAnalyzer(anode, luceneMatch);
+    Analyzer multiAnalyzer = readAnalyzer(anode, luceneMatch, loader);
 
     // An analyzer without a type specified, or with type="index"
     expression = "./analyzer[not(@type)] | ./analyzer[@type='index']";
     anode = (Node) xpath.evaluate(expression, node, XPathConstants.NODE);
-    Analyzer analyzer = readAnalyzer(anode, luceneMatch);
+    Analyzer analyzer = readAnalyzer(anode, luceneMatch, loader);
 
     // CHANGE vs. Solr: removed loading of similarity because we are only worried about indexing and
     // skipping it saves us having to deal with IndexSchema#readSimilarity(), which wants a
@@ -252,10 +252,11 @@ public class SolrSchemaUtil {
    *
    * @param node        The dom node representing the analyzer
    * @param luceneMatch The lucene version match (must be supplied since we don't load a SolrConfig.xml)
+   * @param loader      The Resource loader that can provide accessory files such as stopwords.txt
    * @return A freshly instantiated analyzer
    * @throws XPathExpressionException if there are problems with the DOM created from the schema.xml file.
    */
-  private Analyzer readAnalyzer(Node node, final String luceneMatch) throws XPathExpressionException {
+  private Analyzer readAnalyzer(Node node, final String luceneMatch, ResourceLoader loader) throws XPathExpressionException {
 
 
     // parent node used to be passed in as "fieldtype"
@@ -264,7 +265,7 @@ public class SolrSchemaUtil {
 
     if (node == null) return null;
     NamedNodeMap attrs = node.getAttributes();
-    String analyzerName = DOMUtil.getAttr(attrs, "class");
+    String analyzerClassName = DOMUtil.getAttr(attrs, "class");
 
     // check for all of these up front, so we can error if used in
     // conjunction with an explicit analyzer class.
@@ -275,7 +276,7 @@ public class SolrSchemaUtil {
     NodeList tokenFilterNodes = (NodeList) xpath.evaluate
         ("./filter", node, XPathConstants.NODESET);
 
-    if (analyzerName != null) {
+    if (analyzerClassName != null) {
 
       // explicitly check for child analysis factories instead of
       // just any child nodes, because the user might have their
@@ -285,13 +286,13 @@ public class SolrSchemaUtil {
           0 != tokenFilterNodes.getLength()) {
         throw new SolrException
             (SolrException.ErrorCode.SERVER_ERROR,
-                "Configuration Error: Analyzer class='" + analyzerName +
+                "Configuration Error: Analyzer class='" + analyzerClassName +
                     "' can not be combined with nested analysis factories");
       }
 
       try {
         // No need to be core-aware as Analyzers are not in the core-aware list
-        final Class<? extends Analyzer> clazz = findClass(analyzerName, Analyzer.class);
+        final Class<? extends Analyzer> clazz = findClass(analyzerClassName, Analyzer.class);
         Analyzer analyzer = clazz.newInstance();
 
         final String matchVersionStr = DOMUtil.getAttr(attrs, LUCENE_MATCH_VERSION_PARAM);
@@ -305,25 +306,28 @@ public class SolrSchemaUtil {
                       "' needs a 'luceneMatchVersion' parameter");
         }
         analyzer.setVersion(luceneMatchVersion);
+        if (analyzer instanceof ResourceLoaderAware) {
+          ((ResourceLoaderAware) analyzer).inform(loader);
+        }
         return analyzer;
       } catch (Exception e) {
-        log.error("Cannot load analyzer: " + analyzerName, e);
+        log.error("Cannot load analyzer: " + analyzerClassName, e);
         throw new SolrException(SolrException.ErrorCode.SERVER_ERROR,
-            "Cannot load analyzer: " + analyzerName, e);
+            "Cannot load analyzer: " + analyzerClassName, e);
       }
     }
 
     // Load the CharFilters
 
     final ArrayList<CharFilterFactory> charFilters = new ArrayList<>();
-    load(charFilterNodes, SCHEMA_XML_ANALYZER_CHAR_FILTER, charFilters, CharFilterFactory.class, luceneMatch);
+    load(charFilterNodes, SCHEMA_XML_ANALYZER_CHAR_FILTER, charFilters, CharFilterFactory.class, luceneMatch, loader);
 
     // Load the Tokenizer
     // Although an analyzer only allows a single Tokenizer, we load a list to make sure
     // the configuration is ok
 
     final ArrayList<TokenizerFactory> tokenizers = new ArrayList<>(1);
-    load(tokenizerNodes, SCHEMA_XML_ANALYZER_TOKENIZER, tokenizers, TokenizerFactory.class, luceneMatch);
+    load(tokenizerNodes, SCHEMA_XML_ANALYZER_TOKENIZER, tokenizers, TokenizerFactory.class, luceneMatch, loader);
 
     // Make sure something was loaded
     if (tokenizers.isEmpty()) {
@@ -333,7 +337,7 @@ public class SolrSchemaUtil {
     // Load the Filters
 
     final ArrayList<TokenFilterFactory> filters = new ArrayList<>();
-    load(tokenFilterNodes, SCHEMA_XML_ANALYZER_FILTER, filters, TokenFilterFactory.class, luceneMatch);
+    load(tokenFilterNodes, SCHEMA_XML_ANALYZER_FILTER, filters, TokenFilterFactory.class, luceneMatch, loader);
 
     return new TokenizerChain(charFilters.toArray(new CharFilterFactory[charFilters.size()]),
         tokenizers.get(0), filters.toArray(new TokenFilterFactory[filters.size()]));
@@ -360,9 +364,16 @@ public class SolrSchemaUtil {
    * unless that logic is pulled into this class. As of this writing this has only been done for TokenFilterFactory,
    * TokenizerFactory and CharFilterFactory. This is similar to SolrResourceLoader but contains class specific
    * logic, skips all class registration and does not perform default checking.
+   *
+   * @param <T>         the generic type of the plugins to load
+   * @param nodes       the nodelist specifying the plugin.
+   * @param errRef      a string to include with error messages
+   * @param list        a list to which loaded plugin objects will be added
+   * @param clazz       a type for which the loaded plugins should have the same class or be a subclass of
+   * @param luceneMatch the lucene match version to be supplied to plugins that care about it.
+   * @param loader      the resource loader with which to load additional resources (e.g. stopwords.txt)
    */
-  public <T> T load(NodeList nodes, String errRef, List<T> list, Class<T> clazz, String luceneMatch) {
-    T defaultPlugin = null;
+  public <T> void load(NodeList nodes, String errRef, List<T> list, Class<T> clazz, String luceneMatch, ResourceLoader loader) {
 
     if (nodes != null) {
       for (int i = 0; i < nodes.getLength(); i++) {
@@ -410,12 +421,12 @@ public class SolrSchemaUtil {
             // this may or may not work, but give it a shot...
             plugin = newInstance(className, clazz, NO_SUB_PACKAGES, NO_CLASSES, NO_OBJECTS);
           }
-
+          if (plugin instanceof ResourceLoaderAware) {
+            ((ResourceLoaderAware) plugin).inform(loader);
+          }
           log.debug("created " + ((name != null) ? name : "") + ": " + plugin.getClass().getName());
           list.add(plugin);
 
-
-          defaultPlugin = plugin;
         } catch (Exception ex) {
           throw new SolrException(SolrException.ErrorCode.SERVER_ERROR, "Plugin init failure for " + errRef +
               (null != name ? (" \"" + name + "\"") : "") + ": " + ex.getMessage(), ex);
@@ -423,7 +434,6 @@ public class SolrSchemaUtil {
       }
     }
 
-    return defaultPlugin;
   }
 
   /**
@@ -484,8 +494,10 @@ public class SolrSchemaUtil {
    * is loaded using a short name.
    * <p>The classloader used is the current thread's class loader (instead of one from a SolrResourceLoader)</p>
    *
-   * @param cname       The name or the short name of the class.
-   * @param subpackages the packages to be tried if the cname starts with solr.
+   * @param <T>          the generic type that the type returned should extend
+   * @param cname        The name or the short name of the class.
+   * @param expectedType The type which must be equal to or a super class of the returned type
+   * @param subpackages  the packages to be tried if the cname starts with solr.
    * @return the loaded class. An exception is thrown if it fails
    */
   public <T> Class<? extends T> findClass(String cname, Class<T> expectedType, String... subpackages) {
@@ -647,9 +659,6 @@ public class SolrSchemaUtil {
     }
   }
 
-  /**
-   * Where to look for classes
-   */
   protected String[] getDefaultPackages() {
     return new String[]{};
   }
