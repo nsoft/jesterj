@@ -27,12 +27,12 @@ buildscript {
   dependencies {
     //Check for the latest version here: http://plugins.gradle.org/plugin/com.jfrog.artifactory
     classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4+"
-    classpath 'com.github.rholder:gradle-one-jar:1.0.4'
   }
 }
 
 plugins {
   id 'com.github.jk1.dependency-license-report' version '0.3.4'
+  id "com.github.onslip.gradle-one-jar" version "1.0.5"
 }
 
 allprojects {
@@ -78,7 +78,6 @@ artifactory {
 
 apply plugin: 'idea'
 apply plugin: 'java'
-apply plugin: 'gradle-one-jar'
 apply plugin: 'jacoco'
 apply plugin: 'maven-publish'
 apply plugin: 'maven'
@@ -131,19 +130,6 @@ configurations {
 
 //////////////////////////
 
-publishing {
-  publications {
-    mavenJava(MavenPublication) {
-      groupId project.group
-      artifactId 'jesterj-ingest'
-      version project.version
-      from components.java
-      artifact oneJar {
-        classifier "node"
-      }
-    }
-  }
-}
 
 
 dependencies {
@@ -261,6 +247,18 @@ task generateNotices() {
 jacocoTestReport.dependsOn test
 
 artifactoryPublish.dependsOn oneJar
+
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      groupId project.group
+      artifactId 'jesterj-ingest'
+      version project.version
+      from components.java
+      artifact source: oneJar, classifier: "node"
+    }
+  }
+}
 
 /*
 
@@ -415,7 +413,7 @@ def getManifestAttributes() {
   attrs.put('Implementation-Version', version)
   attrs.put('Build-Timestamp', getTimestamp())
   attrs.put('Build-Jdk', getJdk())
-  attrs.put('Build-Tool', GradleVersion.current())
+  attrs.put('Build-Tool', gradle.gradleVersion)
   return attrs
 }
 
