@@ -159,7 +159,10 @@ dependencies {
 
   compile 'jini:jini-core:2.1'
   compile 'org.apache.river:reggie:2.2.2'
-  compile 'org.apache.cassandra:cassandra-all:3.11.0-JJ'
+  compile ('org.apache.cassandra:cassandra-all:3.11.0-JJ') {
+    exclude group: 'net.java.dev.jna'
+  }
+  compile 'net.java.dev.jna:jna:4.2.2'
   compile ('com.datastax.cassandra:cassandra-driver-core:3.2.0')
   compile 'org.yaml:snakeyaml:1.14'
   compile 'org.apache.velocity:velocity:1.7'
