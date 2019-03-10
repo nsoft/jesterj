@@ -28,7 +28,6 @@ import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.processors.CopyField;
-import org.jesterj.ingest.processors.ElasticSender;
 import org.jesterj.ingest.processors.LogAndDrop;
 import org.jesterj.ingest.processors.SendToSolrCloudProcessor;
 import org.jesterj.ingest.processors.SimpleDateTimeReformatter;
@@ -194,26 +193,6 @@ public class StepImplTest {
                 .placingTextContentIn("_text_")
                 .withDocFieldsIn(".fields")
         );
-//            String home = Main.JJ_DIR + System.getProperty("file.separator") + "jj_elastic_client_node";
-
-//    sendToElasticBuilder
-//        .named("elastic_sender")
-////            .withProcessor(
-////                new ElasticNodeSender.Builder()
-////                    .named("elastic_node_processor")
-////                    .usingCluster("elasticsearch")
-////                    .nodeName("jj_elastic_client_node")
-////                    .locatedInDir(home)
-////                    .forIndex("shakespeare")
-////                    .forObjectType("work")
-//        .withProcessor(
-//            new ElasticSender.Builder()
-//                .named("elastic_node_processor")
-//                .forIndex("shakespeare")
-//                .forObjectType("work")
-//                .withServer("localhost", 9300)
-//            //.withServer("es.example.com", "9300")  // can have multiple servers
-//        );
     planBuilder
         .named("myPlan")
         .withIdField("id")
