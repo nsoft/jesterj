@@ -2,7 +2,6 @@ package org.jesterj.ingest.utils;
 
 import org.apache.lucene.util.Version;
 import org.apache.solr.schema.FieldType;
-import org.junit.Before;
 import org.junit.Test;
 import org.w3c.dom.Document;
 
@@ -12,30 +11,21 @@ import static org.junit.Assert.assertNotSame;
 
 public class SolrSchemaUtilTest {
 
-  public static final String SOLR_SCHEMA_XML = "solr-schema.xml";
-
-  private ClassSubPathResourceLoader loader;
-
-  @Before
-  public void setUp() {
-    loader = new ClassSubPathResourceLoader(getClass().getClassLoader(), "solr/configsets/default/conf/");
-  }
-
   @Test
   public void testLoadFromCP() throws Exception {
     SolrSchemaUtil solrSchemaUtil = new SolrSchemaUtil();
-    Document schemaDocument = solrSchemaUtil.getSchemaDocument(SOLR_SCHEMA_XML, loader);
+    Document schemaDocument = solrSchemaUtil.getSchemaDocument("solr-schema.xml");
     assertNotNull(schemaDocument);
   }
 
   @Test
   public void testLoadPrimitiveType() throws Exception {
     SolrSchemaUtil solrSchemaUtil = new SolrSchemaUtil();
-    Document schemaDocument = solrSchemaUtil.getSchemaDocument(SOLR_SCHEMA_XML, loader);
+    Document schemaDocument = solrSchemaUtil.getSchemaDocument("solr-schema.xml");
     assertNotNull(schemaDocument);
 
     // note we want to avoid any examples with substitution because substitution is not supported.
-    FieldType anInt = solrSchemaUtil.getFieldType(schemaDocument, "pint", Version.LUCENE_7_6_0.toString(), 1.0f, loader);
+    FieldType anInt = solrSchemaUtil.getFieldType(schemaDocument, "pint", Version.LUCENE_7_6_0.toString(), 1.0f);
     assertNotNull(anInt);
     assertEquals("pint", anInt.getTypeName());
     assertEquals(anInt.getNamedPropertyValues(false).get("docValues"), true);
@@ -44,11 +34,11 @@ public class SolrSchemaUtilTest {
   @Test
   public void testLoadSingleAnalyzerType() throws Exception {
     SolrSchemaUtil solrSchemaUtil = new SolrSchemaUtil();
-    Document schemaDocument = solrSchemaUtil.getSchemaDocument(SOLR_SCHEMA_XML, loader);
+    Document schemaDocument = solrSchemaUtil.getSchemaDocument("solr-schema.xml");
     assertNotNull(schemaDocument);
 
     // note we want to avoid any examples with substitution because substitution is not supported.
-    FieldType textField = solrSchemaUtil.getFieldType(schemaDocument, "text", Version.LUCENE_7_6_0.toString(), 1.0f, loader);
+    FieldType textField = solrSchemaUtil.getFieldType(schemaDocument, "text", Version.LUCENE_7_6_0.toString(), 1.0f);
     assertNotNull(textField);
     assertEquals("text", textField.getTypeName());
     assertNotNull(textField.getIndexAnalyzer());
@@ -58,11 +48,11 @@ public class SolrSchemaUtilTest {
   @Test
   public void testLoadDualAnalyzerType() throws Exception {
     SolrSchemaUtil solrSchemaUtil = new SolrSchemaUtil();
-    Document schemaDocument = solrSchemaUtil.getSchemaDocument(SOLR_SCHEMA_XML, loader);
+    Document schemaDocument = solrSchemaUtil.getSchemaDocument("solr-schema.xml");
     assertNotNull(schemaDocument);
 
     // note we want to avoid any examples with substitution because substitution is not supported.
-    FieldType textField = solrSchemaUtil.getFieldType(schemaDocument, "teststop", Version.LUCENE_7_6_0.toString(), 1.0f, loader);
+    FieldType textField = solrSchemaUtil.getFieldType(schemaDocument, "teststop", Version.LUCENE_7_6_0.toString(), 1.0f);
     assertNotNull(textField);
     assertEquals("teststop", textField.getTypeName());
     assertNotNull(textField.getIndexAnalyzer());

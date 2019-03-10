@@ -6,14 +6,13 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.*;
-import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.Attribute;
 import org.apache.lucene.util.Version;
 import org.apache.solr.schema.FieldType;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.impl.NamedBuilder;
-import org.jesterj.ingest.utils.ClassSubPathResourceLoader;
 import org.jesterj.ingest.utils.SolrSchemaUtil;
 import org.xml.sax.SAXException;
 
@@ -47,11 +46,10 @@ public class PreAnalyzeFields implements DocumentProcessor {
     }
   };
 
-  private ClassSubPathResourceLoader loader;
-  private Callable<Analyzer> analyzerFactory;
+  Callable<Analyzer> analyzerFactory;
   private String name;
   private List<String> fieldsToAnalyze = new ArrayList<>();
-  private ObjectMapper mapper = new ObjectMapper();
+  ObjectMapper mapper = new ObjectMapper();
 
   @Override
   public Document[] processDocument(Document document) {
@@ -75,24 +73,15 @@ public class PreAnalyzeFields implements DocumentProcessor {
           FlagsAttribute flagsA = ts.getAttribute(FlagsAttribute.class);
           while (ts.incrementToken()) {
             Map<String, Object> tokAttrs = new HashMap<>();
-            char[] termChars = new char[charTermA.length()];
-            System.arraycopy(charTermA.buffer(),0,termChars,0,charTermA.length());
-            tokAttrs.put("t", new String(termChars));
+            tokAttrs.put("t", new String(charTermA.buffer()));
             tokAttrs.put("s", offsetA.startOffset());
             tokAttrs.put("e", offsetA.endOffset());
             tokAttrs.put("i", posIncA.getPositionIncrement());
             Base64.Encoder encoder = Base64.getEncoder();
-            if (payloadA != null) {
-              BytesRef payload = payloadA.getPayload();
-              if (payload != null) {
-                tokAttrs.put("p", encoder.encode(payload.bytes));
-              }
-            }
+            tokAttrs.put("p", encoder.encode(payloadA.getPayload().bytes));
             tokAttrs.put("y", typeA.type());
-            if (flagsA != null) {
-              // Solr uses Integer.parseInt(String.valueOf(e.getValue()), 16) so toHexString() doesn't work.
-              tokAttrs.put("f", Integer.toString(flagsA.getFlags(), 16));
-            }
+            // Solr uses Integer.parseInt(String.valueOf(e.getValue()), 16) so toHexString() doesn't work.
+            tokAttrs.put("f", Integer.toString(flagsA.getFlags(), 16));
             tokens.add(tokAttrs);
           }
           ts.end();
@@ -103,7 +92,7 @@ public class PreAnalyzeFields implements DocumentProcessor {
         }
       }
       document.removeAll(docFieldName);
-      document.putAll(docFieldName, jsonValues);
+      document.putAll(docFieldName,jsonValues);
     }
     return new Document[]{document};
   }
@@ -127,7 +116,7 @@ public class PreAnalyzeFields implements DocumentProcessor {
       return this;
     }
 
-    public Builder preAnalyzingField(String field) {
+    public Builder preAnalyzing(String field) {
       getObj().fieldsToAnalyze.add(field);
       return this;
     }
@@ -143,15 +132,11 @@ public class PreAnalyzeFields implements DocumentProcessor {
     }
 
     /**
-     * Set the file in the classpath for the schema file. The file will be loaded from the top
-     * of the class path (as if / is pre-pended), but may begin with / and any amount of sub-paths
-     * resources such as stopwords.txt are loaded relative to the position of this file in the class
-     * path.
+     * Set the file in the classpath for the schema file
      *
-     * @param filename the name of the file, usually schema.xml or managed-schema
+     * @param filename the name of the file
      * @return this builder for further configuration
      */
-    //FUTURE: might be nice to accept a zk:// url too
     public Builder fromFile(String filename) {
       this.schemaFile = filename;
       return this;
@@ -178,17 +163,8 @@ public class PreAnalyzeFields implements DocumentProcessor {
       final SolrSchemaUtil util = new SolrSchemaUtil();
 
       try {
-        int endIndex = schemaFile.lastIndexOf("/");
-        String subpath;
-        if (endIndex > 0) {
-          subpath = schemaFile.substring(0, endIndex + 1);
-          schemaFile = schemaFile.substring(endIndex + 1);
-        } else {
-          subpath = "";
-        }
-        obj.loader = new ClassSubPathResourceLoader(this.getClass().getClassLoader(), subpath);
-        org.w3c.dom.Document doc = util.getSchemaDocument(schemaFile, obj.loader);
-        FieldType ft = util.getFieldType(doc, typeName, luceneMatch, schemaVersion, obj.loader);
+        org.w3c.dom.Document doc = util.getSchemaDocument(schemaFile);
+        FieldType ft = util.getFieldType(doc, typeName, luceneMatch, schemaVersion);
         obj.analyzerFactory = ft::getIndexAnalyzer;
       } catch (IllegalAccessException | InstantiationException | ParserConfigurationException | IOException | XPathExpressionException | SAXException e) {
         throw new RuntimeException(e);
