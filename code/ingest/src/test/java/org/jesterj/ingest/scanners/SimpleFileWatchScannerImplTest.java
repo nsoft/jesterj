@@ -30,6 +30,7 @@ import org.jesterj.ingest.model.impl.ScannerImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -59,6 +60,7 @@ public class SimpleFileWatchScannerImplTest {
   }
 
   @Test
+  @Ignore(value = "Issue #128")
   public void testScan() throws InterruptedException {
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
     SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
