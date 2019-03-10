@@ -187,6 +187,15 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
     return name;
   }
 
+  @Override
+  public void close() {
+    try {
+      solrClient.close();
+    } catch (IOException e) {
+      // oh well... we're going away anyway
+      e.printStackTrace();
+    }
+  }
 
   public static class Builder extends BatchProcessor.Builder {
 

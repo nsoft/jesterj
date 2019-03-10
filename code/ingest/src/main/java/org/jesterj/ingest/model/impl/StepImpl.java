@@ -281,15 +281,18 @@ public class StepImpl implements Step {
   @Override
   public void deactivate() {
     this.active = false;
-    try {
-      worker.join(1000);
-      if (worker.isAlive()) {
-        log.warn("{} was slow shutting down, interrupting..", getName());
-        worker.interrupt();
+    if (worker != null) {
+      try {
+        worker.join(1000);
+        if (worker.isAlive()) {
+          log.warn("{} was slow shutting down, interrupting..", getName());
+          worker.interrupt();
+        }
+      } catch (InterruptedException e) {
+        // ignore
       }
-    } catch (InterruptedException e) {
-      // ignore
     }
+    processor.close();
   }
 
   @Transient

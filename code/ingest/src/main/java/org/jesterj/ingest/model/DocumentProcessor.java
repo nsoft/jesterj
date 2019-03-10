@@ -22,7 +22,9 @@ package org.jesterj.ingest.model;
  * Date: 9/28/14
  */
 
-public interface DocumentProcessor extends Configurable {
+import java.io.Closeable;
+
+public interface DocumentProcessor extends Configurable, Closeable {
 
   /**
    * Mutate, validate or transmit an item (to a search index). Implementations must not throw any
@@ -40,5 +42,5 @@ public interface DocumentProcessor extends Configurable {
     return false;
   }
 
-  ;
+  default void close(){}
 }

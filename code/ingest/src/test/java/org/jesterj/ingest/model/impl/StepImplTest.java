@@ -91,27 +91,40 @@ public class StepImplTest {
   @Test
   public void testSideEffectsNoneLastStep() {
     replay();
-    testStep = new StepImpl.Builder().withProcessor(new LogAndDrop.Builder().named("foo")).build();
-    Step[] possibleSideEffects = testStep.getPossibleSideEffects();
-    assertEquals(0, possibleSideEffects.length);
+    try {
+      testStep = new StepImpl.Builder().withProcessor(new LogAndDrop.Builder().named("foo")).build();
+      Step[] possibleSideEffects = testStep.getPossibleSideEffects();
+      assertEquals(0, possibleSideEffects.length);
+    } finally {
+      testStep.deactivate();
+    }
   }
 
   @Test
   public void testSideEffectsLastStep() {
     replay();
-    testStep = new StepImpl.Builder().withProcessor(new SendToSolrCloudProcessor.Builder()
-        .named("foo")
-        .withZookeeper("localhost:9983")).build();
+    try {
+      testStep = new StepImpl.Builder().withProcessor(new SendToSolrCloudProcessor.Builder()
+          .named("foo")
+          .withZookeeper("localhost:9983")).build();
     Step[] possibleSideEffects = testStep.getPossibleSideEffects();
     assertEquals(1, possibleSideEffects.length);
+    } finally {
+      testStep.deactivate();
+    }
   }
 
   @Test
   public void testShakespearePlan() {
     replay();
-    testStep = getPlan().findStep(SHAKESPEARE);
-    Step[] possibleSideEffects = testStep.getPossibleSideEffects();
-    assertEquals(1, possibleSideEffects.length);
+    Plan plan = getPlan();
+    try {
+      testStep = plan.findStep(SHAKESPEARE);
+      Step[] possibleSideEffects = testStep.getPossibleSideEffects();
+      assertEquals(1, possibleSideEffects.length);
+    } finally {
+      plan.deactivate();
+    }
   }
 
   public Plan getPlan() {
