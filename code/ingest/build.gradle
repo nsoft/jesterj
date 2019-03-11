@@ -137,8 +137,6 @@ dependencies {
   compile 'com.mchange:c3p0:0.9.5.2' // for tika deps... actual declared dep includes older LGPL version only.
 
   compile 'org.apache.solr:solr-core:7.6.0'
-  compile 'org.elasticsearch:elasticsearch:6.6.1'
-  compile 'org.elasticsearch.client:transport:6.6.1'
 
   compile 'com.google.guava:guava:18.0'
   compile 'com.google.code.findbugs:jsr305:3.0.0'
