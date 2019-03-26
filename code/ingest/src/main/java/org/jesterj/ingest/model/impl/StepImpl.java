@@ -358,7 +358,6 @@ public class StepImpl implements Step {
       } else {
         log.info("Distributing doc {} to {} ", document.getId(), Arrays.stream(next).map(Step::getName).collect(Collectors.toList()));
         Deque<Document> clones = new ArrayDeque<>(next.length);
-        //noinspection ForLoopReplaceableByForEach
         for (int i = 0; i < next.length; i++) {
           // clone before attempting to push just in case mutable state in the delegate mutates to cause exception
           // part way through. This would indicate some form of bad design, but let's be safe anyway.
