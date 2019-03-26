@@ -176,6 +176,9 @@ public class Main {
       });
       // unfortunately due to the hackery necessary to get things playing nice with one-jar, the contextClassLoader
       // is now out of sync with the system class loader, which messes up the Reflections library. So hack on hack...
+      // todo: document why this reflection is necessary (I suspect I had some sort of security manager issue?) or remove
+      // otherwise it seems like the following would be fine:
+      // contextClassLoaderFix.setContextClassLoader(ClassLoader.getSystemClassLoader());
       Field _f_contextClassLoader = Thread.class.getDeclaredField("contextClassLoader");
       _f_contextClassLoader.setAccessible(true);
       _f_contextClassLoader.set(contextClassLoaderFix, ClassLoader.getSystemClassLoader());
@@ -230,7 +233,7 @@ public class Main {
 
     // Unfortunately this classpath scan adds quite a bit to startup time.... It seems to scan all the
     // Jdk classes (but not classes loaded by onejar, thank goodness) It only works with URLClassLoaders
-    // but perhaps we can provide a temporary sub-class 
+    // but perhaps we can provide a temporary sub-class
     Reflections reflections = new Reflections(new ConfigurationBuilder().addUrls(ClasspathHelper.forClassLoader(onejarLoader)));
     ArrayList<Class> planProducers = new ArrayList<>(reflections.getTypesAnnotatedWith(JavaPlanConfig.class));
 
@@ -243,12 +246,12 @@ public class Main {
     return provider.getPlan();
   }
 
-  // will come back in some form when we serialize config to a file.. 
+  // will come back in some form when we serialize config to a file..
 
 //  private static void writeConfig(Plan myPlan, String groupId) {
 //    // This ~/.jj/groups is going to be the default location for loadable configs
 //    // if the commandline startup id matches the name of a directory in the groups directory
-//    // that configuration will be loaded. 
+//    // that configuration will be loaded.
 //    String sep = System.getProperty("file.separator");
 //    File jjConfigDir = new File(JJ_DIR, "groups" + sep + groupId + sep + myPlan.getName());
 //    if (jjConfigDir.exists() || jjConfigDir.mkdirs()) {
