@@ -59,6 +59,12 @@ import java.util.Properties;
  */
 public class Main {
 
+  // WARNING: do not add a logger init to this class! See below for classloading highjinks that
+  // force us to wait to initialize logging
+  private static Logger log;
+
+  private static final Object HAPPENS_BEFORE = new Object();
+
   public static String JJ_DIR;
   private static Thread DUMMY_HOOK = new Thread();
 
@@ -78,118 +84,124 @@ public class Main {
     }
   }
 
-  private static Logger log;
-
   public static void main(String[] args) {
+    synchronized (HAPPENS_BEFORE) {
+      try {
+        System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
+        System.setProperty("cassandra.insecure.udf", "true");
+        // set up log output dir
+        String logDir = System.getProperty("jj.log.dir");
+        if (logDir == null) {
+          System.setProperty("jj.log.dir", JJ_DIR + "/logs");
+        }
+        logDir = System.getProperty("jj.log.dir");
 
-    try {
-      System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
-      System.setProperty("cassandra.insecure.udf", "true");
-      // set up log output dir
-      String logDir = System.getProperty("jj.log.dir");
-      if (logDir == null) {
-        System.setProperty("jj.log.dir", JJ_DIR + "/logs");
-      }
-      logDir = System.getProperty("jj.log.dir");
+        // Check that we can write to the log dir
+        File logDirFile = new File(logDir);
 
-      // Check that we can write to the log dir
-      File logDirFile = new File(logDir);
-
-      if (!logDirFile.mkdirs() && !(logDirFile.canWrite())) {
-        System.out.println("Cannot write to " + logDir + " \n" +
-            "Please fix the filesystem permissions or provide a writable location with -Djj.log.dir property on the command line.");
-        System.exit(99);
-      }
-
-      System.out.println("logs will be written to: " + logDir);
-
-      initClassloader();
-
-      String logConfig = logDir + "/log4j2.xml";
-      System.setProperty("log4j.configurationFile", logConfig);
-      File configFile = new File(logConfig);
-      if (!configFile.exists()) {
-        InputStream log4jxml = Main.class.getClass().getResourceAsStream("/log4j2.xml");
-        Files.copy(log4jxml, configFile.toPath());
-      }
-
-      Thread contextClassLoaderFix = new Thread(() -> {
-        try {
-
-          initRMI();
-
-          // Next check our args and die if they are FUBAR
-          Map<String, Object> parsedArgs = usage(args);
-          String outfile = (String) parsedArgs.get("-z");
-
-          String javaConfig = (String) parsedArgs.get("<plan.jar>");
-          System.out.println("Looking for configuration class in " + javaConfig);
-          if (outfile != null) {
-            // in this case we aren't starting a node, and we don't care if logging doesn't make it to
-            // cassandra (in fact better if it doesn't) so go ahead and call what we like INSIDE this if
-            // block only.
-            Plan p = loadJavaConfig(javaConfig);
-            System.out.println("Generating visualization for " + p.getName() + " into " + outfile);
-            BufferedImage img = p.visualize();
-            ImageIO.write(img, "PNG", new File(outfile));
-            System.exit(0);
-          }
-          startCassandra(parsedArgs);
-
-          // now we are allowed to look at log4j2.xml
-          log = LogManager.getLogger();
-
-          Properties sysProps = System.getProperties();
-          for (Object prop : sysProps.keySet()) {
-            log.trace(prop + "=" + sysProps.get(prop));
-          }
-
-          if (javaConfig != null) {
-            Plan p = loadJavaConfig(javaConfig);
-            log.info("Activating Plan: {}", p.getName());
-            p.activate();
-          } else {
-            System.out.println("Please specify the java config via -Djj.javaConfig=<location of jar file>");
-            System.exit(1);
-          }
-
-          //noinspection InfiniteLoopStatement
-          while (true) {
-            try {
-              System.out.print(".");
-              Thread.sleep(5000);
-            } catch (InterruptedException e) {
-
-              // Yeah, I know this isn't going to do anything right now.. Placeholder to remind me to implement a real
-              // graceful shutdown... also keeps IDE from complaining stop() isn't used.
-
-              e.printStackTrace();
-              Cassandra.stop();
-              System.exit(0);
-            }
-          }
-        } catch (Exception e) {
-          e.printStackTrace();
-          log.fatal("CRASH and BURNED:", e);
+        if (!logDirFile.mkdirs() && !(logDirFile.canWrite())) {
+          System.out.println("Cannot write to " + logDir + " \n" +
+              "Please fix the filesystem permissions or provide a writable location with -Djj.log.dir property on the command line.");
+          System.exit(99);
         }
 
-      });
-      // unfortunately due to the hackery necessary to get things playing nice with one-jar, the contextClassLoader
-      // is now out of sync with the system class loader, which messes up the Reflections library. So hack on hack...
-      // todo: document why this reflection is necessary (I suspect I had some sort of security manager issue?) or remove
-      // otherwise it seems like the following would be fine:
-      // contextClassLoaderFix.setContextClassLoader(ClassLoader.getSystemClassLoader());
-      Field _f_contextClassLoader = Thread.class.getDeclaredField("contextClassLoader");
-      _f_contextClassLoader.setAccessible(true);
-      _f_contextClassLoader.set(contextClassLoaderFix, ClassLoader.getSystemClassLoader());
-      contextClassLoaderFix.setDaemon(false); // keep the JVM running please
-      contextClassLoaderFix.start();
-    } catch (Exception e) {
-      log.fatal("CRASH and BURNED:", e);
+        System.out.println("Logs will be written to: " + logDir);
+
+        initClassloader();
+
+        String logConfig = logDir + "/log4j2.xml";
+        System.setProperty("log4j.configurationFile", logConfig);
+        File configFile = new File(logConfig);
+        if (!configFile.exists()) {
+          InputStream log4jxml = Main.class.getResourceAsStream("/log4j2.xml");
+          Files.copy(log4jxml, configFile.toPath());
+        }
+
+        Thread contextClassLoaderFix = new Thread(() -> {
+          // ensure that the main method completes before this thread runs.
+          synchronized (HAPPENS_BEFORE) {
+            try {
+              initRMI();
+
+              // Next check our args and die if they are FUBAR
+              Map<String, Object> parsedArgs = usage(args);
+              String outfile = (String) parsedArgs.get("-z");
+
+              String javaConfig = (String) parsedArgs.get("<plan.jar>");
+              System.out.println("Looking for configuration class in " + javaConfig);
+              if (outfile != null) {
+                // in this case we aren't starting a node, and we don't care if logging doesn't make it to
+                // cassandra (in fact better if it doesn't) so go ahead and call what we like INSIDE this if
+                // block only.
+                Plan p = loadJavaConfig(javaConfig);
+                System.out.println("Generating visualization for " + p.getName() + " into " + outfile);
+                BufferedImage img = p.visualize();
+                ImageIO.write(img, "PNG", new File(outfile));
+                System.exit(0);
+              }
+              startCassandra(parsedArgs);
+
+
+              // this should reload the config with cassandra available.
+              LogManager.getFactory().removeContext(LogManager.getContext(false));
+
+              // now we are allowed to look at log4j2.xml
+              log = LogManager.getLogger();
+
+              Properties sysProps = System.getProperties();
+              for (Object prop : sysProps.keySet()) {
+                log.trace(prop + "=" + sysProps.get(prop));
+              }
+
+              if (javaConfig != null) {
+                Plan p = loadJavaConfig(javaConfig);
+                log.info("Activating Plan: {}", p.getName());
+                p.activate();
+              } else {
+                System.out.println("Please specify the java config via -Djj.javaConfig=<location of jar file>");
+                System.exit(1);
+              }
+
+              while (true) {
+                try {
+                  System.out.print(".");
+                  Thread.sleep(5000);
+                } catch (InterruptedException e) {
+
+                  // Yeah, I know this isn't going to do anything right now.. Placeholder to remind me to implement a real
+                  // graceful shutdown... also keeps IDE from complaining stop() isn't used.
+
+                  e.printStackTrace();
+                  Cassandra.stop();
+                  System.exit(0);
+                }
+              }
+
+            } catch (Exception e) {
+              e.printStackTrace();
+              log.fatal("CRASH and BURNED:", e);
+            }
+          }
+        });
+        // unfortunately due to the hackery necessary to get things playing nice with one-jar, the contextClassLoader
+        // is now out of sync with the system class loader, which messes up the Reflections library. So hack on hack...
+        // todo: document why this reflection is necessary (I suspect I had some sort of security manager issue?) or remove
+        // otherwise it seems like the following would be fine:
+        // contextClassLoaderFix.setContextClassLoader(ClassLoader.getSystemClassLoader());
+        Field _f_contextClassLoader = Thread.class.getDeclaredField("contextClassLoader");
+        _f_contextClassLoader.setAccessible(true);
+        _f_contextClassLoader.set(contextClassLoaderFix, ClassLoader.getSystemClassLoader());
+        contextClassLoaderFix.setDaemon(false); // keep the JVM running please
+        contextClassLoaderFix.start();
+
+      } catch (Exception e) {
+        System.out.println("CRASH and BURNED before starting main thread:");
+        e.printStackTrace();
+      }
     }
   }
 
-  static void startCassandra(Map<String, Object> parsedArgs) {
+  private static void startCassandra(Map<String, Object> parsedArgs) {
     String cassandraHome = (String) parsedArgs.get("--cassandra-home");
     File cassandraDir = null;
     if (cassandraHome != null) {
@@ -207,7 +219,7 @@ public class Main {
   }
 
 
-  static Plan loadJavaConfig(String javaConfig) throws InstantiationException, IllegalAccessException {
+  private static Plan loadJavaConfig(String javaConfig) throws InstantiationException, IllegalAccessException {
     ClassLoader onejarLoader = null;
     File file = new File(javaConfig);
     if (!file.exists()) {
@@ -240,6 +252,8 @@ public class Main {
     if (log != null) {
       // can be null when outputting a visualization
       log.info("Found the following @JavaPlanConfig classes (first in list will be used):{}", planProducers);
+    } else {
+      System.out.println("Found the following @JavaPlanConfig classes (first in list will be used):" + planProducers);
     }
     Class config = planProducers.get(0);
     PlanProvider provider = (PlanProvider) config.newInstance();
@@ -306,6 +320,7 @@ public class Main {
     }
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   private static AbstractMap<String, Object> usage(String[] args) throws IOException {
     URL usage = Resources.getResource("usage.docopts.txt");
     String usageStr = Resources.toString(usage, Charset.forName("UTF-8"));
@@ -331,15 +346,15 @@ public class Main {
    * @return true if the system is shutting down
    */
 
-  public static boolean isShuttingDown() {
+  public static boolean isNotShuttingDown() {
     try {
       Runtime.getRuntime().addShutdownHook(DUMMY_HOOK);
       Runtime.getRuntime().removeShutdownHook(DUMMY_HOOK);
     } catch (IllegalStateException e) {
-      return true;
+      return false;
     }
 
-    return false;
+    return true;
   }
 }
 

@@ -244,7 +244,7 @@ public class DocumentImpl implements Document {
     try {
       log.info(status.getMarker(), statusMessage);
     } catch (AppenderLoggingException e) {
-      if (!Main.isShuttingDown()) {
+      if (Main.isNotShuttingDown()) {
         log.error("Could not contact our internal Cassandra!!!" + e);
       }
     }

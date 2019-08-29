@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.xml.stream.XMLResolver;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.regex.Pattern;
@@ -22,8 +23,8 @@ public class StaxExtractingProcessorTest {
 
   private static byte[] xmlBytes;
 
-  @Mock
-  private Document mockDocument;
+  @Mock private Document mockDocument;
+  @Mock private XMLResolver mockResolver;
 
   public StaxExtractingProcessorTest() {
     prepareMocks(this);
@@ -221,5 +222,28 @@ public class StaxExtractingProcessorTest {
     replay();
     proc.processDocument(mockDocument);
 
+  }
+
+  @Test
+  public void testResolver() {
+    StaxExtractingProcessor proc = new StaxExtractingProcessor.Builder()
+        .named("testSimpleSingleValue")
+        .failOnLongPath(true)
+        .withPathBuffer(2048)
+        .isSupportingExternalEntities(true)
+        .withResolver(mockResolver)
+        .extracting("/article/front/article-meta/title-group/article-title",
+            new ElementSpec("title_s"))
+        .build();
+    expect(mockDocument.getRawData()).andReturn(xmlBytes);
+    // note that the default element spec ignores internal tags such as <italic>
+    // also note that whitespace is not collapsed, this is not html.
+    expect(mockDocument.put("title_s", "Determinants of Pair-Living in Red-Tailed Sportive Lemurs " +
+        "(Lepilemur\n                    ruficaudatus)\n                ")).andReturn(true);
+
+    replay();
+    Document[] documents = proc.processDocument(mockDocument);
+    assertEquals(1, documents.length);
+    assertEquals(mockDocument,documents[0]);
   }
 }

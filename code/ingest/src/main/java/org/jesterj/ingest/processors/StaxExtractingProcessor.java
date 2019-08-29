@@ -11,7 +11,7 @@ import org.jesterj.ingest.model.impl.NamedBuilder;
 import org.jesterj.ingest.trie.PatriciaTrie;
 
 import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLResolver;
 import javax.xml.stream.events.XMLEvent;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -29,6 +29,8 @@ public class StaxExtractingProcessor implements DocumentProcessor {
   private int capacity;
   private PatriciaTrie<List<ElementSpec>> extractMapping = new PatriciaTrie<>();
   private boolean failOnLongPath = false; // default
+  private XMLResolver resolver;
+  private boolean supportExternalEntities;
 
 
   @Override
@@ -42,6 +44,13 @@ public class StaxExtractingProcessor implements DocumentProcessor {
     InputStream xmlInputStream = new ByteArrayInputStream(document.getRawData());
     XMLInputFactory2 xmlInputFactory = (XMLInputFactory2) XMLInputFactory
         .newFactory("javax.xml.stream.XMLInputFactory", Thread.currentThread().getContextClassLoader());
+    if (supportExternalEntities) {
+      if (!xmlInputFactory.isPropertySupported("javax.xml.stream.isSupportingExternalEntities")) {
+        throw new RuntimeException(xmlInputFactory + " doesn't support javax.xml.stream.isSupportingExternalEntities");
+      }
+      xmlInputFactory.setProperty("javax.xml.stream.isSupportingExternalEntities", true);
+    }
+    xmlInputFactory.setXMLResolver(resolver);
     XMLStreamReader2 xmlStreamReader;
     try {
       xmlStreamReader = (XMLStreamReader2) xmlInputFactory.createXMLStreamReader(xmlInputStream);
@@ -95,8 +104,9 @@ public class StaxExtractingProcessor implements DocumentProcessor {
             break;
         }
       }
-    } catch (XMLStreamException e) {
-      e.printStackTrace();
+    } catch (Exception e) {
+      document.setStatus(Status.ERROR);
+      log.error(e);
     }
 
     return new Document[] {document};
@@ -165,6 +175,21 @@ public class StaxExtractingProcessor implements DocumentProcessor {
       return this;
     }
 
+    /**
+     * Supply a resolver that can properly locate DTD entities.
+     *
+     * @param resolver an implementation of {@link XMLResolver}
+     * @return this builder for further configuration
+     */
+    public Builder withResolver(XMLResolver resolver) {
+      getObj().resolver = resolver;
+      return this;
+    }
+
+    public Builder isSupportingExternalEntities(boolean support) {
+      getObj().supportExternalEntities = support;
+      return this;
+    }
     @Override
     protected StaxExtractingProcessor getObj() {
       return obj;

@@ -420,7 +420,7 @@ public class StepImpl implements Step {
       document.setStatus(status);
       log.info(status.getMarker(), message, messageParams);
     } catch (AppenderLoggingException | NoHostAvailableException e) {
-      if (!Main.isShuttingDown()) {
+      if (Main.isNotShuttingDown()) {
         log.error("Could not contact our internal Cassandra!!!" + e);
       }
     } finally {

@@ -163,6 +163,7 @@ dependencies {
   compile 'docopt:docopt:0.6.1'
   compile 'guru.nidi:graphviz-java:0.5.2'
   compile 'com.fasterxml:aalto-xml:1.1.1'
+  compile 'xml-resolver:xml-resolver:1.2'
 
   testCompile 'junit:junit:4.11'
   testCompile 'com.needhamsoftware:easier-mock:2.0'
@@ -198,6 +199,10 @@ jacocoTestReport {
 
 jar {
   archiveName = 'jesterj-ingest-'+project.version+'.jar'
+  into("META-INF/maven/$project.group/$project.name") {
+    from { generatePomFileForMavenJavaPublication }
+    rename ".*", "pom.xml"
+  }
 }
 
 task oneJar(type: OneJar) {

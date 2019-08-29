@@ -197,7 +197,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         BoundStatement bind = preparedQuery.bind(doc.getHash(), doc.getId(), doc.getSourceScannerName());
         session.execute(bind);
       } catch (NoHostAvailableException e) {
-        if (!Main.isShuttingDown()) {
+        if (Main.isNotShuttingDown()) {
           log.error("Could not contact our internal Cassandra!!!" + e);
         }
       }
@@ -246,7 +246,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
           }
         }
       } catch (NoHostAvailableException e) {
-        if (!Main.isShuttingDown()) {
+        if (Main.isNotShuttingDown()) {
           log.error("Could not contact our internal Cassandra!!!" + e);
         }
       }
@@ -268,7 +268,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
           log.trace("{} ignoring document with previously seen content {}", getName(), id);
           return;
         }
-      }        
+      }
     }
     sendToNext(doc);
 
