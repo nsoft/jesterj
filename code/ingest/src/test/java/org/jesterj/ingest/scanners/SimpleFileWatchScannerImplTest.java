@@ -60,7 +60,6 @@ public class SimpleFileWatchScannerImplTest {
   }
 
   @Test
-  @Ignore(value = "Issue #128")
   public void testScan() throws InterruptedException {
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
     SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
