@@ -35,11 +35,9 @@ import org.junit.Test;
 import java.io.File;
 import java.util.HashMap;
 
-import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 
-@SuppressWarnings("deprecation")
-public class SimpleFileWatchScannerImplTest {
+public class SimpleFileScannerImplTest {
 
   private static final String SHAKESPEAR = "Shakespear_scanner";
 
@@ -54,48 +52,48 @@ public class SimpleFileWatchScannerImplTest {
 
   @Test
   public void testBuild() {
-    SimpleFileWatchScanner.Builder builder = new SimpleFileWatchScanner.Builder();
+    SimpleFileScanner.Builder builder = new SimpleFileScanner.Builder();
     ScannerImpl build = builder.build();
-    assertEquals(SimpleFileWatchScanner.class, build.getClass());
+    assertEquals(SimpleFileScanner.class, build.getClass());
   }
 
   @Test
   public void testScan() throws InterruptedException {
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-    SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
+    SimpleFileScanner.Builder scannerBuilder = new SimpleFileScanner.Builder();
     StepImpl.Builder testStepBuilder = new StepImpl.Builder();
 
-    File tragedies = new File("src/test/resources/test-data/tragedies");
-    scannerBuilder.named("test_scanner").withRoot(tragedies).named(SHAKESPEAR).scanFreqMS(100);
+    File tragedies = new File("src/test/resources/test-data");
+    scannerBuilder.named("test_scanner").withRoot(tragedies).named(SHAKESPEAR).scanFreqMS(1000);
 
     HashMap<String, Document> scannedDocs = new HashMap<>();
 
     testStepBuilder.named("test")
         .batchSize(10)
         .withProcessor(
-        new NamedBuilder<DocumentProcessor>() {
-          @Override
-          public NamedBuilder<DocumentProcessor> named(String name) {
-            return null;
-          }
-
-          @Override
-          public DocumentProcessor build() {
-            return new DocumentProcessor() {
+            new NamedBuilder<DocumentProcessor>() {
               @Override
-              public String getName() {
+              public NamedBuilder<DocumentProcessor> named(String name) {
                 return null;
               }
 
               @Override
-              public Document[] processDocument(Document document) {
-                scannedDocs.put(document.getId(), document);
-                return new Document[]{document};
+              public DocumentProcessor build() {
+                return new DocumentProcessor() {
+                  @Override
+                  public String getName() {
+                    return null;
+                  }
+
+                  @Override
+                  public Document[] processDocument(Document document) {
+                    scannedDocs.put(document.getId(), document);
+                    return new Document[]{document};
+                  }
+                };
               }
-            };
-          }
-        }
-    );
+            }
+        );
 
     planBuilder
         .named("testScan")
@@ -104,17 +102,20 @@ public class SimpleFileWatchScannerImplTest {
         .withIdField("id");
     Plan plan = planBuilder.build();
 
-    plan.activate();
+    try {
+      plan.activate();
 
-    Thread.sleep(7500);
-    assertEquals(10, scannedDocs.size());
+      Thread.sleep(1000);
+      assertEquals(44, scannedDocs.size());
 
-    scannedDocs.clear();
-    File hamlet = new File(tragedies, "hamlet");
-    assertTrue(hamlet.setLastModified(System.currentTimeMillis()));
+      scannedDocs.clear();
 
-    Thread.sleep(2000);
-    assertEquals(1, scannedDocs.size());
-
+      Thread.sleep(2000);
+      assertEquals(44, scannedDocs.size());
+    } finally {
+      plan.deactivate();
+    }
   }
+
+
 }

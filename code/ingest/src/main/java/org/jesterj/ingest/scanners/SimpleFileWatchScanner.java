@@ -52,8 +52,12 @@ import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
  * is performed, and then further changes are detected by a {@link WatchService}. No persistent
  * record of files detected is kept, so while this will only send files once and then only updated/modified
  * files during it's run, restarting will send all files in the directory again.
+ *
+ * @deprecated JDK bugs and issues with filehandles on large repositories make this class problematic
+ * see https://github.com/nsoft/jesterj/issues/130
  */
-public class SimpleFileWatchScanner extends ScannerImpl {
+@Deprecated
+public class SimpleFileWatchScanner extends ScannerImpl implements FileScanner {
   private static final Logger log = LogManager.getLogger();
 
   private File rootDir;
@@ -202,21 +206,7 @@ public class SimpleFileWatchScanner extends ScannerImpl {
           operation,
           SimpleFileWatchScanner.this
       );
-      if (attributes != null) {
-        FileTime modifiedTime = attributes.lastModifiedTime();
-        FileTime accessTime = attributes.lastAccessTime();
-        FileTime creationTime = attributes.creationTime();
-        if (modifiedTime != null) {
-          doc.put("modified", String.valueOf(modifiedTime.toMillis()));
-        }
-        if (accessTime != null) {
-          doc.put("accessed", String.valueOf(accessTime.toMillis()));
-        }
-        if (creationTime != null) {
-          doc.put("created", String.valueOf(creationTime.toMillis()));
-        }
-        doc.put("file_size", String.valueOf(attributes.size()));
-      }
+      addAttrs(attributes, doc);
       SimpleFileWatchScanner.this.docFound(doc);
     } catch (IOException e) {
       // TODO: perhaps we still want to proceed with non-canonical version?

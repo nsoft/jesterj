@@ -38,6 +38,7 @@ import java.util.concurrent.Future;
 public class CassandraSupport {
 
   private static final Map<String, Future<PreparedStatement>> preparedQueries = new ConcurrentHashMap<>();
+  public static NonClosableSession NON_CLOSABLE_SESSION;
 
   /**
    * Add a query to the list of prepared queries maintained by this instance. Queries may be added before
@@ -62,7 +63,11 @@ public class CassandraSupport {
    * @return a <code>NonClosableSession</code> object.
    */
   public Session getSession() {
-    return new NonClosableSession();
+    if (NON_CLOSABLE_SESSION == null && Cassandra.getListenAddress() != null)
+    {
+      NON_CLOSABLE_SESSION = new NonClosableSession();
+    }
+    return NON_CLOSABLE_SESSION;
   }
 
   /**
@@ -93,7 +98,7 @@ public class CassandraSupport {
     private static final Session INSTANCE = ClusterHolder.INSTANCE.newSession();
   }
 
-  private class NonClosableSession implements Session {
+  public static class NonClosableSession implements Session {
     @Override
     public String getLoggedKeyspace() {
       return sessionRef.getLoggedKeyspace();
@@ -192,6 +197,11 @@ public class CassandraSupport {
     @Override
     public State getState() {
       return sessionRef.getState();
+    }
+
+    // Only to be called when shutting down cassandra entirely.
+    public void dectivate() {
+      sessionRef.close();
     }
 
     private Session sessionRef = SessionHolder.INSTANCE;

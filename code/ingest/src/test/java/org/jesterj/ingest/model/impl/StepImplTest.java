@@ -33,6 +33,7 @@ import org.jesterj.ingest.processors.SendToSolrCloudProcessor;
 import org.jesterj.ingest.processors.SimpleDateTimeReformatter;
 import org.jesterj.ingest.processors.TikaProcessor;
 import org.jesterj.ingest.routers.DuplicateToAll;
+import org.jesterj.ingest.scanners.SimpleFileScanner;
 import org.jesterj.ingest.scanners.SimpleFileWatchScanner;
 import org.junit.After;
 import org.junit.Before;
@@ -54,7 +55,7 @@ public class StepImplTest {
 
   @ObjectUnderTest StepImpl step;
 
-  Step testStep;
+  private Step testStep;
   @Mock private ConfiguredBuildable<? extends DocumentProcessor> mockProcessorBuilder;
   @Mock private DocumentProcessor mockProcessor;
 
@@ -106,8 +107,8 @@ public class StepImplTest {
       testStep = new StepImpl.Builder().withProcessor(new SendToSolrCloudProcessor.Builder()
           .named("foo")
           .withZookeeper("localhost:9983")).build();
-    Step[] possibleSideEffects = testStep.getPossibleSideEffects();
-    assertEquals(1, possibleSideEffects.length);
+      Step[] possibleSideEffects = testStep.getPossibleSideEffects();
+      assertEquals(1, possibleSideEffects.length);
     } finally {
       testStep.deactivate();
     }
@@ -117,18 +118,14 @@ public class StepImplTest {
   public void testShakespearePlan() {
     replay();
     Plan plan = getPlan();
-    try {
-      testStep = plan.findStep(SHAKESPEARE);
-      Step[] possibleSideEffects = testStep.getPossibleSideEffects();
-      assertEquals(1, possibleSideEffects.length);
-    } finally {
-      plan.deactivate();
-    }
+    testStep = plan.findStep(SHAKESPEARE);
+    Step[] possibleSideEffects = testStep.getPossibleSideEffects();
+    assertEquals(1, possibleSideEffects.length);
   }
 
-  public Plan getPlan() {
+  private Plan getPlan() {
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-    SimpleFileWatchScanner.Builder scanner = new SimpleFileWatchScanner.Builder();
+    SimpleFileScanner.Builder scanner = new SimpleFileScanner.Builder();
     StepImpl.Builder formatCreated = new StepImpl.Builder();
     StepImpl.Builder formatModified = new StepImpl.Builder();
     StepImpl.Builder formatAccessed = new StepImpl.Builder();

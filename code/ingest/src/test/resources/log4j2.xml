@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration status="error" name="LoggingConfig" monitorInterval="5" packages="org.jesterj.ingest.logging">
+
+  <appenders>
+    <Console name="STDOUT" target="SYSTEM_OUT">
+      <PatternLayout pattern="%d{ISO8601} %p %t %c %m%ex%n" />
+      <filters>
+        <MarkerFilter marker="JJ_FTI" onMatch="DENY" onMismatch="ACCEPT" />
+      </filters>
+    </Console>
+    <RollingFile name="FILE" fileName="${sys:jj.log.dir}/jj.log" filePattern="${sys:jj.log.dir}/jj.log.%i"
+      immediateFlush="true">
+      <PatternLayout pattern="%d{ISO8601} %p %t %c %m%ex%n" />
+      <SizeBasedTriggeringPolicy size="50 MB" />
+      <DefaultRolloverStrategy max="20" />
+      <filters>
+        <MarkerFilter marker="JJ_FTI" onMatch="DENY" onMismatch="ACCEPT" />
+      </filters>
+    </RollingFile>
+    <JesterJAppender name="CASSANDRA">
+      <PatternLayout pattern="%m%n" />
+      <filters>
+        <MarkerFilter marker="JJ_FTI" onMatch="ACCEPT" onMismatch="DENY" />
+      </filters>
+    </JesterJAppender>
+
+  </appenders>
+
+  <loggers>
+    <logger level="debug" name="org.jesterj" additivity="false">
+      <appender-ref ref="FILE" />
+      <appender-ref ref="STDOUT" />
+      <appender-ref ref="CASSANDRA" />
+    </logger>
+    <logger level="info" name="org.jesterj.ingest.model.impl.StepImpl">
+      <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger level="error" name="org.apache.http.wire" additivity="false">
+      <appender-ref ref="STDOUT" />
+    </logger>
+    <logger level="warn" name="org.apache.cassandra" additivity="false">
+      <appender-ref ref="STDOUT" />
+    </logger>
+    <root level="info">
+      <appender-ref ref="STDOUT" />
+    </root>
+  </loggers>
+
+</configuration>

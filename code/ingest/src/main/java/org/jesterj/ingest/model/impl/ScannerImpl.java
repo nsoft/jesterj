@@ -60,6 +60,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
 
   // can be used to avoid starting a scan while one is still running. This is not required however
   // and can be ignored if desired.
+  @SuppressWarnings("WeakerAccess")
   protected final AtomicInteger activeScans = new AtomicInteger(0);
 
   private final ExecutorService exec =
@@ -133,6 +134,18 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         session.execute(statement);
       }
 
+    }
+  }
+
+
+  @Override
+  public void deactivate() {
+    super.deactivate();
+    // when we get to dynamically starting/stopping multiple plans across the cluster
+    // this will probably need reference counting...
+    if (CassandraSupport.NON_CLOSABLE_SESSION != null) {
+      CassandraSupport.NON_CLOSABLE_SESSION.dectivate();
+      CassandraSupport.NON_CLOSABLE_SESSION = null;
     }
   }
 
@@ -240,6 +253,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
           } else {
             Row next = statusRs.all().iterator().next();
             status = next.getString(0);
+            log.trace("Found '{}' with status {}", id, status);
             if (isHashing()) {
               md5 = next.getString(1);
             }
@@ -457,7 +471,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     return log;
   }
 
-  public boolean getActiveScans() {
+  public boolean isScanActive() {
     return activeScans.get() > 0;
   }
 

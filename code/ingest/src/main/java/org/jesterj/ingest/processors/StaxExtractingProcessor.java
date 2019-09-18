@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
  * A class for extracting fields from an xml document using a memory efficient Stax parsing.
 \ */
 public class StaxExtractingProcessor implements DocumentProcessor {
-  private static final Logger log = LogManager.getLogger();
+  static final Logger log = LogManager.getLogger();
 
   private String name;
   private int capacity;

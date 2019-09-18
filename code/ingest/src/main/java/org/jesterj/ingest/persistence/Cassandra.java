@@ -70,6 +70,9 @@ public class Cassandra {
   }
 
   public static void start(File cassandraDir) {
+    start(cassandraDir, null);
+  }
+    public static void start(File cassandraDir, String listenAddress) {
 
     System.out.println("Booting internal cassandra");
     boolean firstboot = false;
@@ -85,7 +88,11 @@ public class Cassandra {
       if (!yaml.exists()) {
         firstboot = true;
         CassandraConfig cfg = new CassandraConfig(cassandraDir.getCanonicalPath());
-        cfg.guessIp();
+        if (listenAddress == null) {
+          cfg.guessIp();
+        } else {
+          cfg.setListen_address(listenAddress);
+        }
         String cfgStr = new Yaml().dumpAsMap(cfg);
         System.out.println("First time startup detected, writing default config to " + yaml.toPath());
         System.out.println(cfgStr);
@@ -112,9 +119,9 @@ public class Cassandra {
         conf.listen_address = cfg.getListen_address();
       }
 
-      listenAddress = conf.listen_address;
+      Cassandra.listenAddress = conf.listen_address;
 
-      System.out.println("Listen Address:" + listenAddress);
+      System.out.println("Listen Address:" + conf.listen_address);
     } catch (IOException | ConfigurationException e) {
       e.printStackTrace();
     }
@@ -153,7 +160,8 @@ public class Cassandra {
   }
 
   public static void stop() {
-    cassandra.deactivate();
+    cassandra.stop();
+    cassandra.destroy();
   }
 
   public static Future whenBooted(Callable<Object> callable) {
