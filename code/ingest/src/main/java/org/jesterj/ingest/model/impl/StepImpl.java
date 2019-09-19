@@ -272,6 +272,7 @@ public class StepImpl implements Step {
     if (worker == null || !worker.isAlive()) {
       log.info("Starting new thread for {} ", getName());
       worker = new Thread(this);
+      worker.setName("jj-worker-" + this.stepName);
       worker.setDaemon(true);
       worker.start();
     }
