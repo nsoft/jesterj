@@ -19,7 +19,7 @@ package org.jesterj.ingest;
 import com.google.common.io.Resources;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.docopt.clj;
+import org.docopt.Docopt;
 import org.jesterj.ingest.forkjoin.JesterJForkJoinThreadFactory;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.persistence.Cassandra;
@@ -40,7 +40,6 @@ import java.net.URLClassLoader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.security.Policy;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Properties;
@@ -321,18 +320,15 @@ public class Main {
   }
 
   @SuppressWarnings("UnstableApiUsage")
-  private static AbstractMap<String, Object> usage(String[] args) throws IOException {
+  private static Map<String, Object> usage(String[] args) throws IOException {
     URL usage = Resources.getResource("usage.docopts.txt");
     String usageStr = Resources.toString(usage, Charset.forName("UTF-8"));
-    @SuppressWarnings("unchecked")
-    AbstractMap<String, Object> result = clj.docopt(usageStr, args);
-    if (result != null) {
-      System.out.println("\nReceived arguments:");
-      for (String s : result.keySet()) {
-        System.out.printf("   %s:%s\n", s, result.get(s));
-      }
+    Map<String, Object> result = new Docopt(usageStr).parse(args);
+    System.out.println("\nReceived arguments:");
+    for (String s : result.keySet()) {
+      System.out.printf("   %s:%s\n", s, result.get(s));
     }
-    if (result == null || ((boolean) (result.get("--help")))) {
+    if ((boolean) result.get("--help")) {
       System.out.println(usageStr);
       System.exit(1);
     }

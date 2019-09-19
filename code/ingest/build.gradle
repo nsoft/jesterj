@@ -157,7 +157,7 @@ dependencies {
 
   compile('com.needhamsoftware:easier-mock:2.0')
   compile 'net.jini:jsk-platform:2.2.2'
-  compile 'docopt:docopt:0.6.1'
+  compile 'com.offbytwo:docopt:0.6.0.20150202'
   compile 'guru.nidi:graphviz-java:0.5.2'
   compile 'com.fasterxml:aalto-xml:1.1.1'
   compile 'xml-resolver:xml-resolver:1.2'
