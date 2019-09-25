@@ -187,6 +187,10 @@ dependencies {
 test {
   exclude '**/Abstract*.class', '**/BulkTest.class'
   systemProperty "java.security.egd", "file:/dev/./urandom"
+  testLogging {
+    events "passed", "skipped", "failed"
+    exceptionFormat "full"
+  }
 }
 
 jacocoTestReport {
