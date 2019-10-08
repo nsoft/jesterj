@@ -47,7 +47,7 @@ based requests. If it doesn't have a ticket it probably won't get done.
    [create a pull request](https://help.github.com/articles/creating-a-pull-request/) and
    select a branch in nsoft/jesterj as the base, and a branch in your fork as the "compare"
 8. Write a short comment describing your work and submit your pull request.
-3. Wait for a response. You shoudl get a response within a week, but as with almost every 
+3. Wait for a response. You should get a response within a week, but as with almost every 
    open source project, paid employment comes first for the maintainer(s). If nobody has 
    responded in a week, feel free to join our slack channel and ask "has anyone had time
    to look at issue #<your issue number here>?"
