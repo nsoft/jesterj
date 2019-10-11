@@ -1,17 +1,17 @@
 The tests directory may contain three types of classes: 
 
-1. Unit Tests: these are classes that employ Junit to perform testing of small units of code, most commonly
+1. Unit Tests: These are classes that employ Junit to perform testing of small units of code, most commonly
    individual methods. Use of Mock objects to ensure that the test only fails if the method being tested
    fails is encouraged. A small number of more integrated tests are also expected though any such test that takes
    over 0.1 seconds should be relegated to a long-running tests target. These classes should always have 
-   names end in 'Test'
+   names end in 'Test'.
    
 2. Runners: These are classes that may or may not employ junit and are meant to provide a harness for 
    manual testing and exploration they are not run as part of our code coverage and do not referenced in production
-   classes. These classes should have names that end in 'Runner'
+   classes. These classes should have names that end in 'Runner'.
    
 3. Test Base: Abstract classes that provide common functionality for Unit tests and/or Runners. These
-   classes should have names that end in 'TestBase'
+   classes should have names that end in 'TestBase'.
    
 In general support classes (map keys, etc) should be implemented as static inner classes, anonymous classes 
 or lambda expressions.
