@@ -32,7 +32,7 @@ public class CassandraLog4JManagerFactory implements ManagerFactory<CassandraLog
   @Override
   public synchronized CassandraLog4JManager createManager(String name, Object data) {
     if (manager == null) {
-      manager = new CassandraLog4JManager("name");
+      manager = new CassandraLog4JManager(name);
     }
     return manager;
   }

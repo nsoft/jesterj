@@ -59,7 +59,7 @@ import java.util.stream.Stream;
 /**
  * The class that is used to run {@link DocumentProcessor}s. This class takes care of the handling of the document
  * ensures it is properly received and passed on. This class is not normally overridden, to implement custom
- * processing logic write a class that implements <tt>DocumentProcessor</tt> and then build a stepImpl that uses
+ * processing logic write a class that implements <code>DocumentProcessor</code> and then build a stepImpl that uses
  * an instance of your processor. Also note that one does not normally call build on a StepImpl or any of it's
  * subclasses. The builder for this class is provided to a {@link org.jesterj.ingest.model.impl.PlanImpl.Builder} so
  * that the plan can validate the ordering of the steps and assemble the entire plan as an immutable DAG.
@@ -483,11 +483,11 @@ public class StepImpl implements Step {
   }
 
   @SuppressWarnings("WeakerAccess")
-  protected void reportException(Document doc, Exception e, String message) {
+  protected void reportException(Document doc, Exception e, String message, Object... params) {
     StringWriter buff = new StringWriter();
     e.printStackTrace(new PrintWriter(buff));
     String errorMsg = message + " " + e.getMessage() + "\n" + buff.toString();
-    reportDocStatus(Status.ERROR, doc, errorMsg);
+    reportDocStatus(Status.ERROR, doc, errorMsg, params);
   }
 
   @SuppressWarnings("unused")

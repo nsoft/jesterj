@@ -48,7 +48,7 @@ public class TikaProcessor implements DocumentProcessor {
   private String destField = null;
 
   @Override
-  public Document[] processDocument(Document document) {
+  public Document[]   processDocument(Document document) {
     try {
       byte[] rawData = document.getRawData();
       if (rawData == null) {
@@ -99,7 +99,7 @@ public class TikaProcessor implements DocumentProcessor {
     }
     return clean.toString();
   }
-  
+
 
   @Override
   public String getName() {

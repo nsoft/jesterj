@@ -19,9 +19,7 @@ package org.jesterj.ingest.logging;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Session;
 import org.apache.logging.log4j.Marker;
-import org.apache.logging.log4j.core.Filter;
-import org.apache.logging.log4j.core.Layout;
-import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.*;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
@@ -46,7 +44,7 @@ public class JesterJAppender extends AbstractAppender {
           "(id, logger, tstamp, level, thread, message) " +
           "VALUES(?,?,?,?,?,?)";
 
-  @SuppressWarnings("SpellCheckingInspection") 
+  @SuppressWarnings("SpellCheckingInspection")
   private static final String INSERT_FTI =
       "INSERT INTO jj_logging.fault_tolerant " +
           "(docid, scanner, logger, tstamp, level, thread, status, message) " +
@@ -56,18 +54,18 @@ public class JesterJAppender extends AbstractAppender {
 
   private static CassandraSupport cassandra = new CassandraSupport();
 
-  @SuppressWarnings("SpellCheckingInspection") 
+  @SuppressWarnings("SpellCheckingInspection")
   public static final String JJ_INGEST_DOCID = "jj_ingest.docid";
   public static final String JJ_INGEST_SOURCE_SCANNER = "JJ_INGEST_SOURCE_SCANNER";
-  
+
   private static CassandraLog4JManager manager;
 
   // we need to delay startup of cassandra until after logger initialization, because when cassandra code
   // tries to log messages we get a deadlock. Therefore the manager does not create cassandra until after the first
   // logging event, and then queues the events until cassandra is ready to accept them. This variable is then
-  // nullified and the queue should eventually be garbage collected.
-  private static volatile Queue<LogEvent> startupQueue = new ConcurrentLinkedQueue<>();
-  private static volatile Iterator<LogEvent> drainIterator;
+  // empties and the queue items should eventually be garbage collected.
+  private static final Queue<LogEvent> startupQueue = new ConcurrentLinkedQueue<>();
+
 
   @SuppressWarnings("UnusedDeclaration")
   protected JesterJAppender(String name, Filter filter, Layout<? extends Serializable> layout) {
@@ -99,7 +97,7 @@ public class JesterJAppender extends AbstractAppender {
 
     manager = createManager();
     if (manager == null) {
-      return null;
+      return null; // should never happen
     }
     if (layout == null) {
       layout = PatternLayout.createDefaultLayout();
@@ -124,27 +122,22 @@ public class JesterJAppender extends AbstractAppender {
   @Override
   public void append(LogEvent event) {
     if (!manager.isReady()) {
+      System.out.println("Logging event added to startup queue");
       startupQueue.add(event);
     } else {
-      if (startupQueue != null && startupQueue.peek() != null) {
-        //noinspection SynchronizeOnNonFinalField
-        synchronized (startupQueue) {
-          while (drainIterator != null) {
-            try {
-              Thread.sleep(100);
-            } catch (InterruptedException e) {
-              e.printStackTrace();
-            }
-          }
-          drainIterator = startupQueue.iterator();
-        }
-        while (drainIterator.hasNext()) {
-          writeEvent(drainIterator.next());
-        }
+      if (startupQueue.isEmpty()) {
         writeEvent(event);
-        drainIterator = null;
-        startupQueue = null;
       } else {
+        // one time occurrence post startup. Need to ensure incoming message is not written ahead of queued messages
+        synchronized (startupQueue) {
+          if (startupQueue.peek() != null) {
+            for (LogEvent logEvent : startupQueue) {
+              System.out.println("Logging event removed from startup queue");
+              writeEvent(logEvent);
+            }
+            startupQueue.clear();
+          }
+        }
         writeEvent(event);
       }
     }
@@ -159,7 +152,7 @@ public class JesterJAppender extends AbstractAppender {
     Date timeStamp = new Date(e.getTimeMillis());
     String level = String.valueOf(e.getLevel());
     String thread = String.valueOf(Thread.currentThread().getName());
-    String message = String.valueOf(e.getMessage());
+    String message = String.valueOf(e.getMessage().getFormattedMessage());
 
     if (m == null || m.isInstanceOf(Markers.LOG_MARKER)) {
       Session s = cassandra.getSession();
@@ -175,7 +168,7 @@ public class JesterJAppender extends AbstractAppender {
     if (m.isInstanceOf(Markers.FTI_MARKER)) {
       Session s = cassandra.getSession();
       BoundStatement bs = new BoundStatement(cassandra.getPreparedQuery(FTI_INSERT_Q));
-      
+
       // everything wrapped in String.valueOf to avoid any issues with null.
       String status = String.valueOf(e.getMarker().getName());
       String docId = String.valueOf(e.getContextMap().get(JJ_INGEST_DOCID));
