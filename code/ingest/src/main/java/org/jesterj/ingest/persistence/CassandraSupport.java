@@ -27,6 +27,7 @@ import com.datastax.driver.core.Statement;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -83,6 +84,10 @@ public class CassandraSupport {
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public Future whenBooted(Callable<Object> makeTables) {
+    return Cassandra.whenBooted(makeTables);
   }
 
   // per Datastax recommendation these are one per application.

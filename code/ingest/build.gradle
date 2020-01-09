@@ -17,22 +17,22 @@ import java.text.SimpleDateFormat
  */
 buildscript {
   repositories {
+    mavenLocal()
     maven {
       url 'https://jesterj.jfrog.io/jesterj/libs-release/'
-    }
-    flatDir {
-      dir 'onejar'
     }
   }
   dependencies {
     //Check for the latest version here: http://plugins.gradle.org/plugin/com.jfrog.artifactory
     classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4+"
+
   }
 }
 
 plugins {
   id 'com.github.jk1.dependency-license-report' version '0.3.4'
   id "com.github.onslip.gradle-one-jar" version "1.0.5"
+  id 'com.needhamsoftware.unojar' version '0.99'
 }
 
 allprojects {
@@ -95,14 +95,15 @@ licenseReport {
 }
 
 repositories {
+  mavenLocal()
   maven {
     url 'https://clojars.org/repo'
   }
   maven {
-    credentials {
-      username = propOrDefault("jj_artifactory_user", System.env.ARTIFACTORY_USER)
-      password = propOrDefault("jj_artifactory_password", System.env.ARTIFACTORY_PASSWORD)
-    }
+//    credentials {
+//      username = propOrDefault("jj_artifactory_user", System.env.ARTIFACTORY_USER)
+//      password = propOrDefault("jj_artifactory_password", System.env.ARTIFACTORY_PASSWORD)
+//    }
     url 'https://jesterj.jfrog.io/jesterj/libs-release/'
   }
   flatDir {
@@ -112,15 +113,15 @@ repositories {
 
 configurations {
   oneJarLib
-  oneJarPack
+  unoJarPack
   // under no circumstances shall we distribute these in our archives
-  oneJarPack.exclude group: 'junit'               // test lib
-  oneJarPack.exclude group: 'org.easymock'        // test lib
+  unoJarPack.exclude group: 'junit'               // test lib
+  unoJarPack.exclude group: 'org.easymock'        // test lib
   // Conflicting licenses...
-  oneJarPack.exclude group: 'org.jboss.logging'
-  oneJarPack.exclude group: 'com.google.code.findbugs', module: 'annotations' // N.B. findbugs jsr305 is ok, thus module
-  oneJarPack.exclude group: 'c3p0', module: 'c3p0'
-  oneJarPack.extendsFrom runtime
+  unoJarPack.exclude group: 'org.jboss.logging'
+  unoJarPack.exclude group: 'com.google.code.findbugs', module: 'annotations' // N.B. findbugs jsr305 is ok, thus module
+  unoJarPack.exclude group: 'c3p0', module: 'c3p0'
+  unoJarPack.extendsFrom runtime
 }
 
 //////////////////////////
@@ -132,7 +133,7 @@ configurations {
 
 
 dependencies {
-  compile 'org.apache.tika:tika-parsers:1.16'
+  compile 'org.apache.tika:tika-parsers:1.23'
   compile 'com.mchange:c3p0:0.9.5.2' // for tika deps... actual declared dep includes older LGPL version only.
 
   compile 'org.apache.solr:solr-core:7.6.0'
@@ -142,30 +143,29 @@ dependencies {
 
   compile 'jini:jini-core:2.1'
   compile 'org.apache.river:reggie:2.2.2'
-  compile ('org.apache.cassandra:cassandra-all:3.11.0-JJ') {
-    exclude group: 'net.java.dev.jna'
-  }
-  compile 'net.java.dev.jna:jna:4.2.2'
+  compile 'org.apache.cassandra:cassandra-all:4.0-alpha3-SNAPSHOT'
   compile ('com.datastax.cassandra:cassandra-driver-core:3.2.0')
   compile 'org.yaml:snakeyaml:1.14'
   compile 'org.apache.velocity:velocity:1.7'
 
   // this is driven by the Solr dep, but we need to make explicit the bridge libs
-  compile 'org.apache.logging.log4j:log4j-core:2.11.0'
-  compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.11.0'
-  compile 'org.apache.logging.log4j:log4j-jcl:2.11.0'
-  compile 'org.apache.logging.log4j:log4j-1.2-api:2.11.0'
-  compile 'org.apache.logging.log4j:log4j-jul:2.11.0'
+  compile 'org.apache.logging.log4j:log4j-core:2.13.0'
+  compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.13.0'
+  compile 'org.apache.logging.log4j:log4j-jcl:2.13.0'
+  compile 'org.apache.logging.log4j:log4j-1.2-api:2.13.0'
+  compile 'org.apache.logging.log4j:log4j-jul:2.13.0'
 
   compile('com.needhamsoftware:easier-mock:2.0')
   compile 'net.jini:jsk-platform:2.2.2'
   compile 'com.offbytwo:docopt:0.6.0.20150202'
-  compile 'guru.nidi:graphviz-java:0.5.2'
+  compile 'guru.nidi:graphviz-java:0.11.0'
   compile 'com.fasterxml:aalto-xml:1.1.1'
   compile 'xml-resolver:xml-resolver:1.2'
-
   testCompile 'junit:junit:4.11'
-  testCompile 'com.needhamsoftware:easier-mock:2.0'
+  compile 'org.easymock:easymock:4.1'
+  testCompile ('com.needhamsoftware:easier-mock:2.0') {
+    exclude group:'org.easymock'
+  }
   //runtime ':one-jar-boot:0.98' // uncomment for debugging stack traces into one-jar classes
 
   oneJarLib files('onejar/one-jar-boot-0.98.jar')
@@ -208,28 +208,46 @@ jar {
   }
 }
 
-task oneJar(type: OneJar) {
-  mainClass = 'org.jesterj.ingest.Main'
-  archiveName = 'jesterj-node-'+project.version+'.jar'
-  useStable = false
-  //noinspection GroovyAssignabilityCheck
-  manifest {
-    //noinspection GroovyAssignabilityCheck
-    attributes 'One-Jar-URL-Factory': 'com.simontuffs.onejar.JarClassLoader$OneJarURLFactory'
+def unoJardest = 'build/libs/jesterj-node-' + project.version + '.jar'
+
+unojar {
+  unoJar unoJardest
+  appMainClass 'org.jesterj.ingest.Main'
+  manifestAttrs(
+      'One-Jar-URL-Factory': 'com.simontuffs.onejar.JarClassLoader$OneJarURLFactory',
+      // exports/opens for cassandra
+      'Add-Exports': 'java.base/jdk.internal.misc java.base/jdk.internal.ref java.base/sun.nio.ch' +
+          ' java.management.rmi/com.sun.jmx.remote.internal.rmi java.rmi/sun.rmi.registry' +
+          ' java.rmi/sun.rmi.server java.sql/java.sql',
+      // this is not part of the jar standard, but I expect to support it in UnoJar
+      'Add-Opens' : 'java.base/java.lang.module java.base/jdk.internal.loader java.base/jdk.internal.ref' +
+          ' java.base/jdk.internal.reflect java.base/jdk.internal.math java.base/jdk.internal.module ' +
+          ' java.base/jdk.internal.util.jar jdk.management/com.sun.management.internal'
+  )
+  appFiles {
+    fileset(dir:"$projectDir/build/classes/java/main/") {
+      include( name: '**/**' )
+    }
+    fileset(dir:"$projectDir/build/resources/main/") {
+      include( name: '**/**' )
+    }
   }
-  oneJarConfiguration = configurations.oneJarLib
-  targetConfiguration = configurations.oneJarPack
-  doLast{
-    def dir = file('licenses').parent
-    ant.jar(update:true, destFile: file("build/libs/"+archiveName) ) {
-      fileset(dir: dir) {
+  depLibs {
+    configurations.unoJarPack.addToAntBuilder(ant, 'fileset', FileCollection.AntType.FileSet)
+  }
+}
+
+packUnoJar.dependsOn build
+packUnoJar.doLast {
+    def licDir = file('licenses').parent
+    ant.jar(update: true, destFile: file(unoJardest)) {
+      fileset(dir: licDir) {
         include(name: 'licenses/**')
         include(name: 'NOTICE.txt')
         include(name: 'LICENSE.txt')
       }
     }
   }
-}
 
 task generateNotices() {
   doLast {
@@ -252,7 +270,7 @@ task generateNotices() {
 
 jacocoTestReport.dependsOn test
 
-artifactoryPublish.dependsOn oneJar
+artifactoryPublish.dependsOn packUnoJar
 
 publishing {
   publications {
@@ -261,7 +279,7 @@ publishing {
       artifactId 'jesterj-ingest'
       version project.version
       from components.java
-      artifact source: oneJar, classifier: "node"
+      artifact source: file(unoJardest), classifier: "node"
     }
   }
 }

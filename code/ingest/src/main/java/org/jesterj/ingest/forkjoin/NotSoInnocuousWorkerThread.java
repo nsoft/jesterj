@@ -26,7 +26,7 @@ import java.util.concurrent.ForkJoinWorkerThread;
 
 /**
  * A worker thread without all the crazy restrictions of
- * <tt>java.util.concurrent.ForkJoinWorkerThread.InnocuousForkJoinWorkerThread</tt>.
+ * <code>java.util.concurrent.ForkJoinWorkerThread.InnocuousForkJoinWorkerThread</code>.
  * This thread should be a normal thread with normal permissions just like the
  * rest of the application.
  */

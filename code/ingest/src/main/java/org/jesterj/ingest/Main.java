@@ -83,38 +83,39 @@ public class Main {
     }
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws InterruptedException {
+//    Thread.sleep(10000); // debugger connect time
     synchronized (HAPPENS_BEFORE) {
       try {
         System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
         System.setProperty("cassandra.insecure.udf", "true");
-        // set up log output dir
-        String logDir = System.getProperty("jj.log.dir");
-        if (logDir == null) {
-          System.setProperty("jj.log.dir", JJ_DIR + "/logs");
-        }
-        logDir = System.getProperty("jj.log.dir");
+              // set up log output dir
+              String logDir = System.getProperty("jj.log.dir");
+              if (logDir == null) {
+                System.setProperty("jj.log.dir", JJ_DIR + "/logs");
+              }
+              logDir = System.getProperty("jj.log.dir");
 
-        // Check that we can write to the log dir
-        File logDirFile = new File(logDir);
+              // Check that we can write to the log dir
+              File logDirFile = new File(logDir);
 
-        if (!logDirFile.mkdirs() && !(logDirFile.canWrite())) {
-          System.out.println("Cannot write to " + logDir + " \n" +
-              "Please fix the filesystem permissions or provide a writable location with -Djj.log.dir property on the command line.");
-          System.exit(99);
-        }
+              if (!logDirFile.mkdirs() && !(logDirFile.canWrite())) {
+                System.out.println("Cannot write to " + logDir + " \n" +
+                    "Please fix the filesystem permissions or provide a writable location with -Djj.log.dir property on the command line.");
+                System.exit(99);
+              }
 
-        System.out.println("Logs will be written to: " + logDir);
+              System.out.println("Logs will be written to: " + logDir);
 
         initClassloader();
 
-        String logConfig = logDir + "/log4j2.xml";
-        System.setProperty("log4j.configurationFile", logConfig);
-        File configFile = new File(logConfig);
-        if (!configFile.exists()) {
-          InputStream log4jxml = Main.class.getResourceAsStream("/log4j2.xml");
-          Files.copy(log4jxml, configFile.toPath());
-        }
+              String logConfig = logDir + "/log4j2.xml";
+              System.setProperty("log4j.configurationFile", logConfig);
+              File configFile = new File(logConfig);
+              if (!configFile.exists()) {
+                InputStream log4jxml = Main.class.getResourceAsStream("/log4j2.xml");
+                Files.copy(log4jxml, configFile.toPath());
+              }
 
         Thread contextClassLoaderFix = new Thread(() -> {
           // ensure that the main method completes before this thread runs.
@@ -211,8 +212,9 @@ public class Main {
         System.exit(1);
       }
     }
+    String id = (String) parsedArgs.get("<id>");
     if (cassandraDir == null) {
-      cassandraDir = new File(JJ_DIR + "/cassandra");
+      cassandraDir = new File(JJ_DIR  + "/" + id + "/cassandra");
     }
     Cassandra.start(cassandraDir);
   }
@@ -259,31 +261,6 @@ public class Main {
     return provider.getPlan();
   }
 
-  // will come back in some form when we serialize config to a file..
-
-//  private static void writeConfig(Plan myPlan, String groupId) {
-//    // This ~/.jj/groups is going to be the default location for loadable configs
-//    // if the commandline startup id matches the name of a directory in the groups directory
-//    // that configuration will be loaded.
-//    String sep = System.getProperty("file.separator");
-//    File jjConfigDir = new File(JJ_DIR, "groups" + sep + groupId + sep + myPlan.getName());
-//    if (jjConfigDir.exists() || jjConfigDir.mkdirs()) {
-//      System.out.println("made directories");
-//      PlanImpl.Builder tmpBuilder = new PlanImpl.Builder();
-//      String yaml = tmpBuilder.toYaml(myPlan);
-//      System.out.println("created yaml string");
-//      File file = new File(jjConfigDir, "config.jj");
-//      try (FileOutputStream fis = new FileOutputStream(file)) {
-//        fis.write(yaml.getBytes("UTF-8"));
-//        System.out.println("created file");
-//      } catch (IOException e) {
-//        log.error("failed to write file", e);
-//        throw new RuntimeException(e);
-//      }
-//    } else {
-//      throw new RuntimeException("Failed to make config directories");
-//    }
-//  }
 
   /**
    * Set up security policy that allows RMI and JINI code to work. Also seems to be
@@ -293,7 +270,10 @@ public class Main {
     // must do this before any jini code
     String policyFile = System.getProperty("java.security.policy");
     if (policyFile == null) {
+      System.out.println("Installing JesterjPolicy");
       Policy.setPolicy(new JesterjPolicy());
+    } else  {
+      System.out.println("Existing Policy File:" + policyFile);
     }
     System.setSecurityManager(new SecurityManager());
   }

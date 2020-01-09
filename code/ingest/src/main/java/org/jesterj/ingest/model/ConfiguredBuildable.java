@@ -28,7 +28,7 @@ public interface ConfiguredBuildable<T> extends Buildable<T> {
    * Determine if this builder will produce a valid object. When this method returns false
    * the {@link #build()} method should throw an exception
    *
-   * @return true if it's safe to <tt>build()</tt> false otherwise
+   * @return true if it's safe to <code>build()</code> false otherwise
    */
   boolean isValid();
 

@@ -70,16 +70,18 @@ public class CassandraLog4JManager extends AbstractManager {
   // do anything that causes a log message in another thread before this constructor completes.
   // (such as starting cassandra) Doing so causes that thread and this one to deadlock and hangs
   // everything. This includes calling System.exit() since that gets checked in another JVM thread and
-  // the JVM thread tries to start a JUL logger!
+  // the JVM thread tries to start a JUL logger, which gets piped into log4j and deadlock!
   protected CassandraLog4JManager(String name) {
     super(LoggerContext.getContext(), name);
+    System.out.println(">>>> Creating CassandraLog4JManager");
+    CassandraSupport cassandra = new CassandraSupport();
 
     Callable<Object> makeTables = new Callable<Object>() {
 
-      CassandraSupport cassandra = new CassandraSupport();
-      
+
       @Override
       public Object call() throws Exception {
+        System.out.println("Table and key space creation thread started");
         boolean tryAgain = true;
         int tryCount = 0;
         // ugly but effective fix for https://github.com/nsoft/jesterj/issues/1
@@ -106,7 +108,7 @@ public class CassandraLog4JManager extends AbstractManager {
         return null;
       }
     };
-    this.cassandraReady = Cassandra.whenBooted(makeTables);
+    this.cassandraReady = cassandra.whenBooted(makeTables);
   }
 
   void die(Exception e) {

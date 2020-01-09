@@ -72,12 +72,14 @@ public class Cassandra {
   public static void start(File cassandraDir) {
     start(cassandraDir, null);
   }
-    public static void start(File cassandraDir, String listenAddress) {
+  public static void start(File cassandraDir, String listenAddress) {
 
     System.out.println("Booting internal cassandra");
     boolean firstboot = false;
     try {
-      if (!cassandraDir.exists() && !cassandraDir.mkdirs()) {
+      File triggers = new File(cassandraDir, "triggers");
+      System.setProperty("cassandra.triggers_dir", triggers.getCanonicalPath());
+      if (!cassandraDir.exists() && !cassandraDir.mkdirs() && triggers.mkdirs()) {
         throw new RuntimeException("could not create" + cassandraDir);
       }
       File yaml = new File(cassandraDir, "cassandra.yaml");
@@ -146,6 +148,7 @@ public class Cassandra {
         throw new RuntimeException("interrupted during startup");
       }
     }
+    System.out.println("Starting final boot actions (" + finalBootActions.size() + ")");
     synchronized (finalBootActions) {
       while (finalBootActions.peek() != null) {
         finalBootActions.remove().run();
@@ -164,7 +167,7 @@ public class Cassandra {
     cassandra.destroy();
   }
 
-  public static Future whenBooted(Callable<Object> callable) {
+  static Future whenBooted(Callable<Object> callable) {
     FutureTask<Object> t = new FutureTask<>(callable);
     synchronized (finalBootActions) {
       if (isBooting()) {

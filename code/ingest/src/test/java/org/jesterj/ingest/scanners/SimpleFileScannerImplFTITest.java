@@ -39,6 +39,7 @@ import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
 
+@Ignore
 public class SimpleFileScannerImplFTITest {
 
   private static final String SHAKESPEAR = "Shakespear_scanner";
@@ -56,8 +57,8 @@ public class SimpleFileScannerImplFTITest {
   // using logging without it hoses the event contexts in logging. For now, same process stop/start
   // and use without cassandra configured is not a valid use case, so punt...
   @Test
-  @Ignore(value = "seems to experience cross talk with and interfere with other tests, passes solo locally, " +
-      "expect cassandra is not playing nice here")
+//  @Ignore(value = "seems to experience cross talk with and interfere with other tests, passes solo locally, " +
+//      "expect cassandra is not playing nice here")
   public void testScanWithMemory() throws InterruptedException {
     //noinspection UnstableApiUsage
     Cassandra.start(Files.createTempDir(), "127.0.0.1");

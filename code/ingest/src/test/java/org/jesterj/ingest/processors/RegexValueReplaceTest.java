@@ -33,9 +33,7 @@ import static com.copyright.easiertest.EasierMocks.prepareMocks;
 import static com.copyright.easiertest.EasierMocks.replay;
 import static com.copyright.easiertest.EasierMocks.reset;
 import static com.copyright.easiertest.EasierMocks.verify;
-import static org.easymock.EasyMock.capture;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.*;
 import static org.junit.Assert.assertEquals;
 
 /*
@@ -70,7 +68,7 @@ public class RegexValueReplaceTest {
     List<String> singleValue = new ArrayList<>();
     singleValue.add("FOO bar");
     expect(document.get("foo")).andReturn(singleValue);
-    Capture<Iterable<? extends String>> c = new Capture<>();
+    Capture<Iterable<? extends String>> c = newCapture();
     //noinspection ConstantConditions
     expect(document.replaceValues(eq("foo"), capture(c))).andReturn(singleValue);
     replay();
@@ -88,7 +86,7 @@ public class RegexValueReplaceTest {
     multivalued.add("FEW bar"); // match 2
     multivalued.add("FEE baz"); // unmatched unmodified
     expect(document.get("foo")).andReturn(multivalued);
-    Capture<Iterable<? extends String>> c = new Capture<>();
+    Capture<Iterable<? extends String>> c = newCapture();
     //noinspection ConstantConditions
     expect(document.replaceValues(eq("foo"), capture(c))).andReturn(multivalued);
     replay();
