@@ -16,19 +16,13 @@
 
 package org.jesterj.ingest.logging;
 
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractManager;
-import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.persistence.CassandraSupport;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class CassandraLog4JManager extends AbstractManager {
 
@@ -87,7 +81,7 @@ public class CassandraLog4JManager extends AbstractManager {
         // ugly but effective fix for https://github.com/nsoft/jesterj/issues/1
         while(tryAgain) {
           try {
-            Session session = cassandra.getSession();
+            CqlSession session = cassandra.getSession();
             session.execute(CREATE_LOG_KEYSPACE);
             session.execute(CREATE_LOG_TABLE);
             session.execute(CREATE_FT_TABLE);

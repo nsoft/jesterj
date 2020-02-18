@@ -32,7 +32,7 @@ buildscript {
 plugins {
   id 'com.github.jk1.dependency-license-report' version '0.3.4'
   id "com.github.onslip.gradle-one-jar" version "1.0.5"
-  id 'com.needhamsoftware.unojar' version '0.99'
+  id 'com.needhamsoftware.unojar' version '1.0-SNAPSHOT'
 }
 
 allprojects {
@@ -124,6 +124,11 @@ configurations {
   unoJarPack.extendsFrom runtime
 }
 
+configurations.all {
+  resolutionStrategy.cacheDynamicVersionsFor 1, 'minutes'
+  resolutionStrategy.cacheChangingModulesFor 1, 'minutes'
+}
+
 //////////////////////////
 
  version = '1.0-SNAPSHOT'
@@ -136,7 +141,7 @@ dependencies {
   compile 'org.apache.tika:tika-parsers:1.23'
   compile 'com.mchange:c3p0:0.9.5.2' // for tika deps... actual declared dep includes older LGPL version only.
 
-  compile 'org.apache.solr:solr-core:7.6.0'
+  compile 'org.apache.solr:solr-core:8.5.0-SNAPSHOT'
 
   compile 'com.google.guava:guava:18.0'
   compile 'com.google.code.findbugs:jsr305:3.0.0'
@@ -144,7 +149,7 @@ dependencies {
   compile 'jini:jini-core:2.1'
   compile 'org.apache.river:reggie:2.2.2'
   compile 'org.apache.cassandra:cassandra-all:4.0-alpha3-SNAPSHOT'
-  compile ('com.datastax.cassandra:cassandra-driver-core:3.2.0')
+  compile 'com.datastax.oss:java-driver-core:4.4.0'
   compile 'org.yaml:snakeyaml:1.14'
   compile 'org.apache.velocity:velocity:1.7'
 
@@ -179,7 +184,15 @@ dependencies {
   // using testCompile so we don't package these...
   testCompile (group: 'org.jacoco', name:'org.jacoco.report', version:'0.7.7.201606060606')
   testCompile (group: 'org.jacoco', name:'org.jacoco.core', version:'0.7.7.201606060606')
-  testCompile 'org.apache.solr:solr-test-framework:7.6.0'
+  testCompile 'org.apache.solr:solr-test-framework:8.5.0-SNAPSHOT'
+}
+
+compileJava {
+  options.compilerArgs += ["--add-exports=java.base/jdk.internal.loader=ALL-UNNAMED"]
+}
+
+javadoc {
+  options.optionFiles << file('javadoc.options')
 }
 
 // these are just support classes for the Trie Tests swiped from commons/collections

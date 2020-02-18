@@ -161,6 +161,9 @@ public class Cassandra {
   public static String getListenAddress() {
     return listenAddress;
   }
+  public static InetSocketAddress getSocketAddress() {
+    return new InetSocketAddress(listenAddress,9042);
+  }
 
   public static void stop() {
     cassandra.stop();

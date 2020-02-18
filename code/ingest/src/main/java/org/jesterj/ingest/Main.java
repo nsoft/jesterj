@@ -41,6 +41,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.security.Policy;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 
@@ -146,7 +147,7 @@ public class Main {
               LogManager.getFactory().removeContext(LogManager.getContext(false));
 
               // now we are allowed to look at log4j2.xml
-              log = LogManager.getLogger();
+              log = LogManager.getLogger(Main.class);
 
               Properties sysProps = System.getProperties();
               for (Object prop : sysProps.keySet()) {
@@ -247,7 +248,8 @@ public class Main {
     // Unfortunately this classpath scan adds quite a bit to startup time.... It seems to scan all the
     // Jdk classes (but not classes loaded by onejar, thank goodness) It only works with URLClassLoaders
     // but perhaps we can provide a temporary sub-class
-    Reflections reflections = new Reflections(new ConfigurationBuilder().addUrls(ClasspathHelper.forClassLoader(onejarLoader)));
+    Collection<URL> urls = ClasspathHelper.forClassLoader(onejarLoader);
+    Reflections reflections = new Reflections(new ConfigurationBuilder().addUrls(urls));
     ArrayList<Class> planProducers = new ArrayList<>(reflections.getTypesAnnotatedWith(JavaPlanConfig.class));
 
     if (log != null) {
@@ -292,7 +294,7 @@ public class Main {
     // fix bug in One-Jar with an ugly hack
     ClassLoader myClassLoader = Main.class.getClassLoader();
     String name = myClassLoader.getClass().getName();
-    if ("com.simontuffs.onejar.JarClassLoader".equals(name)) {
+    if ("com.needhamsoftware.unojar.JarClassLoader".equals(name)) {
       Field scl = ClassLoader.class.getDeclaredField("scl"); // Get system class loader
       scl.setAccessible(true); // Set accessible
       scl.set(null, new URLClassLoader(new URL[]{}, myClassLoader)); // Update it to our class loader

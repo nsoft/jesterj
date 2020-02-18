@@ -16,21 +16,22 @@
 
 package org.jesterj.ingest.persistence;
 
-import com.datastax.driver.core.CloseFuture;
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.RegularStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.google.common.util.concurrent.ListenableFuture;
+
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.context.DriverContext;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.metadata.Metadata;
+import com.datastax.oss.driver.api.core.metrics.Metrics;
+import com.datastax.oss.driver.api.core.session.Request;
+import com.datastax.oss.driver.api.core.session.Session;
+import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.Optional;
+import java.util.concurrent.*;
 
 /**
  * A class to globalize the cluster and session objects, while providing query caches on a per-instance basis.
@@ -63,7 +64,7 @@ public class CassandraSupport {
    *
    * @return a <code>NonClosableSession</code> object.
    */
-  public Session getSession() {
+  public CqlSession getSession() {
     if (NON_CLOSABLE_SESSION == null && Cassandra.getListenAddress() != null)
     {
       NON_CLOSABLE_SESSION = new NonClosableSession();
@@ -90,97 +91,36 @@ public class CassandraSupport {
     return Cassandra.whenBooted(makeTables);
   }
 
-  // per Datastax recommendation these are one per application.
-  // http://www.datastax.com/dev/blog/4-simple-rules-when-using-the-datastax-drivers-for-cassandra
-  private static class ClusterHolder {
-    private static final Cluster INSTANCE = Cluster.builder()
-        .addContactPoint(Cassandra.getListenAddress())
-        .withCredentials("cassandra", "cassandra")
-        .build();
-  }
-
   private static class SessionHolder {
-    private static final Session INSTANCE = ClusterHolder.INSTANCE.newSession();
+    private static final Session INSTANCE;
+
+    static {
+      Session instance = null;
+      try {
+        instance = CqlSession.builder()
+            .addContactPoint(Cassandra.getSocketAddress())
+            .withLocalDatacenter("datacenter1")
+            .withAuthCredentials("cassandra", "cassandra")
+            .build();
+      } catch (Throwable e) {
+        e.printStackTrace();
+      } finally {
+        INSTANCE = instance;
+      }
+    }
   }
 
-  public static class NonClosableSession implements Session {
-    @Override
-    public String getLoggedKeyspace() {
-      return sessionRef.getLoggedKeyspace();
-    }
+  public static class NonClosableSession implements CqlSession {
+
 
     @Override
-    public Session init() {
-      return sessionRef.init();
+    public CompletionStage<Void> closeAsync() {
+      throw new UnsupportedOperationException("Do not close the sessions handed out from CassandraSupport");
     }
 
+    @NonNull
     @Override
-    public ListenableFuture<Session> initAsync() {
-      return sessionRef.initAsync();
-    }
-
-    @Override
-    public ResultSet execute(String query) {
-      return sessionRef.execute(query);
-    }
-
-    @Override
-    public ResultSet execute(String query, Object... values) {
-      return sessionRef.execute(query, values);
-    }
-
-    @Override
-    public ResultSet execute(String query, Map<String, Object> values) {
-      return sessionRef.execute(query,values);
-    }
-
-    @Override
-    public ResultSet execute(Statement statement) {
-      return sessionRef.execute(statement);
-    }
-
-    @Override
-    public ResultSetFuture executeAsync(String query) {
-      return sessionRef.executeAsync(query);
-    }
-
-    @Override
-    public ResultSetFuture executeAsync(String query, Object... values) {
-      return sessionRef.executeAsync(query, values);
-    }
-
-    @Override
-    public ResultSetFuture executeAsync(String query, Map<String, Object> values) {
-      return sessionRef.executeAsync(query,values);
-    }
-
-    @Override
-    public ResultSetFuture executeAsync(Statement statement) {
-      return sessionRef.executeAsync(statement);
-    }
-
-    @Override
-    public PreparedStatement prepare(String query) {
-      return sessionRef.prepare(query);
-    }
-
-    @Override
-    public PreparedStatement prepare(RegularStatement statement) {
-      return sessionRef.prepare(statement);
-    }
-
-    @Override
-    public ListenableFuture<PreparedStatement> prepareAsync(String query) {
-      return sessionRef.prepareAsync(query);
-    }
-
-    @Override
-    public ListenableFuture<PreparedStatement> prepareAsync(RegularStatement statement) {
-      return sessionRef.prepareAsync(statement);
-    }
-
-    @Override
-    public CloseFuture closeAsync() {
+    public CompletionStage<Void> forceCloseAsync() {
       throw new UnsupportedOperationException("Do not close the sessions handed out from CassandraSupport");
     }
 
@@ -189,26 +129,83 @@ public class CassandraSupport {
       throw new UnsupportedOperationException("Do not close the sessions handed out from CassandraSupport");
     }
 
+    @NonNull
+    @Override
+    public CompletionStage<Void> closeFuture() {
+      throw new UnsupportedOperationException("Do not close the sessions handed out from CassandraSupport");
+    }
+
     @Override
     public boolean isClosed() {
       return sessionRef.isClosed();
     }
 
-    @Override
-    public Cluster getCluster() {
-      return sessionRef.getCluster();
-    }
 
-    @Override
-    public State getState() {
-      return sessionRef.getState();
-    }
 
     // Only to be called when shutting down cassandra entirely.
-    public void dectivate() {
+    public void deactivate() {
       sessionRef.close();
     }
 
     private Session sessionRef = SessionHolder.INSTANCE;
+
+    @NonNull
+    @Override
+    public String getName() {
+      return sessionRef.getName();
+    }
+
+    @NonNull
+    @Override
+    public Metadata getMetadata() {
+      return sessionRef.getMetadata();
+    }
+
+    @Override
+    public boolean isSchemaMetadataEnabled() {
+      return sessionRef.isSchemaMetadataEnabled();
+    }
+
+    @NonNull
+    @Override
+    public CompletionStage<Metadata> setSchemaMetadataEnabled(@Nullable Boolean newValue) {
+      return sessionRef.setSchemaMetadataEnabled(newValue);
+    }
+
+    @NonNull
+    @Override
+    public CompletionStage<Metadata> refreshSchemaAsync() {
+      return sessionRef.refreshSchemaAsync();
+    }
+
+    @NonNull
+    @Override
+    public CompletionStage<Boolean> checkSchemaAgreementAsync() {
+      return sessionRef.checkSchemaAgreementAsync();
+    }
+
+    @NonNull
+    @Override
+    public DriverContext getContext() {
+      return sessionRef.getContext();
+    }
+
+    @NonNull
+    @Override
+    public Optional<CqlIdentifier> getKeyspace() {
+      return sessionRef.getKeyspace();
+    }
+
+    @NonNull
+    @Override
+    public Optional<Metrics> getMetrics() {
+      return sessionRef.getMetrics();
+    }
+
+    @Nullable
+    @Override
+    public <RequestT extends Request, ResultT> ResultT execute(@NonNull RequestT request, @NonNull GenericType<ResultT> resultType) {
+      return sessionRef.execute(request,resultType);
+    }
   }
 }
