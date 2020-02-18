@@ -16,10 +16,13 @@
 
 package org.jesterj.ingest.logging;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.Session;
+
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import org.apache.logging.log4j.Marker;
-import org.apache.logging.log4j.core.*;
+import org.apache.logging.log4j.core.Filter;
+import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
@@ -30,8 +33,7 @@ import org.jesterj.ingest.persistence.CassandraSupport;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Iterator;
+import java.time.Instant;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -149,33 +151,31 @@ public class JesterJAppender extends AbstractAppender {
     new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss,'Z'").format(e.getTimeMillis());
     // everything wrapped in String.valueOf to avoid any issues with null.
     String logger  = String.valueOf(e.getLoggerName());
-    Date timeStamp = new Date(e.getTimeMillis());
+    Instant timeStamp = Instant.ofEpochMilli(e.getTimeMillis());
     String level = String.valueOf(e.getLevel());
     String thread = String.valueOf(Thread.currentThread().getName());
     String message = String.valueOf(e.getMessage().getFormattedMessage());
 
     if (m == null || m.isInstanceOf(Markers.LOG_MARKER)) {
-      Session s = cassandra.getSession();
-      BoundStatement bs = new BoundStatement(cassandra.getPreparedQuery(REG_INSERT_Q));
+      CqlSession s = cassandra.getSession();
+      PreparedStatement pq = cassandra.getPreparedQuery(REG_INSERT_Q);
 
       UUID id = UUID.randomUUID();  // maybe we can skip this for regular logs?
 
-      s.execute(bs.bind(id, logger, timeStamp, level, thread, message));
+      s.execute(pq.bind(id, logger, timeStamp, level, thread, message));
 
       return; // never want non FTI logging to write to the FTI table.
     }
 
     if (m.isInstanceOf(Markers.FTI_MARKER)) {
-      Session s = cassandra.getSession();
-      BoundStatement bs = new BoundStatement(cassandra.getPreparedQuery(FTI_INSERT_Q));
+      CqlSession s = cassandra.getSession();
+      PreparedStatement pq = cassandra.getPreparedQuery(FTI_INSERT_Q);
 
       // everything wrapped in String.valueOf to avoid any issues with null.
       String status = String.valueOf(e.getMarker().getName());
       String docId = String.valueOf(e.getContextMap().get(JJ_INGEST_DOCID));
       String scanner = String.valueOf(e.getContextMap().get(JJ_INGEST_SOURCE_SCANNER));
-
-      s.execute(bs.bind(docId, scanner, logger, timeStamp, level, thread, status, message));
-
+      s.execute(pq.bind(docId, scanner, logger, timeStamp, level, thread, status, message));
     }
 
   }

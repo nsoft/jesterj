@@ -16,22 +16,15 @@
 
 package org.jesterj.ingest.model.impl;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.exceptions.NoHostAvailableException;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jesterj.ingest.Main;
-import org.jesterj.ingest.model.ConfiguredBuildable;
-import org.jesterj.ingest.model.Document;
-import org.jesterj.ingest.model.Router;
-import org.jesterj.ingest.model.Scanner;
-import org.jesterj.ingest.model.Status;
-import org.jesterj.ingest.model.Step;
+import org.jesterj.ingest.model.*;
 import org.jesterj.ingest.persistence.CassandraSupport;
 
 import java.util.ArrayList;
@@ -105,32 +98,28 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   public void activate() {
     super.activate();
     if (isRemembering() || isHashing()) {
-      Session session = getCassandra().getSession();
+      CqlSession session = getCassandra().getSession();
       List<DocKey> strandedDocs = new ArrayList<>();
       PreparedStatement preparedQuery = getCassandra().getPreparedQuery(RESET_PROCESSING_Q);
-      BoundStatement statement = createBoundStatement(preparedQuery);
-      statement.bind(getName());
+      BoundStatement statement =  preparedQuery.bind(getName());
       ResultSet procRs = session.execute(statement);
       strandedDocs.addAll(procRs.all().stream()
           .map((row) -> new DocKey(row.getString(0), row.getString(1))).collect(Collectors.toList()));
       preparedQuery = getCassandra().getPreparedQuery(RESET_ERROR_Q);
-      statement = createBoundStatement(preparedQuery);
-      statement.bind(getName());
+      statement = preparedQuery.bind(getName());
       ResultSet errorRs = session.execute(statement);
       strandedDocs.addAll(errorRs.all().stream()
           .map((row) -> new DocKey(row.getString(0), row.getString(1))).collect(Collectors.toList()));
       preparedQuery = getCassandra().getPreparedQuery(RESET_BATCHED_Q);
-      statement = createBoundStatement(preparedQuery);
-      statement.bind(getName());
+      statement = preparedQuery.bind(getName());
       ResultSet batchedRs = session.execute(statement);
       strandedDocs.addAll(batchedRs.all().stream()
           .map((row) -> new DocKey(row.getString(0), row.getString(1))).collect(Collectors.toList()));
 
       preparedQuery = getCassandra().getPreparedQuery(RESET_DOCS_U);
-      statement = createBoundStatement(preparedQuery);
       // todo: batch
       for (DocKey docId : strandedDocs) {
-        statement.bind(docId.docid, docId.scanner);
+        statement = preparedQuery.bind(docId.docid, docId.scanner);
         session.execute(statement);
       }
 
@@ -144,7 +133,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     // when we get to dynamically starting/stopping multiple plans across the cluster
     // this will probably need reference counting...
     if (CassandraSupport.NON_CLOSABLE_SESSION != null) {
-      CassandraSupport.NON_CLOSABLE_SESSION.dectivate();
+      CassandraSupport.NON_CLOSABLE_SESSION.deactivate();
       CassandraSupport.NON_CLOSABLE_SESSION = null;
     }
   }
@@ -204,16 +193,10 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   @Override
   public void sendToNext(Document doc) {
     if (isRemembering()) {
-      try {
-        Session session = getCassandra().getSession();
-        PreparedStatement preparedQuery = getCassandra().getPreparedQuery(UPDATE_HASH_U);
-        BoundStatement bind = preparedQuery.bind(doc.getHash(), doc.getId(), doc.getSourceScannerName());
-        session.execute(bind);
-      } catch (NoHostAvailableException e) {
-        if (Main.isNotShuttingDown()) {
-          log.error("Could not contact our internal Cassandra!!!" + e);
-        }
-      }
+      CqlSession session = getCassandra().getSession();
+      PreparedStatement preparedQuery = getCassandra().getPreparedQuery(UPDATE_HASH_U);
+      BoundStatement bind = preparedQuery.bind(doc.getHash(), doc.getId(), doc.getSourceScannerName());
+      session.execute(bind);
     }
     superSendToNext(doc);
   }
@@ -241,27 +224,20 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     String status = null;
     String md5 = null;
     if (isRemembering()) {
-      try {
-        PreparedStatement preparedQuery = getCassandra().getPreparedQuery(FTI_CHECK_Q);
-        BoundStatement bs = createBoundStatement(preparedQuery);
-        Session session = getCassandra().getSession();
-        ResultSet statusRs = session.execute(bs.bind(id, getName()));
-        if (statusRs.getAvailableWithoutFetching() > 0) {
-          if (statusRs.getAvailableWithoutFetching() > 1 || !statusRs.isFullyFetched()) {
-            log.error("FATAL: duplicate primary keys in cassandra table??");
-            throw new RuntimeException("VERY BAD: duplicate primary keys in FTI table?");
-          } else {
-            Row next = statusRs.all().iterator().next();
-            status = next.getString(0);
-            log.trace("Found '{}' with status {}", id, status);
-            if (isHashing()) {
-              md5 = next.getString(1);
-            }
+      PreparedStatement preparedQuery = getCassandra().getPreparedQuery(FTI_CHECK_Q);
+      CqlSession session = getCassandra().getSession();
+      ResultSet statusRs = session.execute(preparedQuery.bind(id, getName()));
+      if (statusRs.getAvailableWithoutFetching() > 0) {
+        if (statusRs.getAvailableWithoutFetching() > 1 || !statusRs.isFullyFetched()) {
+          log.error("FATAL: duplicate primary keys in cassandra table??");
+          throw new RuntimeException("VERY BAD: duplicate primary keys in FTI table?");
+        } else {
+          Row next = statusRs.all().iterator().next();
+          status = next.getString(0);
+          log.trace("Found '{}' with status {}", id, status);
+          if (isHashing()) {
+            md5 = next.getString(1);
           }
-        }
-      } catch (NoHostAvailableException e) {
-        if (Main.isNotShuttingDown()) {
-          log.error("Could not contact our internal Cassandra!!!" + e);
         }
       }
     }
@@ -285,11 +261,6 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       }
     }
     sendToNext(doc);
-
-  }
-
-  BoundStatement createBoundStatement(PreparedStatement preparedQuery) {
-    return new BoundStatement(preparedQuery);
   }
 
   /**

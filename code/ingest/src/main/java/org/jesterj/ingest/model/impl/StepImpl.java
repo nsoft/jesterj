@@ -16,7 +16,6 @@
 
 package org.jesterj.ingest.model.impl;
 
-import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -420,7 +419,7 @@ public class StepImpl implements Step {
       ThreadContext.put(JesterJAppender.JJ_INGEST_SOURCE_SCANNER, document.getSourceScannerName());
       document.setStatus(status);
       log.info(status.getMarker(), message, messageParams);
-    } catch (AppenderLoggingException | NoHostAvailableException e) {
+    } catch (AppenderLoggingException e) {
       if (Main.isNotShuttingDown()) {
         log.error("Could not contact our internal Cassandra!!!" + e);
       }

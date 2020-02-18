@@ -607,57 +607,10 @@ public class SolrSchemaUtil {
     if (!(queryAnalyzer instanceof TokenizerChain)) {
       return new KeywordAnalyzer();
     }
+    return ((TokenizerChain) queryAnalyzer).getMultiTermAnalyzer();
 
-    TokenizerChain tc = (TokenizerChain) queryAnalyzer;
-    MultiTermChainBuilder builder = new MultiTermChainBuilder();
-
-    CharFilterFactory[] charFactories = tc.getCharFilterFactories();
-    for (CharFilterFactory fact : charFactories) {
-      builder.add(fact);
-    }
-
-    builder.add(tc.getTokenizerFactory());
-
-    for (TokenFilterFactory fact : tc.getTokenFilterFactories()) {
-      builder.add(fact);
-    }
-
-    return builder.build();
   }
 
-  private static class MultiTermChainBuilder {
-    static final KeywordTokenizerFactory keyFactory = new KeywordTokenizerFactory(new HashMap<>());
-
-    ArrayList<CharFilterFactory> charFilters = null;
-    ArrayList<TokenFilterFactory> filters = new ArrayList<>(2);
-    TokenizerFactory tokenizer = keyFactory;
-
-    public void add(Object current) {
-      if (!(current instanceof MultiTermAwareComponent)) return;
-      AbstractAnalysisFactory newComponent = ((MultiTermAwareComponent) current).getMultiTermComponent();
-      if (newComponent instanceof TokenFilterFactory) {
-        if (filters == null) {
-          filters = new ArrayList<>(2);
-        }
-        filters.add((TokenFilterFactory) newComponent);
-      } else if (newComponent instanceof TokenizerFactory) {
-        tokenizer = (TokenizerFactory) newComponent;
-      } else if (newComponent instanceof CharFilterFactory) {
-        if (charFilters == null) {
-          charFilters = new ArrayList<>(1);
-        }
-        charFilters.add((CharFilterFactory) newComponent);
-      } else {
-        throw new SolrException(SolrException.ErrorCode.SERVER_ERROR, "Unknown analysis component from MultiTermAwareComponent: " + newComponent);
-      }
-    }
-
-    public TokenizerChain build() {
-      CharFilterFactory[] charFilterArr = charFilters == null ? null : charFilters.toArray(new CharFilterFactory[charFilters.size()]);
-      TokenFilterFactory[] filterArr = filters == null ? new TokenFilterFactory[0] : filters.toArray(new TokenFilterFactory[filters.size()]);
-      return new TokenizerChain(charFilterArr, tokenizer, filterArr);
-    }
-  }
 
   protected String[] getDefaultPackages() {
     return new String[]{};
