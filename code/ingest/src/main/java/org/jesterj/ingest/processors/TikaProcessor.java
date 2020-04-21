@@ -29,7 +29,7 @@ import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.AccessControlException;
 
 /*
@@ -44,6 +44,8 @@ public class TikaProcessor implements DocumentProcessor {
   private String suffix;
   private int maxLength = -1; // process all text by default
   private TikaConfig tikaConfig = TikaConfig.getDefaultConfig();
+  private boolean replaceRaw = true;
+  private String destField = null;
 
   @Override
   public Document[]   processDocument(Document document) {
@@ -58,7 +60,12 @@ public class TikaProcessor implements DocumentProcessor {
       Metadata metadata = new Metadata();
       try (ByteArrayInputStream bais = new ByteArrayInputStream(rawData)) {
         String textContent = tika.parseToString(bais, metadata, maxLength);
-        document.setRawData(textContent.getBytes(Charset.forName("UTF-8")));
+        if (replaceRaw) {
+          document.setRawData(textContent.getBytes(StandardCharsets.UTF_8));
+        }
+        if (destField != null) {
+          document.put(destField,textContent);
+        }
         for (String name : metadata.names()) {
           document.put(sanitize(name) + plusSuffix(), metadata.get(name));
         }
@@ -134,6 +141,28 @@ public class TikaProcessor implements DocumentProcessor {
      */
     public Builder truncatingTextTo(int chars) {
       getObj().maxLength = chars;
+      return this;
+    }
+
+    /**
+     * Speifiy if the results of tika's analysis should replace the raw document content or not.
+     *
+     * @param replaceRaw if true the original content for the document will be overwritten by tika's extracted output.
+     * @return This builder for further configuration
+     */
+    public Builder replacingRawData(boolean replaceRaw) {
+      getObj().replaceRaw = replaceRaw;
+      return this;
+    }
+
+    /**
+     * Send the results of tika's text extraction (text extracted but not metadata) into the supplied field.
+     *
+     * @param field the name of the field to containt the extracted text.
+     * @return This builder for further configuration
+     */
+    public Builder intoField(String field) {
+      getObj().destField = field;
       return this;
     }
 
