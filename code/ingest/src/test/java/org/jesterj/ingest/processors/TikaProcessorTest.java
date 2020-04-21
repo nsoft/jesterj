@@ -100,9 +100,29 @@ public class TikaProcessorTest {
     TikaProcessor proc = new TikaProcessor.Builder().named("foo").truncatingTextTo(20)
         .configuredWith(doc)
         .build();
-    System.out.println(new String(new byte[] {32, 32, 32, 84, 104, 101, 32, 116, 105, 116, 108, 101, 32, 84, 104, 105, 115, 32, 105, 115}));
+    //System.out.println(new String(new byte[] {32, 32, 32, 84, 104, 101, 32, 116, 105, 116, 108, 101, 32, 84, 104, 105, 115, 32, 105, 115}));
     expect(mockDocument.getRawData()).andReturn(XML.getBytes()).anyTimes();
     mockDocument.setRawData(aryEq("   The title This is".getBytes()));
+    expect(mockDocument.put("X_Parsed_By", "org.apache.tika.parser.CompositeParser")).andReturn(true);
+    expect(mockDocument.put("Content_Type", "application/xml")).andReturn(true);
+
+    replay();
+    proc.processDocument(mockDocument);
+  }
+
+  @Test
+  public void testFieldDontTouchRaw() throws Exception {
+    DocumentBuilderFactory factory =
+        DocumentBuilderFactory.newInstance();
+    DocumentBuilder builder = factory.newDocumentBuilder();
+    ByteArrayInputStream input = new ByteArrayInputStream(XML_CONFIG.getBytes("UTF-8"));
+    org.w3c.dom.Document doc = builder.parse(input);
+
+    TikaProcessor proc = new TikaProcessor.Builder().named("foo").truncatingTextTo(20).replacingRawData(false).intoField("extracted")
+        .configuredWith(doc)
+        .build();
+    expect(mockDocument.getRawData()).andReturn(XML.getBytes()).anyTimes();
+    expect(mockDocument.put("extracted","   The title This is")).andReturn(true);
     expect(mockDocument.put("X_Parsed_By", "org.apache.tika.parser.CompositeParser")).andReturn(true);
     expect(mockDocument.put("Content_Type", "application/xml")).andReturn(true);
 
