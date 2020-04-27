@@ -102,20 +102,22 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
 
   @Test
   public void testPreanalyzeSimpleTextEn() throws Exception {
-    String schemaFile = "solr/configsets/preanalyze/conf/schema.xml";
-    PreAnalyzeFields paf = new PreAnalyzeFields.Builder()
-        .named("foo")
-        .forTypeNamed("text_en")
-        .preAnalyzingField("preanalyzed")
-        .fromFile(schemaFile)
-        .build();
-
     PlanImpl plan = new PlanImpl() {
       @Override
       public String getDocIdField() {
         return "id";
       }
     };
+
+    String schemaFile = "solr/configsets/preanalyze/conf/schema.xml";
+    PreAnalyzeFields paf = new PreAnalyzeFields.Builder()
+        .named("foo")
+        .forTypeNamed("text_en")
+        .preAnalyzingField("preanalyzed")
+        .fromFile(schemaFile)
+        .loadingResourcesVia(() -> plan.getClass().getClassLoader())
+        .build();
+
     Scanner s = new ScannerImpl() {
       @Override
       public Runnable getScanOperation() {
