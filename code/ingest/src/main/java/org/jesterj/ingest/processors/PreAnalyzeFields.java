@@ -22,6 +22,7 @@ import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 
 
 /**
@@ -34,9 +35,10 @@ import java.util.concurrent.Callable;
  * field type definition from the supplied schema and use that definition to produce the pre-analyzed JSON.
  */
 public class PreAnalyzeFields implements DocumentProcessor {
+  @SuppressWarnings("unused")
   private static final Logger log = LogManager.getLogger();
 
-  private ThreadLocal<Analyzer> analyzer = new ThreadLocal<Analyzer>() {
+  private ThreadLocal<Analyzer> analyzer = new ThreadLocal<>() {
     @Override
     protected Analyzer initialValue() {
       try {
@@ -47,6 +49,12 @@ public class PreAnalyzeFields implements DocumentProcessor {
     }
   };
 
+  private Supplier<ClassLoader> classLoaderProvider = new Supplier<>() {
+    @Override
+    public ClassLoader get() {
+      return this.getClass().getClassLoader();
+    }
+  };
   private ClassSubPathResourceLoader loader;
   private Callable<Analyzer> analyzerFactory;
   private String name;
@@ -117,6 +125,7 @@ public class PreAnalyzeFields implements DocumentProcessor {
 
     PreAnalyzeFields obj = new PreAnalyzeFields();
     private String typeName;
+    @SuppressWarnings("deprecation")
     private String luceneMatch = Version.LUCENE_7_6_0.toString(); // default
     private String schemaFile = "schema.xml"; // default
     private float schemaVersion;
@@ -139,6 +148,11 @@ public class PreAnalyzeFields implements DocumentProcessor {
 
     public Builder withLuceneMatchVersion(String version) {
       this.luceneMatch = version;
+      return this;
+    }
+
+    public Builder loadingResourcesVia(Supplier<ClassLoader> provider ) {
+      getObj().classLoaderProvider = provider;
       return this;
     }
 
@@ -186,7 +200,7 @@ public class PreAnalyzeFields implements DocumentProcessor {
         } else {
           subpath = "";
         }
-        obj.loader = new ClassSubPathResourceLoader(this.getClass().getClassLoader(), subpath);
+        obj.loader = new ClassSubPathResourceLoader(obj.classLoaderProvider.get(), subpath);
         org.w3c.dom.Document doc = util.getSchemaDocument(schemaFile, obj.loader);
         FieldType ft = util.getFieldType(doc, typeName, luceneMatch, schemaVersion, obj.loader);
         obj.analyzerFactory = ft::getIndexAnalyzer;
