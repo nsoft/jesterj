@@ -26,7 +26,7 @@ The contents of the JesterJ jar are licensed using Apache 2.0 License
  * limitations under the License.
  */
 
-The executeable OneJar contains additional software. Full detail of all
+The executable UnoJar contains additional software. Full detail of all
 included software can be found in the /licenses directory of that jar, and
 also at https://github.com/nsoft/jesterj/tree/master/code/ingest/licenses
 for the current head revision, (with release tags being selectable in the
