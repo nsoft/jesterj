@@ -25,11 +25,16 @@ buildscript {
   dependencies {
     //Check for the latest version here: http://plugins.gradle.org/plugin/com.jfrog.artifactory
     classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4+"
-
   }
 }
 
 plugins {
+  id 'java'
+  id 'idea'
+  id 'jacoco'
+  id 'signing'
+  id 'maven'
+  id 'maven-publish'
   id 'com.github.jk1.dependency-license-report' version '0.3.4'
   id "com.github.onslip.gradle-one-jar" version "1.0.5"
   id 'com.needhamsoftware.unojar' version '1.0-SNAPSHOT'
@@ -76,13 +81,6 @@ artifactory {
   }
 }
 
-apply plugin: 'idea'
-apply plugin: 'java'
-apply plugin: 'jacoco'
-apply plugin: 'maven-publish'
-apply plugin: 'maven'
-apply plugin: 'signing'
-
 idea {
   module {
     downloadJavadoc = true
@@ -106,13 +104,10 @@ repositories {
 //    }
     url 'https://jesterj.jfrog.io/jesterj/libs-release/'
   }
-  flatDir {
-    dir 'onejar'
-  }
+
 }
 
 configurations {
-  oneJarLib
   unoJarPack
   // under no circumstances shall we distribute these in our archives
   unoJarPack.exclude group: 'junit'               // test lib
@@ -174,8 +169,6 @@ dependencies {
   }
   //runtime ':one-jar-boot:0.98' // uncomment for debugging stack traces into one-jar classes
 
-  oneJarLib files('onejar/one-jar-boot-0.98.jar')
-  compile files('onejar/one-jar-boot-0.98.jar')
   compile('org.reflections:reflections:0.9.10') {
     exclude group: 'org.javassist'
   }
@@ -228,7 +221,6 @@ unojar {
   unoJar unoJardest
   appMainClass 'org.jesterj.ingest.Main'
   manifestAttrs(
-      'One-Jar-URL-Factory': 'com.simontuffs.onejar.JarClassLoader$OneJarURLFactory',
       // exports/opens for cassandra
       'Add-Exports': 'java.base/jdk.internal.misc java.base/jdk.internal.ref java.base/sun.nio.ch' +
           ' java.management.rmi/com.sun.jmx.remote.internal.rmi java.rmi/sun.rmi.registry' +
