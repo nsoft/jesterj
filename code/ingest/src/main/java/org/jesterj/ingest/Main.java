@@ -17,16 +17,16 @@
 package org.jesterj.ingest;
 
 import com.google.common.io.Resources;
+import com.needhamsoftware.unojar.JarClassLoader;
+import io.github.classgraph.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.docopt.Docopt;
 import org.jesterj.ingest.forkjoin.JesterJForkJoinThreadFactory;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.persistence.Cassandra;
+import org.jesterj.ingest.utils.JesterJLoader;
 import org.jesterj.ingest.utils.JesterjPolicy;
-import org.reflections.Reflections;
-import org.reflections.util.ClasspathHelper;
-import org.reflections.util.ConfigurationBuilder;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -34,16 +34,16 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.Policy;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
+import java.util.stream.Collectors;
 
 /*
  * Created with IntelliJ IDEA.
@@ -84,39 +84,41 @@ public class Main {
     }
   }
 
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) {
 //    Thread.sleep(10000); // debugger connect time
+
+
     synchronized (HAPPENS_BEFORE) {
       try {
         System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
         System.setProperty("cassandra.insecure.udf", "true");
-              // set up log output dir
-              String logDir = System.getProperty("jj.log.dir");
-              if (logDir == null) {
-                System.setProperty("jj.log.dir", JJ_DIR + "/logs");
-              }
-              logDir = System.getProperty("jj.log.dir");
+        // set up log output dir
+        String logDir = System.getProperty("jj.log.dir");
+        if (logDir == null) {
+          System.setProperty("jj.log.dir", JJ_DIR + "/logs");
+        }
+        logDir = System.getProperty("jj.log.dir");
 
-              // Check that we can write to the log dir
-              File logDirFile = new File(logDir);
+        // Check that we can write to the log dir
+        File logDirFile = new File(logDir);
 
-              if (!logDirFile.mkdirs() && !(logDirFile.canWrite())) {
-                System.out.println("Cannot write to " + logDir + " \n" +
-                    "Please fix the filesystem permissions or provide a writable location with -Djj.log.dir property on the command line.");
-                System.exit(99);
-              }
+        if (!logDirFile.mkdirs() && !(logDirFile.canWrite())) {
+          System.out.println("Cannot write to " + logDir + " \n" +
+              "Please fix the filesystem permissions or provide a writable location with -Djj.log.dir property on the command line.");
+          System.exit(99);
+        }
 
-              System.out.println("Logs will be written to: " + logDir);
+        System.out.println("Logs will be written to: " + logDir);
 
         initClassloader();
 
-              String logConfig = logDir + "/log4j2.xml";
-              System.setProperty("log4j.configurationFile", logConfig);
-              File configFile = new File(logConfig);
-              if (!configFile.exists()) {
-                InputStream log4jxml = Main.class.getResourceAsStream("/log4j2.xml");
-                Files.copy(log4jxml, configFile.toPath());
-              }
+        String logConfig = logDir + "/log4j2.xml";
+        System.setProperty("log4j.configurationFile", logConfig);
+        File configFile = new File(logConfig);
+        if (!configFile.exists()) {
+          InputStream log4jxml = Main.class.getResourceAsStream("/log4j2.xml");
+          Files.copy(log4jxml, configFile.toPath());
+        }
 
         Thread contextClassLoaderFix = new Thread(() -> {
           // ensure that the main method completes before this thread runs.
@@ -198,6 +200,12 @@ public class Main {
       } catch (Exception e) {
         System.out.println("CRASH and BURNED before starting main thread:");
         e.printStackTrace();
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException ex) {
+          ex.printStackTrace();
+        }
+        System.exit(1);
       }
     }
   }
@@ -215,50 +223,102 @@ public class Main {
     }
     String id = (String) parsedArgs.get("<id>");
     if (cassandraDir == null) {
-      cassandraDir = new File(JJ_DIR  + "/" + id + "/cassandra");
+      cassandraDir = new File(JJ_DIR + "/" + id + "/cassandra");
     }
     Cassandra.start(cassandraDir);
   }
 
 
   private static Plan loadJavaConfig(String javaConfig) throws InstantiationException, IllegalAccessException {
-    ClassLoader onejarLoader = null;
     File file = new File(javaConfig);
     if (!file.exists()) {
       System.err.println("File not found:" + file);
       System.exit(1);
     }
 
+    boolean isUnoJar = false;
     try {
-      File jarfile = new File(javaConfig);
-      URL url = jarfile.toURI().toURL();
-
-      ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
-      onejarLoader = systemClassLoader;
-
-      // This relies on us wrapping onejar's loader in a URL loader so we can add stuff.
-      URLClassLoader classLoader = (URLClassLoader) systemClassLoader;
-      Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-      method.setAccessible(true);
-      method.invoke(classLoader, url);
-    } catch (Exception ex) {
-      ex.printStackTrace();
+      JarFile test = new JarFile(file);
+      Attributes attrs = test.getManifest().getMainAttributes();
+      String attr = attrs.getValue("Archive-Type");
+      isUnoJar = attr != null && attr.trim().equalsIgnoreCase("uno-jar");
+    } catch (IOException e) {
+      e.printStackTrace();
+      System.exit(1);
     }
+    boolean finalIsUnoJar = isUnoJar;
+    log.info("Loading from {} which is a {} file", () -> file, () ->
+        finalIsUnoJar ? "Uno-Jar" : "Standard Jar");
+
+    JesterJLoader jesterJLoader;
+
+    File jarfile = new File(javaConfig);
+    URL planConfigJarURL;
+    try {
+      planConfigJarURL = jarfile.toURI().toURL();
+    } catch (MalformedURLException e) {
+      throw new RuntimeException(e); // boom
+    }
+
+    jesterJLoader = (JesterJLoader) ClassLoader.getSystemClassLoader();
+
+    ClassLoader loader;
+    if (isUnoJar) {
+      JarClassLoader jarClassLoader = new JarClassLoader(jesterJLoader);
+      try {
+        jarClassLoader.setOneJarPath(planConfigJarURL.toString());
+        jarClassLoader.load(null);
+      } catch (MalformedURLException e) {
+        throw new RuntimeException(e); // not possible, would have died above
+      }
+      loader = jarClassLoader;
+    } else {
+      loader = new URLClassLoader(new URL[]{planConfigJarURL}, jesterJLoader);
+    }
+    jesterJLoader.addExtLoader(loader);
+
+    ClassInfoList classesWithAnnotation;
+
+    String routeAnnotation = JavaPlanConfig.class.getName();
+    try (ScanResult scanResult =
+             new ClassGraph()
+                 .verbose()                   // Log to stderr
+                 .overrideClassLoaders(loader)
+                 .ignoreParentClassLoaders()
+                 .enableClassInfo()
+                 .enableAnnotationInfo()
+                 .scan()) {                   // Start the scan
+      classesWithAnnotation = scanResult.getClassesWithAnnotation(routeAnnotation);
+
+    }
+
+
+
 
     // Unfortunately this classpath scan adds quite a bit to startup time.... It seems to scan all the
     // Jdk classes (but not classes loaded by onejar, thank goodness) It only works with URLClassLoaders
     // but perhaps we can provide a temporary sub-class
-    Collection<URL> urls = ClasspathHelper.forClassLoader(onejarLoader);
-    Reflections reflections = new Reflections(new ConfigurationBuilder().addUrls(urls));
-    ArrayList<Class> planProducers = new ArrayList<>(reflections.getTypesAnnotatedWith(JavaPlanConfig.class));
+//    Collection<URL> urls = Arrays.asList(jesterJLoader.getURLs());
+//    Reflections reflections = new Reflections(new ConfigurationBuilder()
+//        .addUrls(urls)
+//        .addClassLoader(jesterJLoader));
+//    @SuppressWarnings("rawtypes")
+//    ArrayList<Class> planProducers = new ArrayList<>(reflections.getTypesAnnotatedWith(JavaPlanConfig.class));
 
+    List<String> planProducers = classesWithAnnotation.stream().map((cwa) -> cwa.getName()).collect(Collectors.toList());
     if (log != null) {
       // can be null when outputting a visualization
       log.info("Found the following @JavaPlanConfig classes (first in list will be used):{}", planProducers);
     } else {
       System.out.println("Found the following @JavaPlanConfig classes (first in list will be used):" + planProducers);
     }
-    Class config = planProducers.get(0);
+    if (classesWithAnnotation.size() == 0) {
+      System.err.println("No Plan Found!");
+      System.exit(1);
+    }
+    @SuppressWarnings("rawtypes")
+    Class config = classesWithAnnotation.get(0).loadClass();
+    //noinspection deprecation
     PlanProvider provider = (PlanProvider) config.newInstance();
     return provider.getPlan();
   }
@@ -274,7 +334,7 @@ public class Main {
     if (policyFile == null) {
       System.out.println("Installing JesterjPolicy");
       Policy.setPolicy(new JesterjPolicy());
-    } else  {
+    } else {
       System.out.println("Existing Policy File:" + policyFile);
     }
     System.setSecurityManager(new SecurityManager());
@@ -292,19 +352,19 @@ public class Main {
     System.setProperty("java.rmi.server.RMIClassLoaderSpi", "net.jini.loader.pref.PreferredClassProvider");
 
     // fix bug in One-Jar with an ugly hack
-    ClassLoader myClassLoader = Main.class.getClassLoader();
-    String name = myClassLoader.getClass().getName();
+    ClassLoader unoJarClassLoader = Main.class.getClassLoader();
+    String name = unoJarClassLoader.getClass().getName();
     if ("com.needhamsoftware.unojar.JarClassLoader".equals(name)) {
       Field scl = ClassLoader.class.getDeclaredField("scl"); // Get system class loader
       scl.setAccessible(true); // Set accessible
-      scl.set(null, new URLClassLoader(new URL[]{}, myClassLoader)); // Update it to our class loader
+      scl.set(null, new JesterJLoader(new URL[]{}, unoJarClassLoader)); // Update it to our class loader
     }
   }
 
   @SuppressWarnings("UnstableApiUsage")
   private static Map<String, Object> usage(String[] args) throws IOException {
     URL usage = Resources.getResource("usage.docopts.txt");
-    String usageStr = Resources.toString(usage, Charset.forName("UTF-8"));
+    String usageStr = Resources.toString(usage, StandardCharsets.UTF_8);
     Map<String, Object> result = new Docopt(usageStr).parse(args);
     System.out.println("\nReceived arguments:");
     for (String s : result.keySet()) {

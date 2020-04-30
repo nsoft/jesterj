@@ -133,6 +133,8 @@ configurations.all {
 
 
 dependencies {
+  compile 'com.needhamsoftware.unojar:core:0.99.1'
+  compile 'io.github.classgraph:classgraph:4.8.78-SNAPSHOT'
   compile 'org.apache.tika:tika-parsers:1.23'
   compile 'com.mchange:c3p0:0.9.5.2' // for tika deps... actual declared dep includes older LGPL version only.
 
@@ -169,9 +171,6 @@ dependencies {
   }
   //runtime ':one-jar-boot:0.98' // uncomment for debugging stack traces into one-jar classes
 
-  compile('org.reflections:reflections:0.9.10') {
-    exclude group: 'org.javassist'
-  }
   compile 'org.javassist:javassist:3.20.0-GA' // substitute a version that handles java 8
 
   // this shouldn't be necessary but there's something dodgy going on with jacocoTestReport's classpath
