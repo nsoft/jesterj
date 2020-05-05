@@ -264,63 +264,47 @@ public class Main {
 
     ClassLoader loader;
     if (isUnoJar) {
-      JarClassLoader jarClassLoader = new JarClassLoader(jesterJLoader);
-      try {
-        jarClassLoader.setOneJarPath(planConfigJarURL.toString());
-        jarClassLoader.load(null);
-      } catch (MalformedURLException e) {
-        throw new RuntimeException(e); // not possible, would have died above
-      }
+      JarClassLoader jarClassLoader = new JarClassLoader(jesterJLoader, planConfigJarURL.toString());
+      jarClassLoader.load(null);
       loader = jarClassLoader;
     } else {
       loader = new URLClassLoader(new URL[]{planConfigJarURL}, jesterJLoader);
     }
     jesterJLoader.addExtLoader(loader);
 
-    ClassInfoList classesWithAnnotation;
-
-    String routeAnnotation = JavaPlanConfig.class.getName();
     try (ScanResult scanResult =
              new ClassGraph()
-                 .verbose()                   // Log to stderr
+                 //.verbose()                   // Log to stderr
                  .overrideClassLoaders(loader)
                  .ignoreParentClassLoaders()
                  .enableClassInfo()
                  .enableAnnotationInfo()
                  .scan()) {                   // Start the scan
+      ClassInfoList classesWithAnnotation;
+      String routeAnnotation = JavaPlanConfig.class.getName();
       classesWithAnnotation = scanResult.getClassesWithAnnotation(routeAnnotation);
-
-    }
-
-
-
-
-    // Unfortunately this classpath scan adds quite a bit to startup time.... It seems to scan all the
-    // Jdk classes (but not classes loaded by onejar, thank goodness) It only works with URLClassLoaders
-    // but perhaps we can provide a temporary sub-class
-//    Collection<URL> urls = Arrays.asList(jesterJLoader.getURLs());
-//    Reflections reflections = new Reflections(new ConfigurationBuilder()
-//        .addUrls(urls)
-//        .addClassLoader(jesterJLoader));
-//    @SuppressWarnings("rawtypes")
-//    ArrayList<Class> planProducers = new ArrayList<>(reflections.getTypesAnnotatedWith(JavaPlanConfig.class));
-
-    List<String> planProducers = classesWithAnnotation.stream().map((cwa) -> cwa.getName()).collect(Collectors.toList());
-    if (log != null) {
-      // can be null when outputting a visualization
-      log.info("Found the following @JavaPlanConfig classes (first in list will be used):{}", planProducers);
-    } else {
-      System.out.println("Found the following @JavaPlanConfig classes (first in list will be used):" + planProducers);
-    }
-    if (classesWithAnnotation.size() == 0) {
-      System.err.println("No Plan Found!");
+      List<String> planProducers = classesWithAnnotation.stream().map((cwa) -> cwa.getName()).collect(Collectors.toList());
+      if (log != null) {
+        // can be null when outputting a visualization
+        log.info("Found the following @JavaPlanConfig classes (first in list will be used):{}", planProducers);
+      } else {
+        System.out.println("Found the following @JavaPlanConfig classes (first in list will be used):" + planProducers);
+      }
+      if (classesWithAnnotation.size() == 0) {
+        System.err.println("No Plan Found!");
+        System.exit(1);
+      }
+      @SuppressWarnings("rawtypes")
+      Class config = jesterJLoader.loadClass(planProducers.get(0));
+      //noinspection deprecation
+      PlanProvider provider = (PlanProvider) config.newInstance();
+      return provider.getPlan();
+    } catch (ClassNotFoundException e) {
+      System.err.println("Found a plan class but could not load Plan's class file!");
       System.exit(1);
+      throw new RuntimeException(); // compiler doesn't understand system.exit
     }
-    @SuppressWarnings("rawtypes")
-    Class config = classesWithAnnotation.get(0).loadClass();
-    //noinspection deprecation
-    PlanProvider provider = (PlanProvider) config.newInstance();
-    return provider.getPlan();
+
   }
 
 
