@@ -133,7 +133,7 @@ configurations.all {
 
 
 dependencies {
-  compile 'com.needhamsoftware.unojar:core:0.99.1'
+  compile 'com.needhamsoftware.unojar:core:1.0-SNAPSHOT'
   compile 'io.github.classgraph:classgraph:4.8.78-SNAPSHOT'
   compile 'org.apache.tika:tika-parsers:1.23'
   compile 'com.mchange:c3p0:0.9.5.2' // for tika deps... actual declared dep includes older LGPL version only.
