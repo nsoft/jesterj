@@ -138,14 +138,14 @@ dependencies {
   compile 'org.apache.tika:tika-parsers:1.23'
   compile 'com.mchange:c3p0:0.9.5.2' // for tika deps... actual declared dep includes older LGPL version only.
 
-  compile 'org.apache.solr:solr-core:8.5.0-SNAPSHOT'
+  compile 'org.apache.solr:solr-core:8.5.0'
 
   compile 'com.google.guava:guava:18.0'
   compile 'com.google.code.findbugs:jsr305:3.0.0'
 
   compile 'jini:jini-core:2.1'
   compile 'org.apache.river:reggie:2.2.2'
-  compile 'org.apache.cassandra:cassandra-all:4.0-alpha3-SNAPSHOT'
+  compile 'org.apache.cassandra:cassandra-all:4.0-alpha4'
   compile 'com.datastax.oss:java-driver-core:4.4.0'
   compile 'org.yaml:snakeyaml:1.14'
   compile 'org.apache.velocity:velocity:1.7'
