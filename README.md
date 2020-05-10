@@ -35,7 +35,7 @@ of docopt, which will hopefully become unnecessary in future versions.
 
 # JDK versions
 
-Presently only JDK 8 has been supported. JDK 9/10 will not be explicitly supported. Now that JDK 11 is out as an LTS version, support for it will commence.
+Presently only JDK 8 has been supported. JDK 9/10 will not be explicitly supported. Now that JDK 11 is out as an LTS version, support for it will commence. JDK 11 is supported in the master branch, but not yet released
 
 # Slack Chanel
 If you want an invite to our slack channel just send mail to:
