@@ -115,7 +115,7 @@ configurations {
   unoJarPack.exclude group: 'org.jboss.logging'
   unoJarPack.exclude group: 'com.google.code.findbugs', module: 'annotations' // N.B. findbugs jsr305 is ok, thus module
   unoJarPack.exclude group: 'c3p0', module: 'c3p0'
-  unoJarPack.extendsFrom runtime
+  unoJarPack.extendsFrom implementation
 }
 
 configurations.all {
@@ -132,51 +132,51 @@ configurations.all {
 
 
 dependencies {
-  compile 'com.needhamsoftware.unojar:core:1.0.1'
-  compile 'io.github.classgraph:classgraph:4.8.78'
-  compile 'org.apache.tika:tika-parsers:1.23'
-  compile 'com.mchange:c3p0:0.9.5.2' // for tika deps... actual declared dep includes older LGPL version only.
+  implementation 'com.needhamsoftware.unojar:core:1.0.1'
+  implementation 'io.github.classgraph:classgraph:4.8.78'
+  implementation 'org.apache.tika:tika-parsers:1.23'
+  implementation 'com.mchange:c3p0:0.9.5.2' // for tika deps... actual declared dep includes older LGPL version only.
 
-  compile 'org.apache.solr:solr-core:8.5.0'
+  implementation 'org.apache.solr:solr-core:8.5.0'
 
-  compile 'com.google.guava:guava:18.0'
-  compile 'com.google.code.findbugs:jsr305:3.0.0'
+  implementation 'com.google.guava:guava:18.0'
+  implementation 'com.google.code.findbugs:jsr305:3.0.0'
 
-  compile 'jini:jini-core:2.1'
-  compile 'org.apache.river:reggie:2.2.2'
-  compile 'org.apache.cassandra:cassandra-all:4.0-alpha4'
-  compile 'com.datastax.oss:java-driver-core:4.4.0'
-  compile 'org.yaml:snakeyaml:1.14'
-  compile 'org.apache.velocity:velocity:1.7'
+  implementation 'jini:jini-core:2.1'
+  implementation 'org.apache.river:reggie:2.2.2'
+  implementation 'org.apache.cassandra:cassandra-all:4.0-alpha4'
+  implementation 'com.datastax.oss:java-driver-core:4.4.0'
+  implementation 'org.yaml:snakeyaml:1.14'
+  implementation 'org.apache.velocity:velocity:1.7'
 
   // this is driven by the Solr dep, but we need to make explicit the bridge libs
-  compile 'org.apache.logging.log4j:log4j-core:2.13.0'
-  compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.13.0'
-  compile 'org.apache.logging.log4j:log4j-jcl:2.13.0'
-  compile 'org.apache.logging.log4j:log4j-1.2-api:2.13.0'
-  compile 'org.apache.logging.log4j:log4j-jul:2.13.0'
+  implementation 'org.apache.logging.log4j:log4j-core:2.13.0'
+  implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.13.0'
+  implementation 'org.apache.logging.log4j:log4j-jcl:2.13.0'
+  implementation 'org.apache.logging.log4j:log4j-1.2-api:2.13.0'
+  implementation 'org.apache.logging.log4j:log4j-jul:2.13.0'
 
-  compile('com.needhamsoftware:easier-mock:2.0')
-  compile('org.objenesis:objenesis:3.1')
-  compile 'net.jini:jsk-platform:2.2.2'
-  compile 'com.offbytwo:docopt:0.6.0.20150202'
-  compile 'guru.nidi:graphviz-java:0.16.0'
-  compile 'com.fasterxml:aalto-xml:1.1.1'
-  compile 'xml-resolver:xml-resolver:1.2'
-  testCompile 'junit:junit:4.11'
-  compile 'org.easymock:easymock:4.1'
-  testCompile ('com.needhamsoftware:easier-mock:2.0') {
+  implementation('com.needhamsoftware:easier-mock:2.0')
+  implementation('org.objenesis:objenesis:3.1')
+  implementation 'net.jini:jsk-platform:2.2.2'
+  implementation 'com.offbytwo:docopt:0.6.0.20150202'
+  implementation 'guru.nidi:graphviz-java:0.16.0'
+  implementation 'com.fasterxml:aalto-xml:1.1.1'
+  implementation 'xml-resolver:xml-resolver:1.2'
+  testImplementation 'junit:junit:4.11'
+  implementation 'org.easymock:easymock:4.1'
+  testImplementation ('com.needhamsoftware:easier-mock:2.0') {
     exclude group:'org.easymock'
   }
   //runtime ':one-jar-boot:0.98' // uncomment for debugging stack traces into one-jar classes
 
-  compile 'org.javassist:javassist:3.20.0-GA' // substitute a version that handles java 8
+  implementation 'org.javassist:javassist:3.20.0-GA' // substitute a version that handles java 8
 
   // this shouldn't be necessary but there's something dodgy going on with jacocoTestReport's classpath
-  // using testCompile so we don't package these...
-  testCompile (group: 'org.jacoco', name:'org.jacoco.report', version:'0.7.7.201606060606')
-  testCompile (group: 'org.jacoco', name:'org.jacoco.core', version:'0.7.7.201606060606')
-  testCompile 'org.apache.solr:solr-test-framework:8.5.0'
+  // using testImplementation so we don't package these...
+  testImplementation (group: 'org.jacoco', name:'org.jacoco.report', version:'0.7.7.201606060606')
+  testImplementation (group: 'org.jacoco', name:'org.jacoco.core', version:'0.7.7.201606060606')
+  testImplementation 'org.apache.solr:solr-test-framework:8.5.0'
 }
 
 compileJava {
@@ -208,7 +208,7 @@ jacocoTestReport {
 }
 
 jar {
-  archiveName = 'jesterj-ingest-'+project.version+'.jar'
+  archiveFileName = 'jesterj-ingest-'+project.version+'.jar'
   into("META-INF/maven/$project.group/$project.name") {
     from { generatePomFileForMavenJavaPublication }
     rename ".*", "pom.xml"
@@ -335,13 +335,13 @@ task uploadRelease(dependsOn: uploadArchives) {}
 task sourcesJar(type: Jar, dependsOn: classes) {
   classifier = 'sources'
   from sourceSets.main.allSource
-  archiveName = 'jesterj-ingest-'+project.version+'-sources.jar'
+  archiveFileName = 'jesterj-ingest-'+project.version+'-sources.jar'
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
   classifier = 'javadoc'
   from javadoc.destinationDir
-  archiveName = 'jesterj-ingest-'+project.version+'-javadoc.jar'
+  archiveFileName = 'jesterj-ingest-'+project.version+'-javadoc.jar'
 }
 
 artifacts {
