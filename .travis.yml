@@ -4,7 +4,7 @@ jdk:
   - openjdk11
 env:
   - TEST_DIR=code/ingest
-script: cd $TEST_DIR &&  ./gradlew jacocoTestReport artifactoryPublish --stacktrace -i
+script: cd $TEST_DIR &&  ./gradlew jacocoTestReport artifactoryPublish --stacktrace -i -Dorg.gradle.workers.max=1
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
