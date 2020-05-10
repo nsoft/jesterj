@@ -1,6 +1,6 @@
 language: java
 jdk:
-  - openjdk8
+  - openjdk11
 env:
   - TEST_DIR=code/ingest
 script: cd $TEST_DIR &&  ./gradlew jacocoTestReport artifactoryPublish --stacktrace -i
