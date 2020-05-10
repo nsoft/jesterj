@@ -247,9 +247,13 @@ public class Main {
       System.exit(1);
     }
     boolean finalIsUnoJar = isUnoJar;
-    log.info("Loading from {} which is a {} file", () -> file, () ->
-        finalIsUnoJar ? "Uno-Jar" : "Standard Jar");
-
+    if (log != null) {
+      // can be null when outputting a visualization
+      log.info("Loading from {} which is a {} file", () -> file, () ->
+          finalIsUnoJar ? "Uno-Jar" : "Standard Jar");
+    } else {
+      System.out.println("Loading from "+file+" which is a "+(finalIsUnoJar ? "Uno-Jar" : "Standard Jar")+" file");
+    }
     JesterJLoader jesterJLoader;
 
     File jarfile = new File(javaConfig);

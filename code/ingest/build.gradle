@@ -160,7 +160,7 @@ dependencies {
   compile('org.objenesis:objenesis:3.1')
   compile 'net.jini:jsk-platform:2.2.2'
   compile 'com.offbytwo:docopt:0.6.0.20150202'
-  compile 'guru.nidi:graphviz-java:0.11.0'
+  compile 'guru.nidi:graphviz-java:0.16.0'
   compile 'com.fasterxml:aalto-xml:1.1.1'
   compile 'xml-resolver:xml-resolver:1.2'
   testCompile 'junit:junit:4.11'
@@ -190,6 +190,8 @@ javadoc {
 // these are just support classes for the Trie Tests swiped from commons/collections
 // they don't actually have test methods which causes Junit to complain. Just don't run them.
 test {
+  minHeapSize = "128m"
+  maxHeapSize = "1g"
   exclude '**/Abstract*.class', '**/BulkTest.class'
   systemProperty "java.security.egd", "file:/dev/./urandom"
   testLogging {

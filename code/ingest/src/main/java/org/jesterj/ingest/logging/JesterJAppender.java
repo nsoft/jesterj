@@ -124,7 +124,7 @@ public class JesterJAppender extends AbstractAppender {
   @Override
   public void append(LogEvent event) {
     if (!manager.isReady()) {
-      System.out.println("Logging event added to startup queue");
+      //System.out.println("Logging event added to startup queue");
       startupQueue.add(event);
     } else {
       if (startupQueue.isEmpty()) {
