@@ -19,3 +19,4 @@ nbactions.xml
 .gradle/
 build/
 out/
+.unojar

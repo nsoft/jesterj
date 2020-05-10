@@ -17,7 +17,6 @@ import java.text.SimpleDateFormat
  */
 buildscript {
   repositories {
-    mavenLocal()
     maven {
       url 'https://jesterj.jfrog.io/jesterj/libs-release/'
     }
@@ -37,7 +36,7 @@ plugins {
   id 'maven-publish'
   id 'com.github.jk1.dependency-license-report' version '0.3.4'
   id "com.github.onslip.gradle-one-jar" version "1.0.5"
-  id 'com.needhamsoftware.unojar' version '1.0-SNAPSHOT'
+  id 'com.needhamsoftware.unojar' version '1.0.1'
 }
 
 allprojects {
@@ -133,7 +132,7 @@ configurations.all {
 
 
 dependencies {
-  compile 'com.needhamsoftware.unojar:core:1.0-SNAPSHOT'
+  compile 'com.needhamsoftware.unojar:core:1.0.1'
   compile 'io.github.classgraph:classgraph:4.8.78'
   compile 'org.apache.tika:tika-parsers:1.23'
   compile 'com.mchange:c3p0:0.9.5.2' // for tika deps... actual declared dep includes older LGPL version only.
@@ -177,7 +176,7 @@ dependencies {
   // using testCompile so we don't package these...
   testCompile (group: 'org.jacoco', name:'org.jacoco.report', version:'0.7.7.201606060606')
   testCompile (group: 'org.jacoco', name:'org.jacoco.core', version:'0.7.7.201606060606')
-  testCompile 'org.apache.solr:solr-test-framework:8.5.0-SNAPSHOT'
+  testCompile 'org.apache.solr:solr-test-framework:8.5.0'
 }
 
 compileJava {
