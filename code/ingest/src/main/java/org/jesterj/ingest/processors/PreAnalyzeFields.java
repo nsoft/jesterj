@@ -72,8 +72,7 @@ public class PreAnalyzeFields implements DocumentProcessor {
         tokOutput.put("str", value);
         ArrayList<Map<String, Object>> tokens = new ArrayList<>();
         tokOutput.put("tokens", tokens);
-        TokenStream ts = analyzer.get().tokenStream(docFieldName, value);
-        try {
+        try (TokenStream ts = analyzer.get().tokenStream(docFieldName, value)) {
           ts.reset();
           OffsetAttribute offsetA = ts.getAttribute(OffsetAttribute.class);
           CharTermAttribute charTermA = ts.getAttribute(CharTermAttribute.class);
@@ -84,7 +83,7 @@ public class PreAnalyzeFields implements DocumentProcessor {
           while (ts.incrementToken()) {
             Map<String, Object> tokAttrs = new HashMap<>();
             char[] termChars = new char[charTermA.length()];
-            System.arraycopy(charTermA.buffer(),0,termChars,0,charTermA.length());
+            System.arraycopy(charTermA.buffer(), 0, termChars, 0, charTermA.length());
             tokAttrs.put("t", new String(termChars));
             tokAttrs.put("s", offsetA.startOffset());
             tokAttrs.put("e", offsetA.endOffset());
