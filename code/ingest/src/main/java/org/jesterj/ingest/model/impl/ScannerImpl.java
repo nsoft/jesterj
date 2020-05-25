@@ -24,16 +24,24 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jesterj.ingest.model.*;
+import org.jesterj.ingest.model.ConfiguredBuildable;
+import org.jesterj.ingest.model.Document;
+import org.jesterj.ingest.model.Router;
+import org.jesterj.ingest.model.Scanner;
+import org.jesterj.ingest.model.Status;
+import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.persistence.CassandraSupport;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -57,7 +65,14 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   protected final AtomicInteger activeScans = new AtomicInteger(0);
 
   private final ExecutorService exec =
-      Executors.newCachedThreadPool();
+      new ThreadPoolExecutor(0, 1,
+          60L, TimeUnit.SECONDS,
+          new SynchronousQueue<>(), r -> {
+            Thread scanner = new Thread(r);
+            scanner.setName("jj-scan-" + ScannerImpl.this.getName());
+            scanner.setDaemon(true);
+            return scanner;
+          });
 
   private long nanoInterval;
 
