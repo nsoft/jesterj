@@ -67,6 +67,7 @@ public class StepImpl implements Step {
 
   private static final Logger log = LogManager.getLogger();
 
+  DocumentConsumer documentConsumer = new DocumentConsumer(); // stateless bean
   private LinkedBlockingQueue<Document> queue;
   private int batchSize; // no concurrency by default
   private LinkedHashMap<String, Step> nextSteps = new LinkedHashMap<>();
@@ -467,7 +468,7 @@ public class StepImpl implements Step {
         }
         if (temp != null) {
           log.trace("{} took {} from queue", getName(), temp.size());
-          temp.forEach(new DocumentConsumer());
+          temp.forEach(documentConsumer);
           continue;
         }
 
