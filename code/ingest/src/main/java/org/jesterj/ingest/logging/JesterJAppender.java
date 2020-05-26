@@ -37,6 +37,7 @@ import java.time.Instant;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Plugin(name = "JesterJAppender", category = "Core", elementType = "appender")
 public class JesterJAppender extends AbstractAppender {
@@ -145,12 +146,11 @@ public class JesterJAppender extends AbstractAppender {
     }
   }
 
-
   private void writeEvent(LogEvent e) {
     Marker m = e.getMarker();
     new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss,'Z'").format(e.getTimeMillis());
     // everything wrapped in String.valueOf to avoid any issues with null.
-    String logger  = String.valueOf(e.getLoggerName());
+    String logger = String.valueOf(e.getLoggerName());
     Instant timeStamp = Instant.ofEpochMilli(e.getTimeMillis());
     String level = String.valueOf(e.getLevel());
     String thread = String.valueOf(Thread.currentThread().getName());
@@ -160,11 +160,41 @@ public class JesterJAppender extends AbstractAppender {
       CqlSession s = cassandra.getSession();
       PreparedStatement pq = cassandra.getPreparedQuery(REG_INSERT_Q);
 
-      UUID id = UUID.randomUUID();  // maybe we can skip this for regular logs?
+      // This should be good enough. The chances of collision are very very very small.
+      // if we get into processing trillions of documents each producing hundreds of log
+      // events, we'll begin to worry about the 1 in a billion chance of collision during that
+      // ingest... https://en.wikipedia.org/wiki/Universally_unique_identifier#Collisions
+      // The biggest risk is from some sort of seed overlap, so specify a secure seed
+      // generation mechanism. Second biggest risk is a flaw in the PRNG, but that's java's
+      // affair to manage.
+
+      // at some time in the futre, the strategy here might become configurable, but
+      // good enough for now.
+
+      System.setProperty("java.util.secureRandomSeed", "true");
+      ThreadLocalRandom current = ThreadLocalRandom.current();
+
+      byte[] rand = new byte[16];
+      current.nextBytes(rand);
+      // version
+      rand[6] &= 0x0f;
+      rand[6] |= 0x40;
+      //variant
+      rand[8] &= 0x3f;
+      rand[8] |= 0x80;
+
+      long mostSignificantBits = 0;
+      long leastSignificantBits = 0;
+      for (int i = 0; i < 8; i++)
+        mostSignificantBits = (mostSignificantBits << 8) | (rand[i] & 0xff);
+      for (int i = 8; i < 16; i++)
+        leastSignificantBits = (leastSignificantBits << 8) | (rand[i] & 0xff);
+
+      UUID id = new UUID(mostSignificantBits, leastSignificantBits);
 
       s.execute(pq.bind(id, logger, timeStamp, level, thread, message));
 
-      return; // never want non FTI logging to write to the FTI table.
+      return;
     }
 
     if (m.isInstanceOf(Markers.FTI_MARKER)) {
@@ -173,8 +203,8 @@ public class JesterJAppender extends AbstractAppender {
 
       // everything wrapped in String.valueOf to avoid any issues with null.
       String status = String.valueOf(e.getMarker().getName());
-      String docId = String.valueOf(e.getContextMap().get(JJ_INGEST_DOCID));
-      String scanner = String.valueOf(e.getContextMap().get(JJ_INGEST_SOURCE_SCANNER));
+      String docId = String.valueOf(e.getContextData().toMap().get(JJ_INGEST_DOCID));
+      String scanner = String.valueOf(e.getContextData().toMap().get(JJ_INGEST_SOURCE_SCANNER));
       s.execute(pq.bind(docId, scanner, logger, timeStamp, level, thread, status, message));
     }
 
