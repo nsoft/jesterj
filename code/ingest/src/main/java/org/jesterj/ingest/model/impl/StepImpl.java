@@ -347,29 +347,37 @@ public class StepImpl implements Step {
     log.trace("starting push to next if ok {} for {}", getName(), document.getId());
     if (document.getStatus() == Status.PROCESSING) {
       reportDocStatus(Status.PROCESSING, document, "{} finished processing {}", getName(), document.getId());
-      Step[] next = getNext(document);
-      if (next == null) {
-        reportDocStatus(Status.DROPPED, document, "No qualifying next step found by {} in {}", router, getName());
-        return;
-      }
-      if (next.length == 1) {
-        // for single step no need to clone
-        pushToStep(document, next[0]);
-      } else {
-        log.info("Distributing doc {} to {} ", document.getId(), Arrays.stream(next).map(Step::getName).collect(Collectors.toList()));
-        Deque<Document> clones = new ArrayDeque<>(next.length);
-        for (int i = 0; i < next.length; i++) {
-          // clone before attempting to push just in case mutable state in the delegate mutates to cause exception
-          // part way through. This would indicate some form of bad design, but let's be safe anyway.
-          try {
-            clones.add(getCloner().cloneObj(document));
-          } catch (IOException | ClassNotFoundException e) {
-            reportException(document, e, "Failed to clone document when sending to multiple steps");
-          }
+      boolean foundStep = false;
+      Deque<Document> clones = new ArrayDeque<>();
+      Step last = null;
+      while (!foundStep) {
+        Step[] next = getNext(document);
+        if (next == null) {
+          reportDocStatus(Status.DROPPED, document, "No qualifying next step found by {} in {}", router, getName());
+          return;
         }
-        // Ok, so we have our copies, now distribute...
-        for (Step aNext : next) {
-          pushToStep(clones.pop(), aNext);
+        if (next.length == 1) {
+          // for single step no need to clone, and
+          foundStep = pushToStep(document, next[0], next[0] != last);
+          last = next[0];
+        } else {
+          // In this case we have a specific set of steps that need to get a copy
+          // we don't want to repeatedly ask and we have to block.
+          foundStep = true;
+          log.info("Distributing doc {} to {} ", () -> document.getId(), () -> Arrays.stream(next).map(Step::getName).collect(Collectors.toList()));
+          for (int i = 0; i < next.length; i++) {
+            // clone before attempting to push just in case mutable state in the delegate mutates to cause exception
+            // part way through. This would indicate some form of bad design, but let's be safe anyway.
+            try {
+              clones.add(getCloner().cloneObj(document));
+            } catch (IOException | ClassNotFoundException e) {
+              reportException(document, e, "Failed to clone document when sending to multiple steps");
+            }
+          }
+          // Ok, so we have our copies, now distribute...
+          for (Step aNext : next) {
+            pushToStep(clones.pop(), aNext, true);
+          }
         }
       }
     } else {
@@ -379,18 +387,25 @@ public class StepImpl implements Step {
     log.trace("completing push to next if ok {} for {}", getName(), document.getId());
   }
 
-  private void pushToStep(Document document, Step step) {
+  private boolean pushToStep(Document document, Step step, boolean block) {
     if (step != null) {
       if (this.outputSpace == null) {
+        boolean offer;
         // local processing is our only option, do blocking put.
-        try {
-          log.trace("starting put ( {} into {} )", getName(), step.getName());
-          step.put(document);
-          log.trace("completed put ( {} into {} )", getName(), step.getName());
-        } catch (InterruptedException e) {
-          String message = "Exception while offering to " + step.getName();
-          reportException(document, e, message);
+        log.trace("starting put ( {} into {} )", getName(), step.getName());
+        if (block) {
+          try {
+            step.put(document);
+            log.trace("completed put ( {} into {} )", getName(), step.getName());
+          } catch (InterruptedException e) {
+            String message = "Exception while offering to " + step.getName();
+            reportException(document, e, message);
+          }
+          offer = true;
+        } else {
+          offer = step.offer(document);
         }
+        return offer;
       } else {
         log.error("This code path (javaspaces) not yet supported");
         System.err.println("This code path (java spaces) not yet supported");
@@ -411,6 +426,7 @@ public class StepImpl implements Step {
 //      }
       }
     }
+    throw new RuntimeException("Attempted to route to a null step");
   }
 
   private void reportDocStatus(Status status, Document document, String message, Object... messageParams) {
