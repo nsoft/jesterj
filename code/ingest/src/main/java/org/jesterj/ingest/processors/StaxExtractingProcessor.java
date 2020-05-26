@@ -41,7 +41,9 @@ public class StaxExtractingProcessor implements DocumentProcessor {
     if (log.isTraceEnabled()) {
       log.trace(new String(document.getRawData()));
     }
-    InputStream xmlInputStream = new ByteArrayInputStream(document.getRawData());
+    String trim = new String(document.getRawData()).trim();
+    byte[] buf = trim.getBytes();
+    InputStream xmlInputStream = new ByteArrayInputStream(buf);
     XMLInputFactory2 xmlInputFactory = (XMLInputFactory2) XMLInputFactory
         .newFactory("javax.xml.stream.XMLInputFactory", Thread.currentThread().getContextClassLoader());
     if (supportExternalEntities) {
@@ -58,30 +60,38 @@ public class StaxExtractingProcessor implements DocumentProcessor {
         int eventType = xmlStreamReader.next();
         switch (eventType) {
           case XMLEvent.START_ELEMENT:
-            if (!addToPath(xmlStreamReader.getName().toString(), path) && failOnLongPath) {
+            String s = xmlStreamReader.getName().toString();
+            if (!addToPath(s, path) && failOnLongPath) {
               document.setStatus(Status.ERROR);
+              log.info("Errored Document:{}",document.getId());
               return new Document[]{document};
             }
+            log.trace("Starting {}", path.toString());
             List<ElementSpec> specList = extractMapping.get(path);
             if (specList != null) {
               for (ElementSpec spec : specList) {
                 LimitedStaxHandler handler = spec.handleIfMatches(xmlStreamReader, spec);
                 if (handler != null) {
+                  log.trace("{} adding handler {} for {}", document::getId, () -> handler.getSpec().getDestField(), path::toString);
                   handlers.add(handler);
                 }
               }
             }
             for (LimitedStaxHandler handler : handlers) {
+              log.trace("{} start element called for {} ({})", document::getId,() ->  path, () -> handler.getSpec().getDestField());
               handler.onStartElement(xmlStreamReader);
             }
             break;
           case XMLEvent.END_ELEMENT:
+            log.trace("Ending path {}", path.toString());
             List<ElementSpec> specEndingList = extractMapping.get(path);
             if (specEndingList != null) {
               for (LimitedStaxHandler handler : handlers) {
-                handler.onEndElement(xmlStreamReader);
                 for (ElementSpec elementSpec : specEndingList) {
                   if (handler.getSpec() == elementSpec) {
+                    log.trace("{} calling onEndElement for {} ({})", document::getId, path::toString, () -> handler.getSpec().getDestField());
+                    handler.onEndElement(xmlStreamReader);
+                    log.trace("{} putting field {} for path {}", document::getId, elementSpec::getDestField, () -> path);
                     document.put(elementSpec.getDestField(), handler.toString());
                     handler.reset();
                   }
@@ -90,12 +100,14 @@ public class StaxExtractingProcessor implements DocumentProcessor {
               handlers.removeIf(handler -> specEndingList.contains(handler.getSpec()));
             }
             for (LimitedStaxHandler handler : handlers) {
+              log.trace("{} calling onEndElement for {} ({})", document::getId, path::toString, () -> handler.getSpec().getDestField());
               handler.onEndElement(xmlStreamReader);
             }
             decrementPath(path);
             break;
           case XMLEvent.CHARACTERS:
             for (LimitedStaxHandler handler : handlers) {
+              log.trace("{} calling onCharacters for {} ({})", document::getId, path::toString, () -> handler.getSpec().getDestField());
               handler.onCharacters(xmlStreamReader);
             }
             break;
@@ -104,11 +116,15 @@ public class StaxExtractingProcessor implements DocumentProcessor {
             break;
         }
       }
-    } catch (Exception e) {
+    } catch (Throwable e) {
       document.setStatus(Status.ERROR);
+      log.error("Exception Processing XML in StaxExtractingProcessor:",e);
+      log.trace("Offending XML:\n{}", trim);
       log.error(e);
+      if (e instanceof Error) {
+        throw (Error) e;
+      }
     }
-
     return new Document[] {document};
   }
 
@@ -124,6 +140,7 @@ public class StaxExtractingProcessor implements DocumentProcessor {
   }
 
   private boolean addToPath(String s, CharBuffer path) {
+    s = s.replaceAll("/", "%2F"); // must encode slashes to avoid fooling decrementPath().
     int i = 0;
     boolean result = false;
     while (path.limit() < path.capacity()) {
@@ -358,7 +375,7 @@ public class StaxExtractingProcessor implements DocumentProcessor {
   @SuppressWarnings("WeakerAccess")
   public static class LimitedStaxHandler {
 
-    private final StringBuilder accumulator;
+    protected final StringBuilder accumulator;
     private final ElementSpec spec;
 
     protected LimitedStaxHandler(StringBuilder accumulator, ElementSpec spec) {
