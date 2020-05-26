@@ -74,7 +74,7 @@ public class SimpleDateTimeReformatter implements DocumentProcessor {
     // if we failed, restore the old value
     if (!updated && inputField.equals(outputField)) {
       document.putAll(inputField, input);
-      log.warn("reformatting of {} failed. Old value preserved");
+      log.warn("reformatting of {} using {} failed. Old value ({}) preserved.",inputField, inputFormat, input);
     }
     return new Document[]{document};
   }

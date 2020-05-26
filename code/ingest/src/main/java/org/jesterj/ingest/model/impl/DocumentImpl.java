@@ -354,7 +354,8 @@ public class DocumentImpl implements Document {
   @Override
   public String toString() {
     return "DocumentImpl{" +
-        "delegate=" + delegate +
+        "id=" + getId() +
+        ", delegate=" + delegate +
         ", status=" + status +
         ", statusMessage='" + statusMessage + '\'' +
         ", operation=" + operation +

@@ -504,6 +504,7 @@ public class StepImpl implements Step {
     e.printStackTrace(new PrintWriter(buff));
     String errorMsg = message + " " + e.getMessage() + "\n" + buff.toString();
     reportDocStatus(Status.ERROR, doc, errorMsg, params);
+    log.error("Step Exception!", e );
   }
 
   @SuppressWarnings("unused")
