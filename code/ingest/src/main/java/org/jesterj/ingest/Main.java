@@ -27,6 +27,7 @@ import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.utils.JesterJLoader;
 import org.jesterj.ingest.utils.JesterjPolicy;
+import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -92,33 +93,11 @@ public class Main {
       try {
         System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
         System.setProperty("cassandra.insecure.udf", "true");
-        // set up log output dir
-        String logDir = System.getProperty("jj.log.dir");
-        if (logDir == null) {
-          System.setProperty("jj.log.dir", JJ_DIR + "/logs");
-        }
-        logDir = System.getProperty("jj.log.dir");
 
-        // Check that we can write to the log dir
-        File logDirFile = new File(logDir);
 
-        if (!logDirFile.mkdirs() && !(logDirFile.canWrite())) {
-          System.out.println("Cannot write to " + logDir + " \n" +
-              "Please fix the filesystem permissions or provide a writable location with -Djj.log.dir property on the command line.");
-          System.exit(99);
-        }
-
-        System.out.println("Logs will be written to: " + logDir);
 
         initClassloader();
 
-        String logConfig = logDir + "/log4j2.xml";
-        System.setProperty("log4j.configurationFile", logConfig);
-        File configFile = new File(logConfig);
-        if (!configFile.exists()) {
-          InputStream log4jxml = Main.class.getResourceAsStream("/log4j2.xml");
-          Files.copy(log4jxml, configFile.toPath());
-        }
 
         Thread contextClassLoaderFix = new Thread(() -> {
           // ensure that the main method completes before this thread runs.
@@ -128,6 +107,11 @@ public class Main {
 
               // Next check our args and die if they are FUBAR
               Map<String, Object> parsedArgs = usage(args);
+
+              String id = (String) parsedArgs.get("<id>");
+              String ourHome = JJ_DIR + "/" + id;
+              String logDir = setLogDir(ourHome);
+              System.out.println("Logs will be written to: " + logDir);
               String outfile = (String) parsedArgs.get("-z");
 
               String javaConfig = (String) parsedArgs.get("<plan.jar>");
@@ -210,6 +194,34 @@ public class Main {
     }
   }
 
+  @NotNull
+  private static String setLogDir(String logdir) throws IOException {
+    // set up log output dir
+    String logDir = System.getProperty("jj.log.dir");
+    if (logDir == null) {
+      System.setProperty("jj.log.dir", logdir + "/logs");
+    }
+    logDir = System.getProperty("jj.log.dir");
+
+    // Check that we can write to the log dir
+    File logDirFile = new File(logDir);
+
+    if (!logDirFile.mkdirs() && !(logDirFile.canWrite())) {
+      System.out.println("Cannot write to " + logDir + " \n" +
+          "Please fix the filesystem permissions or provide a writable location with -Djj.log.dir property on the command line.");
+      System.exit(99);
+    }
+    String logConfig = logDir + "/log4j2.xml";
+    System.setProperty("log4j.configurationFile", logConfig);
+    File configFile = new File(logConfig);
+    if (!configFile.exists()) {
+      InputStream log4jxml = Main.class.getResourceAsStream("/log4j2.xml");
+      Files.copy(log4jxml, configFile.toPath());
+    }
+
+    return logDir;
+  }
+
   private static void startCassandra(Map<String, Object> parsedArgs) {
     String cassandraHome = (String) parsedArgs.get("--cassandra-home");
     File cassandraDir = null;
@@ -287,7 +299,7 @@ public class Main {
       ClassInfoList classesWithAnnotation;
       String routeAnnotation = JavaPlanConfig.class.getName();
       classesWithAnnotation = scanResult.getClassesWithAnnotation(routeAnnotation);
-      List<String> planProducers = classesWithAnnotation.stream().map((cwa) -> cwa.getName()).collect(Collectors.toList());
+      List<String> planProducers = classesWithAnnotation.stream().map(ClassInfo::getName).collect(Collectors.toList());
       if (log != null) {
         // can be null when outputting a visualization
         log.info("Found the following @JavaPlanConfig classes (first in list will be used):{}", planProducers);
