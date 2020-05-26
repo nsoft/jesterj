@@ -473,7 +473,7 @@ public class StepImpl implements Step {
 
         try {
           // if we don't have work make sure we let others do their work.
-          Thread.sleep(5);
+          Thread.sleep(0,5);
         } catch (InterruptedException e) {
           // ignore
         }
