@@ -529,6 +529,16 @@ public class StepImpl implements Step {
     @Override
     public void accept(Document document) {
       try {
+        // by definition these statuses should never be processed.
+        if (document.getStatus() == Status.ERROR ||
+            document.getStatus() == Status.DROPPED ||
+            document.getStatus() == Status.DEAD) {
+          log.fatal("ATTEMPTED TO CONSUME {}} DOCUMENT!!",document.getStatus());
+          log.fatal("offending doc:{}",document.getId() );
+          log.fatal(new RuntimeException("Bad Doc Status:" + document.getStatus()));
+          Thread.dumpStack();
+          System.exit(9999);
+        }
         log.trace("accepting {}, sending to {} in {}", document.getId(),
             (StepImpl.this.processor == null) ? "null" : StepImpl.this.processor.getName(),
             StepImpl.this.getName());
