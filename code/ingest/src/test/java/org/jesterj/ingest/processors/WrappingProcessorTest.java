@@ -198,4 +198,14 @@ public class WrappingProcessorTest {
     tester.testBean(new WrappingProcessor());
   }
 
+  @Test
+  public void testBuilder() {
+    expect(wrapped.processDocument(mockDocument)).andReturn(null);
+    replay();
+    WrappingProcessor.Builder builder = new WrappingProcessor.Builder();
+    builder.named("test");
+    builder.wrapping(wrapped);
+    WrappingProcessor build = builder.build();
+    build.getWrapped().processDocument(mockDocument);
+  }
 }

@@ -4,7 +4,6 @@ import com.copyright.easiertest.SimpleProperty;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.impl.NamedBuilder;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * A processor that can execute arbitrary code before/after an existing processor. Note that
@@ -49,7 +48,6 @@ public class WrappingProcessor implements DocumentProcessor {
     }
   }
 
-  @NotNull
   Document[][] wrapRef(Document[] documents) {
     return new Document[][]{documents};
   }
@@ -166,6 +164,11 @@ public class WrappingProcessor implements DocumentProcessor {
     public WrappingProcessor.Builder wrapping(DocumentProcessor wrapped) {
       getObj().setWrapped(wrapped);
       return this;
+    }
+
+    @Override
+    protected WrappingProcessor getObj() {
+      return this.obj;
     }
 
     private void setObj(WrappingProcessor obj) {
