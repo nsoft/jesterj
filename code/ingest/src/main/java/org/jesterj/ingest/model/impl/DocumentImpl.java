@@ -34,7 +34,7 @@ import org.jesterj.ingest.model.Step;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -42,12 +42,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 11/10/13
- */
 
 /**
  * A container for the file data and associated metadata. MetaData for which the key and the value
@@ -65,12 +59,12 @@ public class DocumentImpl implements Document {
 
   Logger log = LogManager.getLogger();
 
-  private ArrayListMultimap<String, String> delegate = ArrayListMultimap.create();
+  private final ArrayListMultimap<String, String> delegate = ArrayListMultimap.create();
   private byte[] rawData;
   private Status status = Status.PROCESSING;
   private String statusMessage = "";
-  private Operation operation;
-  private String sourceScannerName;
+  private final Operation operation;
+  private final String sourceScannerName;
 
   public DocumentImpl(byte[] rawData, String id, Plan plan, Operation operation, Scanner source) {
     this.rawData = rawData;
@@ -84,41 +78,6 @@ public class DocumentImpl implements Document {
     }
   }
 
-  /**
-   * Copy constructor. Creates a deep copy of raw data, so may be memory intensive.
-   *
-   * @param doc The original document to be copied.
-   */
-  public DocumentImpl(Document doc) {
-    this(doc, true);
-  }
-
-  /**
-   * Create a copy of a document but do not copy the raw data or existing mappings. Useful in creating
-   * child documents or documents calculated from other documents.
-   *
-   * @param doc  The document to copy
-   * @param deep whether or not to copy the mappings and raw content or only the document info.
-   */
-  public DocumentImpl(Document doc, boolean deep) {
-    if (deep) {
-      byte[] duplicate = new byte[doc.getRawData().length];
-      System.arraycopy(doc.getRawData(), 0, duplicate, 0, doc.getRawData().length);
-      this.rawData = duplicate;
-    } else {
-      rawData = new byte[]{};
-    }
-    this.operation = doc.getOperation();
-    if (deep) {
-      this.delegate = ArrayListMultimap.create(doc.getDelegate());
-    } else {
-      this.delegate = ArrayListMultimap.create();
-    }
-    this.sourceScannerName = doc.getSourceScannerName();
-    this.idField = doc.getIdField();
-    this.status = doc.getStatus();
-    this.statusMessage = doc.getStatusMessage();
-  }
 
   @Override
   public Multiset<String> keys() {
@@ -279,13 +238,9 @@ public class DocumentImpl implements Document {
   public String getHash() {
     try {
       MessageDigest md = MessageDigest.getInstance("MD5");
-      try {
-        md.update(getDelegateString().getBytes("UTF-8"));
-        if (getRawData() != null) {
-          md.update(getRawData());
-        }
-      } catch (IOException e) {
-        e.printStackTrace();
+      md.update(getDelegateString().getBytes(StandardCharsets.UTF_8));
+      if (getRawData() != null) {
+        md.update(getRawData());
       }
       return Hex.encodeHex(md.digest());
     } catch (NoSuchAlgorithmException e) {
