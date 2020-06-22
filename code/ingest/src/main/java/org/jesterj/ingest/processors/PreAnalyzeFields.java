@@ -29,7 +29,7 @@ import java.util.function.Supplier;
  * A processor that will produce a json value representing the analysis for the field. This value is
  * suitable for indexing into fields configured with {@link org.apache.solr.schema.PreAnalyzedField}.
  * Obviously the field type specified here can't resolve to PreAnalyzedField or we are in a loop, and
- * the field type definitions that will work are limited to ones without substitutuion, Also, anything
+ * the field type definitions that will work are limited to ones without substitution, Also, anything
  * that would involve access to a BlobStore, SolrCore, CoreContainer or SolrResourceLoader will fail
  * (because we are not actually running inside solr). Those caveats aside, it should consume any normal
  * field type definition from the supplied schema and use that definition to produce the pre-analyzed JSON.
