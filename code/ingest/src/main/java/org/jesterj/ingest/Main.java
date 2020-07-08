@@ -67,7 +67,7 @@ public class Main {
   private static final Object HAPPENS_BEFORE = new Object();
 
   public static String JJ_DIR;
-  private static Thread DUMMY_HOOK = new Thread();
+  private static final Thread DUMMY_HOOK = new Thread();
 
   static {
     // set up a config dir in user's home dir
@@ -94,10 +94,7 @@ public class Main {
         System.setProperty("java.util.concurrent.ForkJoinPool.common.threadFactory", JesterJForkJoinThreadFactory.class.getName());
         System.setProperty("cassandra.insecure.udf", "true");
 
-
-
         initClassloader();
-
 
         Thread contextClassLoaderFix = new Thread(() -> {
           // ensure that the main method completes before this thread runs.
@@ -115,6 +112,7 @@ public class Main {
               String outfile = (String) parsedArgs.get("-z");
 
               String javaConfig = (String) parsedArgs.get("<plan.jar>");
+              boolean runPlan = !Boolean.parseBoolean(String.valueOf(parsedArgs.get("--cassandra-only")));
               System.out.println("Looking for configuration class in " + javaConfig);
               if (outfile != null) {
                 // in this case we aren't starting a node, and we don't care if logging doesn't make it to
@@ -128,7 +126,6 @@ public class Main {
               }
               startCassandra(parsedArgs);
 
-
               // this should reload the config with cassandra available.
               LogManager.getFactory().removeContext(LogManager.getContext(false));
 
@@ -140,15 +137,16 @@ public class Main {
                 log.trace(prop + "=" + sysProps.get(prop));
               }
 
-              if (javaConfig != null) {
-                Plan p = loadJavaConfig(javaConfig);
-                log.info("Activating Plan: {}", p.getName());
-                p.activate();
-              } else {
-                System.out.println("Please specify the java config via -Djj.javaConfig=<location of jar file>");
-                System.exit(1);
+              if (runPlan) {
+                if (javaConfig != null) {
+                  Plan p = loadJavaConfig(javaConfig);
+                  log.info("Activating Plan: {}", p.getName());
+                  p.activate();
+                } else {
+                  System.out.println("Please specify the java config via -Djj.javaConfig=<location of jar file>");
+                  System.exit(1);
+                }
               }
-
               while (true) {
                 try {
                   System.out.print(".");
