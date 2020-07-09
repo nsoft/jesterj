@@ -26,6 +26,7 @@ import static org.jesterj.ingest.model.Status.DROPPED;
 import static org.jesterj.ingest.model.Status.ERROR;
 import static org.jesterj.ingest.model.Status.INDEXED;
 import static org.jesterj.ingest.model.Status.PROCESSING;
+import static org.jesterj.ingest.model.Status.RESTART;
 import static org.jesterj.ingest.model.Status.SEARCHABLE;
 
 
@@ -39,6 +40,7 @@ public class Markers {
   public static final Marker LOG_MARKER = MarkerManager.getMarker("JJ_REG");
 
   public static final Marker SET_DIRTY = MarkerManager.getMarker(DIRTY.toString()).setParents(FTI_MARKER);
+  public static final Marker SET_RESTART = MarkerManager.getMarker(RESTART.toString()).setParents(FTI_MARKER);
   public static final Marker SET_PROCESSING = MarkerManager.getMarker(PROCESSING.toString()).setParents(FTI_MARKER);
   public static final Marker SET_DROPPED = MarkerManager.getMarker(DROPPED.toString()).setParents(FTI_MARKER);
   public static final Marker SET_ERROR = MarkerManager.getMarker(ERROR.toString()).setParents(FTI_MARKER);

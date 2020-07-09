@@ -15,11 +15,6 @@
  */
 
 package org.jesterj.ingest.scanners;
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 3/17/16
- */
 
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
@@ -61,6 +56,7 @@ public class SimpleFileScannerImplTest {
   public void testScan() throws InterruptedException {
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
     SimpleFileScanner.Builder scannerBuilder = new SimpleFileScanner.Builder();
+    scannerBuilder.scanFreqMS(1000);
     StepImpl.Builder testStepBuilder = new StepImpl.Builder();
 
     File tragedies = new File("src/test/resources/test-data");
@@ -71,7 +67,7 @@ public class SimpleFileScannerImplTest {
     testStepBuilder.named("test")
         .batchSize(10)
         .withProcessor(
-            new NamedBuilder<DocumentProcessor>() {
+            new NamedBuilder<>() {
               @Override
               public NamedBuilder<DocumentProcessor> named(String name) {
                 return null;
@@ -105,7 +101,7 @@ public class SimpleFileScannerImplTest {
     try {
       plan.activate();
 
-      Thread.sleep(1000);
+      Thread.sleep(2000);
       assertEquals(44, scannedDocs.size());
 
       scannedDocs.clear();

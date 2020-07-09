@@ -31,6 +31,7 @@ import static org.jesterj.ingest.logging.Markers.SET_ERROR;
 import static org.jesterj.ingest.logging.Markers.SET_INDEXED;
 import static org.jesterj.ingest.logging.Markers.SET_PROCESSING;
 import static org.jesterj.ingest.logging.Markers.SET_READY;
+import static org.jesterj.ingest.logging.Markers.SET_RESTART;
 import static org.jesterj.ingest.logging.Markers.SET_SEARCHABLE;
 
 /**
@@ -45,6 +46,16 @@ public enum Status implements Serializable {
     @Override
     public Marker getMarker() {
       return SET_DIRTY;
+    }
+  },
+
+  /**
+   * Resource is being restarted after a shutdown or crash.
+   */
+  RESTART {
+    @Override
+    public Marker getMarker() {
+      return SET_RESTART;
     }
   },
 
@@ -79,7 +90,7 @@ public enum Status implements Serializable {
       return SET_READY;
     }
   },
-  
+
   /**
    * The document has been accepted by the destination index, but may not be searchable until the next commit.
    */

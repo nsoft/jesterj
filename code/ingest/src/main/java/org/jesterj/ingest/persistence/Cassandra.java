@@ -27,7 +27,6 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.File;
 import java.io.IOException;
 import java.net.BindException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
@@ -51,6 +50,7 @@ public class Cassandra {
   // though they should all fire only during system startup.
 
   private static CassandraDaemon cassandra;
+  @SuppressWarnings("rawtypes")
   private static final ConcurrentLinkedQueue<RunnableFuture> finalBootActions = new ConcurrentLinkedQueue<>();
   private static String listenAddress;
 
@@ -170,8 +170,8 @@ public class Cassandra {
     cassandra.destroy();
   }
 
-  static Future whenBooted(Callable<Object> callable) {
-    FutureTask<Object> t = new FutureTask<>(callable);
+  static <T> Future<T> whenBooted(Callable<T> callable) {
+    FutureTask<T> t = new FutureTask<>(callable);
     synchronized (finalBootActions) {
       if (isBooting()) {
         finalBootActions.add(t);

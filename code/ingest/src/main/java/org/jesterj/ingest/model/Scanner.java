@@ -23,6 +23,7 @@ package org.jesterj.ingest.model;
  */
 
 
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -88,5 +89,13 @@ public interface Scanner extends Step {
      * @return true if a new scan should be started
      */
     boolean isReady();
+
+    /**
+     * Load a document based on the document's id.
+     *
+     * @param id the id of the document, see also {@link Document#getId()}
+     * @return An optional that contains the document if it is possible to retreive the document by ID
+     */
+    Optional<Document> fetchById(String id);
 
 }

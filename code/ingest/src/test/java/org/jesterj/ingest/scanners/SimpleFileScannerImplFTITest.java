@@ -15,11 +15,6 @@
  */
 
 package org.jesterj.ingest.scanners;
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 3/17/16
- */
 
 import com.google.common.io.Files;
 import org.jesterj.ingest.model.Document;
@@ -79,7 +74,7 @@ public class SimpleFileScannerImplFTITest {
     testStepBuilder.named("test")
         .batchSize(10)
         .withProcessor(
-            new NamedBuilder<DocumentProcessor>() {
+            new NamedBuilder<>() {
               @Override
               public NamedBuilder<DocumentProcessor> named(String name) {
                 return null;

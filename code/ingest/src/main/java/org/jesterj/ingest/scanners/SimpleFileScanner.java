@@ -29,12 +29,15 @@ import org.jesterj.ingest.model.impl.ScannerImpl;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.*;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Date;
+import java.util.Optional;
 
 /**
  * Scanner for local filesystems. This scanner periodically does a full walk of the filesystem. No persistent
@@ -51,6 +54,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   private transient volatile boolean ready;
   private final MemoryUsage heapMemoryUsage;
   private int memWaitTimeout;
+  private boolean checkDb = true;
 
   @SuppressWarnings("WeakerAccess")
   protected SimpleFileScanner() {
@@ -62,32 +66,59 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   @Transient
   @Override
   public Runnable getScanOperation() {
-    return () -> {
-      try {
-        if (isScanActive()) {
-          return;
-        } else  {
-          log.info("Starting scan of {} at {}", this.rootDir, new Date());
-        }
-        // set up our watcher if needed
-        scanStarted();
-        this.ready = false; // ensure initial walk completes before new scans are started.
+    //TODO: consider pulling this check up to ScannerImpl so its similar for
+    // all ScannerImpl subclasses
+    if (checkDb) {
+      log.info("Checking DB");
+      checkDb = false;
+      return () -> {
+        SimpleFileScanner.super.getScanOperation().run();
+        ready = true;
+      };
+    } else {
+      log.info("Scanning File System");
+      checkDb = true;
+      return () -> {
         try {
-          Files.walkFileTree(rootDir.toPath(), new RootWalker());
-        } catch (IOException e) {
-          log.error("failed to walk filesystem!", e);
-          throw new RuntimeException(e);
+          if (isScanActive()) {
+            return;
+          } else  {
+            log.info("Starting scan of {} at {}", this.rootDir, new Date());
+          }
+          // set up our watcher if needed
+          scanStarted();
+          this.ready = false; // ensure initial walk completes before new scans are started.
+          try {
+            Files.walkFileTree(rootDir.toPath(), new RootWalker());
+          } catch (IOException e) {
+            log.error("failed to walk filesystem!", e);
+            throw new RuntimeException(e);
+          } finally {
+            this.ready = true;
+          }
+          // Process pending events. Not very likely to have concurrent scans, and even so, it doesn't
+          // seem likely to cause problems.
+        } catch (Exception e) {
+          log.error("Exception while processing files!", e);
         } finally {
-          this.ready = true;
+          scanFinished();
         }
-        // Process pending events. Not very likely to have concurrent scans, and even so, it doesn't
-        // seem likely to cause problems.
-      } catch (Exception e) {
-        log.error("Exception while processing files!", e);
-      } finally {
-        scanFinished();
-      }
-    };
+      };
+    }
+  }
+
+  @Override
+  public Optional<Document> fetchById(String id) {
+    try {
+      File file = new File(new URI(id));
+      return makeDoc(file.toPath(), Document.Operation.NEW, Files.readAttributes(file.toPath(),BasicFileAttributes.class));
+    } catch (URISyntaxException e) {
+      log.error("Malformed doc id, can't fetch document: {}", id);
+      return Optional.empty();
+    } catch (IOException e) {
+      log.error("Could not read file attributes! Document skipped!",e);
+      return Optional.empty();
+    }
   }
 
   @Override
@@ -104,7 +135,8 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
       log.debug("found file {}", file);
-      makeDoc(file, Document.Operation.NEW, attrs);
+      Optional<Document> document = makeDoc(file, Document.Operation.NEW, attrs);
+      document.ifPresent(SimpleFileScanner.this::docFound);
       return FileVisitResult.CONTINUE;
     }
 
@@ -120,7 +152,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     }
   }
 
-  private void makeDoc(Path file, Document.Operation operation, BasicFileAttributes attributes) {
+  private Optional<Document> makeDoc(Path file, Document.Operation operation, BasicFileAttributes attributes) {
     byte[] rawData = new byte[0];
     try {
       long size = attributes.size();
@@ -164,10 +196,11 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
           this
       );
       addAttrs(attributes, doc);
-      SimpleFileScanner.this.docFound(doc);
+      return Optional.of(doc);
     } catch (IOException e) {
       // TODO: perhaps we still want to proceed with non-canonical version?
       log.error("Could not resolve file path. Skipping:" + file, e);
+      return Optional.empty();
     }
   }
 
@@ -181,6 +214,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
       }
     }
 
+    @SuppressWarnings("rawtypes")
     private Class whoAmI() {
       return new Object() {
       }.getClass().getEnclosingMethod().getDeclaringClass();

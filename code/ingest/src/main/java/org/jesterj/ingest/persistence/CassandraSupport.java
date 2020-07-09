@@ -53,7 +53,6 @@ public class CassandraSupport {
   public void addStatement(String name, String statement) {
     synchronized (preparedQueries) {
       if (!preparedQueries.containsKey(name)) {
-        //noinspection unchecked
         preparedQueries.put(name, Cassandra.whenBooted(() -> getSession().prepare(statement)));
       }
     }
@@ -81,13 +80,14 @@ public class CassandraSupport {
    */
   public PreparedStatement getPreparedQuery(String qName) {
     try {
-      return preparedQueries.get(qName).get();
+      Future<PreparedStatement> preparedStatementFuture = preparedQueries.get(qName);
+      return preparedStatementFuture.get();
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException(e);
     }
   }
 
-  public Future whenBooted(Callable<Object> makeTables) {
+  public Future<Object> whenBooted(Callable<Object> makeTables) {
     return Cassandra.whenBooted(makeTables);
   }
 

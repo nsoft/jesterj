@@ -116,7 +116,7 @@ public interface Document extends ListMultimap<String, String>, Serializable {
 
   enum Operation implements Serializable {
     NEW,
-    UPDATE,
+    UPDATE, // Note: most cases want NEW not update since search indexes usually overwrite rather than update
     DELETE
   }
 }

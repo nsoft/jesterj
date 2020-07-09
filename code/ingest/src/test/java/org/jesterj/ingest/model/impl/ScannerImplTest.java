@@ -20,11 +20,11 @@ import com.copyright.easiertest.Mock;
 import com.copyright.easiertest.ObjectUnderTest;
 
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.driver.api.core.session.Session;
 import org.jesterj.ingest.persistence.CassandraSupport;
 import org.jesterj.ingest.model.Document;
 import org.junit.After;
@@ -32,14 +32,22 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 import static com.copyright.easiertest.EasierMocks.prepareMocks;
 import static com.copyright.easiertest.EasierMocks.replay;
 import static com.copyright.easiertest.EasierMocks.reset;
 import static com.copyright.easiertest.EasierMocks.verify;
 import static org.easymock.EasyMock.expect;
+import static org.jesterj.ingest.model.impl.ScannerImpl.FIND_BATCHED_FOR_SCANNER_Q;
+import static org.jesterj.ingest.model.impl.ScannerImpl.FIND_ERROR_FOR_SCANNER_Q;
+import static org.jesterj.ingest.model.impl.ScannerImpl.FIND_PROCESSING_FOR_SCANNER_Q;
+import static org.jesterj.ingest.model.impl.ScannerImpl.FIND_RESTART_FOR_SCANNER_Q;
+import static org.jesterj.ingest.model.impl.ScannerImpl.RESET_DOCS_U;
 import static org.jesterj.ingest.model.impl.ScannerImpl.UPDATE_HASH_U;
+import static org.junit.Assert.assertTrue;
 
 /*
  * Created with IntelliJ IDEA.
@@ -56,6 +64,9 @@ public class ScannerImplTest {
   @Mock private Row rowMock;
   @Mock private CassandraSupport supportMock;
   @Mock private PreparedStatement statementMock;
+  @Mock private ScannerImpl.DocKey mockKey;
+  @Mock private BatchStatement batchMock;
+  @Mock private Iterator<Row> iterMock;
 
   public ScannerImplTest() {
     prepareMocks(this);
@@ -109,6 +120,7 @@ public class ScannerImplTest {
     rows.add(rowMock);
     expect(rsMock.all()).andReturn(rows);
     expect(rowMock.getString(0)).andReturn("DIRTY");
+    expect(rowMock.getInt(2)).andReturn(0);
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.put("id", "42")).andReturn(true);
     expect(docMock.removeAll("id")).andReturn(null);
@@ -138,6 +150,7 @@ public class ScannerImplTest {
     rows.add(rowMock);
     expect(rsMock.all()).andReturn(rows);
     expect(rowMock.getString(0)).andReturn("PROCESSING");
+    expect(rowMock.getInt(2)).andReturn(0);
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.put("id", "42")).andReturn(true);
     expect(docMock.removeAll("id")).andReturn(null);
@@ -164,6 +177,7 @@ public class ScannerImplTest {
     rows.add(rowMock);
     expect(rsMock.all()).andReturn(rows);
     expect(rowMock.getString(0)).andReturn("PROCESSING");
+    expect(rowMock.getInt(2)).andReturn(0);
     expect(scanner.heuristicDirty(docMock)).andReturn(true);
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.removeAll("id")).andReturn(null);
@@ -206,6 +220,7 @@ public class ScannerImplTest {
     expect(rsMock.all()).andReturn(rows);
     expect(rowMock.getString(0)).andReturn("PROCESSING");
     expect(rowMock.getString(1)).andReturn("CAFEBABE");
+    expect(rowMock.getInt(2)).andReturn(0);
     expect(scanner.heuristicDirty(docMock)).andReturn(false);
     expect(docMock.getHash()).andReturn("DEADBEEF");
     expect(docMock.removeAll("id")).andReturn(null);
@@ -235,6 +250,7 @@ public class ScannerImplTest {
     expect(rsMock.all()).andReturn(rows);
     expect(rowMock.getString(0)).andReturn("PROCESSING");
     expect(rowMock.getString(1)).andReturn("CAFEBABE");
+    expect(rowMock.getInt(2)).andReturn(0);
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.put("id", "42")).andReturn(true);
     expect(docMock.removeAll("id")).andReturn(null);
@@ -263,6 +279,7 @@ public class ScannerImplTest {
     expect(rsMock.all()).andReturn(rows);
     expect(rowMock.getString(0)).andReturn("PROCESSING");
     expect(rowMock.getString(1)).andReturn(null);
+    expect(rowMock.getInt(2)).andReturn(0);
     expect(scanner.heuristicDirty(docMock)).andReturn(false);
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.removeAll("id")).andReturn(null);
@@ -326,5 +343,70 @@ public class ScannerImplTest {
     scanner.superSendToNext(docMock);
     replay();
     scanner.sendToNext(docMock);
+  }
+
+  @Test
+  public void testAddToDirtyList() {
+    expect(scanner.getCassandra()).andReturn(supportMock);
+    expect(supportMock.getPreparedQuery("storedQueryName")).andReturn(statementMock);
+    expect(scanner.getName()).andReturn("scannerName");
+    expect(statementMock.bind("scannerName")).andReturn(bsMock);
+    expect(sessionMock.execute(bsMock)).andReturn(rsMock);
+    List<Row> rows = new ArrayList<>();
+    rows.add(rowMock);
+    expect(rsMock.all()).andReturn(rows);
+    expect(rowMock.getString(0)).andReturn("idValue");
+    expect(rowMock.getString(1)).andReturn("scannerNameValue");
+    expect(scanner.createKey("idValue", "scannerNameValue")).andReturn(mockKey);
+    replay();
+    List<ScannerImpl.DocKey> strandedDocs = new ArrayList<>();
+    scanner.addToDirtyList(sessionMock, strandedDocs,"storedQueryName");
+    assertTrue(strandedDocs.contains(mockKey));
+  }
+
+  @Test
+  public void testActivateRemembering() {
+    expect(scanner.isRemembering()).andReturn(true);
+    expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
+    expect(supportMock.getSession()).andReturn(sessionMock);
+    List<ScannerImpl.DocKey> docKeys = new ArrayList<>();
+    expect(scanner.createList()).andReturn(docKeys);
+    scanner.addToDirtyList(sessionMock, docKeys, FIND_PROCESSING_FOR_SCANNER_Q);
+    scanner.addToDirtyList(sessionMock, docKeys, FIND_ERROR_FOR_SCANNER_Q);
+    scanner.addToDirtyList(sessionMock, docKeys, FIND_BATCHED_FOR_SCANNER_Q);
+    scanner.addToDirtyList(sessionMock, docKeys, FIND_RESTART_FOR_SCANNER_Q);
+    docKeys.add(mockKey); // would happen during an adToDirtyList as side effect
+    expect(supportMock.getPreparedQuery(RESET_DOCS_U)).andReturn(statementMock);
+    expect(scanner.createCassandraBatch()).andReturn(batchMock);
+    expect(mockKey.getDocid()).andReturn("foo");
+    expect(mockKey.getScanner()).andReturn("bar");
+    expect(statementMock.bind("foo","bar")).andReturn(bsMock);
+    List<BoundStatement> boundStatements = new ArrayList<>();
+    expect(scanner.createListBS()).andReturn(boundStatements);
+    boundStatements.add(bsMock);
+    expect(batchMock.addAll(boundStatements)).andReturn(batchMock);
+    expect(sessionMock.execute(batchMock)).andReturn(null); // unused
+    scanner.superActivate();
+    replay();
+    scanner.activate();
+  }
+
+  @Test
+  public void testProcessDocsByStatus() {
+    expect(supportMock.getPreparedQuery("somequery")).andReturn(statementMock);
+    expect(scanner.getName()).andReturn("foo");
+    expect(statementMock.bind("foo")).andReturn(bsMock);
+    expect(supportMock.getSession()).andReturn(sessionMock);
+    expect(sessionMock.execute(bsMock)).andReturn(rsMock);
+    expect(rsMock.iterator()).andReturn(iterMock);
+    expect(iterMock.hasNext()).andReturn(true).times(1);
+    expect(iterMock.hasNext()).andReturn(false).times(1);
+    expect(iterMock.next()).andReturn(rowMock);
+    expect(rowMock.getString(0)).andReturn("foobarId");
+    expect(scanner.fetchById("foobarId")).andReturn(Optional.of(docMock));
+    scanner.docFound(docMock);
+
+    replay();
+    scanner.processDocsByStatus(supportMock, "somequery");
   }
 }

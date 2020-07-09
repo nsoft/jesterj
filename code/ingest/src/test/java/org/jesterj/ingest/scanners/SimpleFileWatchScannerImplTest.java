@@ -15,11 +15,6 @@
  */
 
 package org.jesterj.ingest.scanners;
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 3/17/16
- */
 
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
@@ -73,28 +68,28 @@ public class SimpleFileWatchScannerImplTest {
     testStepBuilder.named("test")
         .batchSize(10)
         .withProcessor(
-        new NamedBuilder<DocumentProcessor>() {
-          @Override
-          public NamedBuilder<DocumentProcessor> named(String name) {
-            return null;
-          }
-
-          @Override
-          public DocumentProcessor build() {
-            return new DocumentProcessor() {
+            new NamedBuilder<>() {
               @Override
-              public String getName() {
+              public NamedBuilder<DocumentProcessor> named(String name) {
                 return null;
               }
 
               @Override
-              public Document[] processDocument(Document document) {
-                scannedDocs.put(document.getId(), document);
-                return new Document[]{document};
+              public DocumentProcessor build() {
+                return new DocumentProcessor() {
+                  @Override
+                  public String getName() {
+                    return null;
+                  }
+
+                  @Override
+                  public Document[] processDocument(Document document) {
+                    scannedDocs.put(document.getId(), document);
+                    return new Document[]{document};
+                  }
+                };
               }
-            };
-          }
-        }
+            }
     );
 
     planBuilder

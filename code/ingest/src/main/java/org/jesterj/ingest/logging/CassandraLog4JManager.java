@@ -17,12 +17,22 @@
 package org.jesterj.ingest.logging;
 
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.metadata.Metadata;
+import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
+import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
+import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractManager;
 import org.jesterj.ingest.persistence.CassandraSupport;
 
-import java.util.concurrent.*;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class CassandraLog4JManager extends AbstractManager {
 
@@ -53,9 +63,12 @@ public class CassandraLog4JManager extends AbstractManager {
           "md5hash text," +
           "PRIMARY KEY (docid, scanner));";
 
+  public static final String UPGRADE_FT_TABLE_ADD_COL =
+      "ALTER TABLE jj_logging.<T> ADD <C> <Y>";
+
   public static final String FTI_STATUS_INDEX = "CREATE INDEX IF NOT EXISTS fti_statuses ON jj_logging.fault_tolerant( status );";
   public static final String FTI_SCANNER_INDEX = "CREATE INDEX IF NOT EXISTS fti_scanners ON jj_logging.fault_tolerant( scanner );";
-  private final Future cassandraReady;
+  private final Future<Object> cassandraReady;
 
   Executor executor = new ThreadPoolExecutor(1, 1, 100, TimeUnit.SECONDS, new SynchronousQueue<>());
 
@@ -70,39 +83,44 @@ public class CassandraLog4JManager extends AbstractManager {
     System.out.println(">>>> Creating CassandraLog4JManager");
     CassandraSupport cassandra = new CassandraSupport();
 
-    Callable<Object> makeTables = new Callable<Object>() {
-
-
-      @Override
-      public Object call() throws Exception {
-        System.out.println("Table and key space creation thread started");
-        boolean tryAgain = true;
-        int tryCount = 0;
-        // ugly but effective fix for https://github.com/nsoft/jesterj/issues/1
-        while(tryAgain) {
-          try {
-            CqlSession session = cassandra.getSession();
-            session.execute(CREATE_LOG_KEYSPACE);
-            session.execute(CREATE_LOG_TABLE);
-            session.execute(CREATE_FT_TABLE);
-            session.execute(FTI_STATUS_INDEX);
-            session.execute(FTI_SCANNER_INDEX);
-            tryAgain = false;
-          } catch (Exception e) {
-            tryCount++;
-            // complain and die if we can't set up the tables in cassandra.
-            e.printStackTrace();
-            Thread.sleep(1000);
-            if (tryCount > 10) {
-              die(e);
-              tryAgain = false;
-            }
-          }
-        }
-        return null;
-      }
-    };
+    // Be aware that this appears to get called twice, so it should be
+    // idempotent. I suspect the cassandra code is doing screwy things
+    // with class loaders leading to a second version of this class.
+    Callable<Object> makeTables = new SchemaChecker(cassandra);
     this.cassandraReady = cassandra.whenBooted(makeTables);
+  }
+
+  void ensureBasicSchema(CqlSession session) {
+    session.setSchemaMetadataEnabled(false);
+    session.execute(CREATE_LOG_KEYSPACE);
+    session.execute(CREATE_LOG_TABLE);
+    session.execute(CREATE_FT_TABLE);
+    session.execute(FTI_STATUS_INDEX);
+    session.execute(FTI_SCANNER_INDEX);
+    session.setSchemaMetadataEnabled(true);
+    session.checkSchemaAgreement();
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  void upgradeAddColIfMissing(CqlSession session, String tableName, String colName, String type) {
+    Metadata metadata = session.getMetadata();
+    Optional<KeyspaceMetadata> jj_logging = metadata.getKeyspace("jj_logging");
+    jj_logging.ifPresent((keySpace) -> {
+      Optional<TableMetadata> fault_tolerant = keySpace.getTable(tableName);
+      fault_tolerant.ifPresent((table) -> {
+        Optional<ColumnMetadata> error_count = table.getColumn(colName);
+        if (error_count.isEmpty()) {
+          System.out.println("Upgrading existing table to add error_count column.");
+          String replace = UPGRADE_FT_TABLE_ADD_COL
+              .replace("<T>", tableName)
+              .replace("<C>", colName)
+              .replace("<Y>", type);
+          logger().info(replace);
+          session.execute(replace);
+          session.checkSchemaAgreement();
+        }
+      });
+    });
   }
 
   void die(Exception e) {
@@ -122,5 +140,45 @@ public class CassandraLog4JManager extends AbstractManager {
 
   public boolean isReady() {
     return cassandraReady.isDone();
+  }
+
+  private class SchemaChecker implements Callable<Object> {
+
+    private final CassandraSupport cassandra;
+
+    public SchemaChecker(CassandraSupport cassandra) {
+      this.cassandra = cassandra;
+    }
+
+    @Override
+    public Object call() throws Exception {
+      // Note this can get called more than once on startup!
+      System.out.println("Table and key space creation thread started");
+      boolean tryAgain = true;
+      int tryCount = 0;
+      // ugly but effective fix for https://github.com/nsoft/jesterj/issues/1
+      while (tryAgain) {
+        try {
+          CqlSession session = getCassandra().getSession();
+          ensureBasicSchema(session);
+          upgradeAddColIfMissing(session, "fault_tolerant", "error_count", "int");
+          tryAgain = false;
+        } catch (Exception e) {
+          tryCount++;
+          // complain and die if we can't set up the tables in cassandra.
+          e.printStackTrace();
+          Thread.sleep(1000);
+          if (tryCount > 10) {
+            die(e);
+            tryAgain = false;
+          }
+        }
+      }
+      return null;
+    }
+
+    CassandraSupport getCassandra() {
+      return cassandra;
+    }
   }
 }
