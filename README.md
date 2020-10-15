@@ -12,7 +12,7 @@ Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki
 
 # Project Status
 
-Current release version: 1.0-beta2. 
+Current release version: 1.0-beta2. (But head revision in github is much better right now! New release soon)
 
 Can be used with gradle configuration:
 
