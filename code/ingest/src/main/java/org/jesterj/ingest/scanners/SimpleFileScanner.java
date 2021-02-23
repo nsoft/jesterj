@@ -156,27 +156,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     byte[] rawData = new byte[0];
     try {
       long size = attributes.size();
-      long memWaitStart = System.currentTimeMillis();
-      int count = 0;
-      while (true) {
-        long l = heapMemoryUsage.getMax() - heapMemoryUsage.getUsed();
-        if (!(size > l)) break;
-        if ((count++ % 100) == 0){
-          log.warn("waiting for memory... ({} avail {} required for next doc)",
-              l, size);
-        }
-        // hint to the JVM that we're waiting for memory to be available
-        System.gc();
-        Thread.sleep(10);
-        if ( System.currentTimeMillis() - memWaitStart < memWaitTimeout) {
-          log.error("Unable to free up memory to load file within 30 seconds");
-          log.error("Possible sources of FileScanner memory avaiability issue: " +
-              "1) File is very large, " +
-              "2) processing of prior files is slow or stalled, " +
-              "3) Memory settings are too low");
-          throw new RuntimeException("Timed out waiting for available memory to process file ("+size+" bytes):" + file);
-        }
-      }
+      memThrottle(size, "Timed out waiting for available memory to process file (" + size + " bytes):" + file);
       rawData = Files.readAllBytes(file);
       log.debug("Bytes Read:{}", rawData.length );
     } catch (IOException e) {
@@ -201,6 +181,33 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
       // TODO: perhaps we still want to proceed with non-canonical version?
       log.error("Could not resolve file path. Skipping:" + file, e);
       return Optional.empty();
+    }
+  }
+
+  private void memThrottle(long size, String message) throws InterruptedException {
+    long memWaitStart = System.currentTimeMillis();
+    int count = 0;
+    while (true) {
+      long l = heapMemoryUsage.getMax() - heapMemoryUsage.getUsed();
+      if (!(size > l)) break;
+      if ((count++ % 100) == 0){
+        log.warn("waiting for memory... ({} avail {} required for next doc)",
+            l, size);
+      }
+      // hint to the JVM that we're waiting for memory to be available
+      System.gc();
+      Thread.sleep(10);
+      if ( System.currentTimeMillis() - memWaitStart < memWaitTimeout) {
+        log.error("Unable to free up memory to load file within {} seconds", memWaitStart/1000);
+        log.error("Possible sources of FileScanner memory avaiability issue: " +
+            "1) File is very large, " +
+            "2) processing of prior files is slow or stalled, " +
+            "3) Memory settings are too low");
+        Thread.sleep(100);
+        RuntimeException runtimeException = new RuntimeException(message);
+        runtimeException.printStackTrace();
+        throw runtimeException;
+      }
     }
   }
 
