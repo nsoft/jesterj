@@ -28,3 +28,9 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew jacocoTestReport
       working-directory: ${{env.working-directory}}
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+          files: code/ingest/build/reports/jacoco/test/jacocoTestReport.xml
+          fail_ci_if_error: true
+          verbose: true
