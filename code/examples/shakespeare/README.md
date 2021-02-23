@@ -6,7 +6,7 @@ To see JesterJ in action, you can run this example.
 1. Create a collection named jjtest using the _default configset
 1. In /jesterj/code/ingest run `./gradlew packUnoJar`
 1. In this directory run `./gradelw build`
-1. In this directory run `java -jar -Djj.javaConfig=build/libs/example-shakespeare-1.0-SNAPSHOT.jar ../../ingest/build/libs/jesterj-node-1.0-SNAPSHOT.jar foo bar`
+1. In this directory run `java -jar ../../ingest/build/libs/jesterj-node-1.0-SNAPSHOT.jar build/libs/example-shakespeare-1.0-SNAPSHOT.jar foo bar`
 
 Your search engine(s) should have indexed shakespeare's plays within a minute or so.  
 
