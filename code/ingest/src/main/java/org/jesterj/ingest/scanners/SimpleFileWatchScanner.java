@@ -29,6 +29,8 @@ import org.jesterj.ingest.model.impl.ScannerImpl;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -39,8 +41,8 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
 import java.util.LinkedHashMap;
+import java.util.Optional;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
@@ -97,7 +99,7 @@ public class SimpleFileWatchScanner extends ScannerImpl implements FileScanner {
             for (WatchEvent<?> event : key.pollEvents()) {
               if (OVERFLOW == event.kind()) {
                 //TODO need to look into what causes this and how to avoid this case...
-                log.error("too many simultaneous watch events. Some filesystem were lost!", key);
+                log.error("too many simultaneous watch events. Some filesystem were lost! ({})", key);
               }
               @SuppressWarnings("unchecked")
               WatchEvent<Path> fileEvent = (WatchEvent<Path>) event;
@@ -107,7 +109,8 @@ public class SimpleFileWatchScanner extends ScannerImpl implements FileScanner {
               }
 
               if (ENTRY_DELETE == fileEvent.kind()) {
-                makeDoc(resolvedPath, Document.Operation.DELETE, null);
+                Optional<Document> document = makeDoc(resolvedPath, Document.Operation.DELETE, null);
+                document.ifPresent(SimpleFileWatchScanner.this::docFound);
                 continue;
               }
 
@@ -120,11 +123,12 @@ public class SimpleFileWatchScanner extends ScannerImpl implements FileScanner {
               }
 
               if (ENTRY_CREATE == fileEvent.kind()) {
-
-                makeDoc(resolvedPath, Document.Operation.NEW, attrs);
+                Optional<Document> document = makeDoc(resolvedPath, Document.Operation.NEW, attrs);
+                document.ifPresent(SimpleFileWatchScanner.this::docFound);
               }
               if (ENTRY_MODIFY == fileEvent.kind()) {
-                makeDoc(resolvedPath, Document.Operation.UPDATE, attrs);
+                Optional<Document> document = makeDoc(resolvedPath, Document.Operation.UPDATE, attrs);
+                document.ifPresent(SimpleFileWatchScanner.this::docFound);
               }
             }
             key.reset();
@@ -153,6 +157,19 @@ public class SimpleFileWatchScanner extends ScannerImpl implements FileScanner {
     return ready;
   }
 
+  @Override
+  public Optional<Document> fetchById(String id, Object helper) {
+    try {
+      File file = new File(new URI(id));
+      return makeDoc(file.toPath(), Document.Operation.NEW, Files.readAttributes(file.toPath(),BasicFileAttributes.class));
+    } catch (URISyntaxException e) {
+      log.error("Malformed doc id, can't fetch document: {}", id);
+      return Optional.empty();
+    } catch (IOException e) {
+      log.error("Could not read file attributes! Document skipped!",e);
+      return Optional.empty();
+    }
+  }
   private class RootWalker extends SimpleFileVisitor<Path> {
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
@@ -167,7 +184,8 @@ public class SimpleFileWatchScanner extends ScannerImpl implements FileScanner {
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-      makeDoc(file, Document.Operation.NEW, attrs);
+      Optional<Document> document = makeDoc(file, Document.Operation.NEW, attrs);
+      document.ifPresent(SimpleFileWatchScanner.this::docFound);
       return FileVisitResult.CONTINUE;
     }
 
@@ -189,7 +207,7 @@ public class SimpleFileWatchScanner extends ScannerImpl implements FileScanner {
     }
   }
 
-  private void makeDoc(Path file, Document.Operation operation, BasicFileAttributes attributes) {
+  private Optional<Document> makeDoc(Path file, Document.Operation operation, BasicFileAttributes attributes) {
     byte[] rawData = new byte[0];
     try {
       rawData = Files.readAllBytes(file);
@@ -207,10 +225,11 @@ public class SimpleFileWatchScanner extends ScannerImpl implements FileScanner {
           SimpleFileWatchScanner.this
       );
       addAttrs(attributes, doc);
-      SimpleFileWatchScanner.this.docFound(doc);
+      return Optional.of(doc);
     } catch (IOException e) {
       // TODO: perhaps we still want to proceed with non-canonical version?
       log.error("Could not resolve file path. Skipping:" + file, e);
+      return Optional.empty();
     }
   }
 
@@ -225,6 +244,7 @@ public class SimpleFileWatchScanner extends ScannerImpl implements FileScanner {
       }
     }
 
+    @SuppressWarnings("rawtypes")
     private Class whoAmI() {
       return new Object() {
       }.getClass().getEnclosingMethod().getDeclaringClass();

@@ -73,11 +73,11 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       new ThreadPoolExecutor(0, 1,
           60L, TimeUnit.SECONDS,
           new SynchronousQueue<>(), r -> {
-            Thread scanner = new Thread(r);
-            scanner.setName("jj-scan-" + ScannerImpl.this.getName());
-            scanner.setDaemon(true);
-            return scanner;
-          });
+        Thread scanner = new Thread(r);
+        scanner.setName("jj-scan-" + ScannerImpl.this.getName());
+        scanner.setDaemon(true);
+        return scanner;
+      });
 
   private long nanoInterval;
 
@@ -91,7 +91,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
 
   public static final String FOR_SCANNER = "and scanner = ? ALLOW FILTERING";
   static final String FIND_DIRTY =
-      "SELECT docid, scanner FROM jj_logging.fault_tolerant WHERE status = 'DIRTY' " ;
+      "SELECT docid, scanner FROM jj_logging.fault_tolerant WHERE status = 'DIRTY' ";
   static final String FIND_PROCESSING =
       "SELECT docid, scanner FROM jj_logging.fault_tolerant WHERE status = 'PROCESSING' ";
   static final String FIND_ERROR =
@@ -134,7 +134,6 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       addToDirtyList(session, strandedDocs, FIND_PROCESSING_FOR_SCANNER_Q);
       addToDirtyList(session, strandedDocs, FIND_ERROR_FOR_SCANNER_Q);
       addToDirtyList(session, strandedDocs, FIND_BATCHED_FOR_SCANNER_Q);
-      addToDirtyList(session, strandedDocs, FIND_RESTART_FOR_SCANNER_Q);
 
       PreparedStatement preparedQuery = getCassandra().getPreparedQuery(RESET_DOCS_U);
 
@@ -144,7 +143,13 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         BoundStatement statement = preparedQuery.bind(docKey.getDocid(), docKey.getScanner());
         bsPile.add(statement);
       }
-      session.execute(bs.addAll(bsPile));
+      while (bsPile.size() > 0) {
+        int maxPerBatch = Math.min(bsPile.size(), 100);
+        List<BoundStatement> batch = bsPile.subList(0, maxPerBatch);
+        log.debug("Processing batch of {}", batch.size());
+        session.execute(bs.addAll(batch));
+        bsPile.removeAll(batch);
+      }
     }
     // call AFTER we set up the tables :)
     superActivate();
@@ -192,12 +197,6 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   @Override
   public void deactivate() {
     super.deactivate();
-    // when we get to dynamically starting/stopping multiple plans across the cluster
-    // this will probably need reference counting...
-    if (CassandraSupport.NON_CLOSABLE_SESSION != null) {
-      CassandraSupport.NON_CLOSABLE_SESSION.deactivate();
-      CassandraSupport.NON_CLOSABLE_SESSION = null;
-    }
   }
 
   static class DocKey {
@@ -242,19 +241,26 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       scanner = safeSubmit();
       last = System.nanoTime();
     }
-    while (this.isActive()) {
-      try {
-        Thread.sleep(25);
-        if (isReady() && longerAgoThanInterval(last)) {
-          scanner = safeSubmit();
-          last = System.nanoTime();
+    try {
+      while (this.isActive()) {
+        try {
+          Thread.sleep(25);
+          if (isReady() && longerAgoThanInterval(last)) {
+            scanner = safeSubmit();
+            last = System.nanoTime();
+          }
+        } catch (InterruptedException e) {
+          if (scanner != null) {
+            scanner.cancel(true);
+          }
+          log.error(e);
         }
-      } catch (InterruptedException e) {
-        if (scanner != null) {
-          scanner.cancel(true);
-        }
-        log.error(e);
       }
+    } catch (Throwable t) {
+      log.error("Exited scanner due to throwable!",t);
+      throw t;
+    } finally {
+      log.info("Exited {}", getName());
     }
     if (scanner != null) {
       scanner.cancel(true);
@@ -340,9 +346,9 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     // need to check the hash.
     if (isRemembering() &&                                         // easier to read, let jvm optimize this check out
         status != null &&                                          // A status was found so we have seen this before
-        status != Status.DIRTY &&                  // not marked dirty
+        (status != Status.DIRTY && status != Status.RESTART) &&    // not marked dirty or restart
         !heuristicDirty(doc)                                       // not dirty by subclass logic
-        ) {
+    ) {
       if (!isHashing()) {
         log.trace("{} ignoring previously seen document {}", getName(), id);
         return;
@@ -379,7 +385,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     return new DefaultOp();
   }
 
-  void processDocsByStatus(CassandraSupport cassandra, String findForScannerQ) {
+  protected void processDocsByStatus(CassandraSupport cassandra, String findForScannerQ, Object helper) {
     PreparedStatement pq = cassandra.getPreparedQuery(findForScannerQ);
     BoundStatement bs = pq.bind(getName());
     ResultSet rs = cassandra.getSession().execute(bs);
@@ -387,14 +393,9 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     int i=0;
     for (Row r : rs) {
       i++;
-      fetchById(r.getString(0)).ifPresent(this::docFound);
+      fetchById(r.getString(0), helper).ifPresent(this::docFound);
     }
     log.info("updated {} FTI records", i);
-  }
-
-  @Override
-  public Optional<Document> fetchById(String id) {
-    return Optional.empty();
   }
 
   @Override
@@ -695,8 +696,42 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         log.error("Cassandra null or still starting for scan operation, Docs Dirty in C* skipped");
         return;
       }
-      ScannerImpl.this.processDocsByStatus(cassandra, FIND_RESTART_FOR_SCANNER_Q);
-      ScannerImpl.this.processDocsByStatus(cassandra, FIND_DIRTY_FOR_SCANNER_Q);
+      processDirtyAndRestart(cassandra, null);
     }
+  }
+
+  public abstract static class IdMangler {
+    private Object helper;
+
+    public IdMangler(Object helper) {
+      this.helper = helper;
+    }
+
+    public IdMangler() {}
+
+    abstract Object fromString(String id);
+    public String fromObject(Object obj) {
+      return String.valueOf(obj);
+    }
+  }
+
+  /**
+   * Hook for enabling calculation of an ObjectId
+   *
+   * @param helper an object
+   * @return An object to translate Ids
+   */
+  protected IdMangler getIdMangler(Object helper) {
+    return new IdMangler(helper) {
+      @Override
+      Object fromString(String id) {
+        return id;
+      }
+    };
+  }
+
+  protected void processDirtyAndRestart(CassandraSupport cassandra, Object helper) {
+    ScannerImpl.this.processDocsByStatus(cassandra, FIND_RESTART_FOR_SCANNER_Q, getIdMangler(helper));
+    ScannerImpl.this.processDocsByStatus(cassandra, FIND_DIRTY_FOR_SCANNER_Q, getIdMangler(helper));
   }
 }

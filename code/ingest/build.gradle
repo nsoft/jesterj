@@ -198,6 +198,21 @@ test {
     events "passed", "skipped", "failed"
     exceptionFormat "full"
   }
+
+  doFirst {
+    jvmArgs = [
+        '--add-modules', 'ALL-MODULE-PATH',
+        '--add-opens', 'java.base/java.lang.module=ALL-UNNAMED',
+        '--add-opens', 'java.base/jdk.internal.loader=ALL-UNNAMED',
+        '--add-opens', 'java.base/jdk.internal.ref=ALL-UNNAMED',
+        '--add-opens', 'java.base/jdk.internal.reflect=ALL-UNNAMED',
+        '--add-opens', 'java.base/jdk.internal.math=ALL-UNNAMED',
+        '--add-opens', 'java.base/jdk.internal.module=ALL-UNNAMED',
+        '--add-opens', 'java.base/jdk.internal.util.jar=ALL-UNNAMED',
+        '--add-opens', 'jdk.management/com.sun.management.internal=ALL-UNNAMED',
+        '--patch-module', "foo=" + files(sourceSets.test.java.outputDir).asPath
+    ]
+  }
 }
 
 jacocoTestReport {

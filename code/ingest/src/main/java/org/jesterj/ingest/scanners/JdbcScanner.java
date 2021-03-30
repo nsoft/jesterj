@@ -45,8 +45,7 @@ import java.sql.Statement;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
-import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.Optional;
 
 /**
  * Scans a JDBC source such as an RDBMS (e.g. MySQL). Obtains a connection through the specified
@@ -65,6 +64,7 @@ public class JdbcScanner extends ScannerImpl {
   private String jdbcPassword;
   private String sqlStatement;
   private String table;
+  private String pkColumn;
   private transient volatile boolean ready;
 
   // For MySQL, this may need to be set by user to Integer.MIN_VALUE:
@@ -99,8 +99,9 @@ public class JdbcScanner extends ScannerImpl {
   @Override
   public Runnable getScanOperation() {
     return () -> {
+      // Remainder of operation is implemented here instead of relying on DefaultOp to avoid spamming the DB with
+      // queries for individual rows.
       int count = 0;
-
       try {
         log.info("{} connecting to database {}", getName(), jdbcUrl);
         // Establish a connection and execute the query.
@@ -109,10 +110,11 @@ public class JdbcScanner extends ScannerImpl {
         try (Connection conn = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
              Statement statement = createStatement(conn);
              ResultSet rs = statement.executeQuery(sqlStatement)) {
+          processDirtyAndRestart(getCassandra(), conn);
           log.info("{} successfully queried database {}", getName(), jdbcUrl);
 
           String[] columnNames = getColumnNames(rs);
-          int docIdColumnIdx = getDocIdColumnIndex(columnNames, getPlan().getDocIdField());
+          int docIdColumnIdx = getDocIdColumnIndex(columnNames, getDatabasePkColumnName());
 
           // For each row
           while (rs.next()) {
@@ -139,6 +141,15 @@ public class JdbcScanner extends ScannerImpl {
         log.debug("{} Database rows processed by {}", count, getName());
       }
     };
+  }
+
+  /**
+   * The name of the column containing the database primary key.
+   *
+   * @return the configured pk column name or the docIdField name for the plan by default (which is 'id' by default).
+   */
+  protected String getDatabasePkColumnName() {
+    return this.pkColumn == null ? getPlan().getDocIdField() : this.pkColumn;
   }
 
   /**
@@ -271,7 +282,7 @@ public class JdbcScanner extends ScannerImpl {
       if (itemIdColNum == -1) {
         throw new PersistenceException(
             String.format("The document ID column could not be found in the SQL result set. docIdColumn: '%s', SQL: %s, columns: %s.",
-                docIdColumnName, sqlStatement, String.join(", ", (CharSequence[]) columnNames)));
+                docIdColumnName, sqlStatement, String.join(", ", columnNames)));
       }
     }
     return itemIdColNum;
@@ -280,6 +291,12 @@ public class JdbcScanner extends ScannerImpl {
   @Override
   public boolean isReady() {
     return ready;
+  }
+
+  @Override
+  public Optional<Document> fetchById(String id, Object helper) {
+    // TODO: implement this
+    return Optional.empty();
   }
 
   /**
@@ -336,6 +353,10 @@ public class JdbcScanner extends ScannerImpl {
 
     public Builder withContentColumn(String contentColumn) {
       getObj().contentColumn = contentColumn;
+      return this;
+    }
+    public Builder withPKColumn(String pkCol) {
+      getObj().pkColumn = pkCol;
       return this;
     }
 

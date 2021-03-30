@@ -18,7 +18,10 @@ package org.jesterj.ingest.logging;
 
 
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.Layout;
@@ -29,16 +32,19 @@ import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginElement;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
 import org.apache.logging.log4j.core.layout.PatternLayout;
+import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.persistence.CassandraSupport;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.util.List;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 
+@SuppressWarnings("deprecation")
 @Plugin(name = "JesterJAppender", category = "Core", elementType = "appender")
 public class JesterJAppender extends AbstractAppender {
 
@@ -47,17 +53,24 @@ public class JesterJAppender extends AbstractAppender {
           "(id, logger, tstamp, level, thread, message) " +
           "VALUES(?,?,?,?,?,?)";
 
-  @SuppressWarnings("SpellCheckingInspection")
   private static final String INSERT_FTI =
       "INSERT INTO jj_logging.fault_tolerant " +
           "(docid, scanner, logger, tstamp, level, thread, status, message) " +
           "VALUES(?,?,?,?,?,?,?,?)";
-  public static final String REG_INSERT_Q = "REG_INSERT_Q";
-  public static final String FTI_INSERT_Q = "FTI_INSERT_Q";
+  private static final String INSERT_FTI_ERROR =
+      "INSERT INTO jj_logging.fault_tolerant " +
+          "(docid, scanner, logger, tstamp, level, thread, status, message, error_count) " +
+          "VALUES(?,?,?,?,?,?,?,?,?)";
+  private static final String QUERY_FTI_ERROR_COUNT =
+      "select error_count from jj_logging.fault_tolerant where docid =?";
 
-  private static CassandraSupport cassandra = new CassandraSupport();
+  public static final String FTI_ERROR_COUNT_Q = "FTI_ERROR_COUNT_Q";
+  public static final String REG_INSERT_U = "REG_INSERT_Q";
+  public static final String FTI_INSERT_U = "FTI_INSERT_Q";
+  public static final String FTI_INSERT_ERROR_U = "FTI_INSERT_ERROR_Q";
 
-  @SuppressWarnings("SpellCheckingInspection")
+  private static final CassandraSupport cassandra = new CassandraSupport();
+
   public static final String JJ_INGEST_DOCID = "jj_ingest.docid";
   public static final String JJ_INGEST_SOURCE_SCANNER = "JJ_INGEST_SOURCE_SCANNER";
 
@@ -80,17 +93,18 @@ public class JesterJAppender extends AbstractAppender {
     super(name, filter, null, ignoreExceptions);
   }
 
-  public JesterJAppender(String name, @SuppressWarnings("UnusedParameters") Layout layout, Filter filter, CassandraLog4JManager manager, boolean ignoreExceptions) {
+  public JesterJAppender(String name, @SuppressWarnings("UnusedParameters") Layout<? extends Serializable> layout, Filter filter, CassandraLog4JManager manager, boolean ignoreExceptions) {
     // perhaps support layout and format the message?... later
     super(name, filter, null, ignoreExceptions);
     JesterJAppender.manager = manager;
   }
 
 
+
   @PluginFactory
   public static JesterJAppender createAppender(@PluginAttribute("name") String name,
                                                @PluginAttribute("ignoreExceptions") boolean ignoreExceptions,
-                                               @PluginElement("Layout") Layout layout,
+                                               @PluginElement("Layout") Layout<? extends Serializable> layout,
                                                @PluginElement("Filters") Filter filter) {
 
     if (name == null) {
@@ -105,8 +119,10 @@ public class JesterJAppender extends AbstractAppender {
     if (layout == null) {
       layout = PatternLayout.createDefaultLayout();
     }
-    cassandra.addStatement(FTI_INSERT_Q, INSERT_FTI);
-    cassandra.addStatement(REG_INSERT_Q, INSERT_REG);
+    cassandra.addStatement(FTI_ERROR_COUNT_Q, QUERY_FTI_ERROR_COUNT);
+    cassandra.addStatement(FTI_INSERT_U, INSERT_FTI);
+    cassandra.addStatement(REG_INSERT_U, INSERT_REG);
+    cassandra.addStatement(FTI_INSERT_ERROR_U, INSERT_FTI_ERROR);
     return new JesterJAppender(name, layout, filter, manager, ignoreExceptions);
   }
 
@@ -128,9 +144,7 @@ public class JesterJAppender extends AbstractAppender {
       //System.out.println("Logging event added to startup queue");
       startupQueue.add(event);
     } else {
-      if (startupQueue.isEmpty()) {
-        writeEvent(event);
-      } else {
+      if (!startupQueue.isEmpty()) {
         // one time occurrence post startup. Need to ensure incoming message is not written ahead of queued messages
         synchronized (startupQueue) {
           if (startupQueue.peek() != null) {
@@ -141,8 +155,8 @@ public class JesterJAppender extends AbstractAppender {
             startupQueue.clear();
           }
         }
-        writeEvent(event);
       }
+      writeEvent(event);
     }
   }
 
@@ -158,7 +172,7 @@ public class JesterJAppender extends AbstractAppender {
 
     if (m == null || m.isInstanceOf(Markers.LOG_MARKER)) {
       CqlSession s = cassandra.getSession();
-      PreparedStatement pq = cassandra.getPreparedQuery(REG_INSERT_Q);
+      PreparedStatement pq = cassandra.getPreparedQuery(REG_INSERT_U);
 
       // This should be good enough. The chances of collision are very very very small.
       // if we get into processing trillions of documents each producing hundreds of log
@@ -168,7 +182,7 @@ public class JesterJAppender extends AbstractAppender {
       // generation mechanism. Second biggest risk is a flaw in the PRNG, but that's java's
       // affair to manage.
 
-      // at some time in the futre, the strategy here might become configurable, but
+      // at some time in the future, the strategy here might become configurable, but
       // good enough for now.
 
       System.setProperty("java.util.secureRandomSeed", "true");
@@ -199,14 +213,37 @@ public class JesterJAppender extends AbstractAppender {
 
     if (m.isInstanceOf(Markers.FTI_MARKER)) {
       CqlSession s = cassandra.getSession();
-      PreparedStatement pq = cassandra.getPreparedQuery(FTI_INSERT_Q);
 
       // everything wrapped in String.valueOf to avoid any issues with null.
       String status = String.valueOf(e.getMarker().getName());
       String docId = String.valueOf(e.getContextData().toMap().get(JJ_INGEST_DOCID));
       String scanner = String.valueOf(e.getContextData().toMap().get(JJ_INGEST_SOURCE_SCANNER));
-      s.execute(pq.bind(docId, scanner, logger, timeStamp, level, thread, status, message));
+      if (Status.valueOf(status) == Status.ERROR) {
+        int errorCount = getErrorCount(s, docId);
+        PreparedStatement update = cassandra.getPreparedQuery(FTI_INSERT_ERROR_U);
+        s.execute(update.bind(docId, scanner, logger, timeStamp, level, thread, status, message, errorCount));
+      } else {
+        PreparedStatement update = cassandra.getPreparedQuery(FTI_INSERT_U);
+        s.execute(update.bind(docId, scanner, logger, timeStamp, level, thread, status, message));
+      }
     }
 
+  }
+
+  private int getErrorCount(CqlSession s, String docId) {
+    int errorCount = 1;
+    // error case more expensive, but it **should** be the less common case.
+    PreparedStatement pq = cassandra.getPreparedQuery(FTI_ERROR_COUNT_Q);
+    BoundStatement bs = pq.bind(docId);
+    ResultSet rs = s.execute(bs);
+    List<Row> allRows = rs.all();
+    if (allRows.size() > 1 ) {
+      // can't log because logging from logging is well ... dangerous :)
+      System.err.println("VERY BAD: more than one record for the same docId??");
+    }
+    if (allRows.size() == 1) {
+      errorCount += allRows.get(0).getInt(0);
+    }
+    return errorCount;
   }
 }

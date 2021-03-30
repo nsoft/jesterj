@@ -374,7 +374,6 @@ public class ScannerImplTest {
     scanner.addToDirtyList(sessionMock, docKeys, FIND_PROCESSING_FOR_SCANNER_Q);
     scanner.addToDirtyList(sessionMock, docKeys, FIND_ERROR_FOR_SCANNER_Q);
     scanner.addToDirtyList(sessionMock, docKeys, FIND_BATCHED_FOR_SCANNER_Q);
-    scanner.addToDirtyList(sessionMock, docKeys, FIND_RESTART_FOR_SCANNER_Q);
     docKeys.add(mockKey); // would happen during an adToDirtyList as side effect
     expect(supportMock.getPreparedQuery(RESET_DOCS_U)).andReturn(statementMock);
     expect(scanner.createCassandraBatch()).andReturn(batchMock);
@@ -403,10 +402,10 @@ public class ScannerImplTest {
     expect(iterMock.hasNext()).andReturn(false).times(1);
     expect(iterMock.next()).andReturn(rowMock);
     expect(rowMock.getString(0)).andReturn("foobarId");
-    expect(scanner.fetchById("foobarId")).andReturn(Optional.of(docMock));
+    expect(scanner.fetchById("foobarId", null)).andReturn(Optional.of(docMock));
     scanner.docFound(docMock);
 
     replay();
-    scanner.processDocsByStatus(supportMock, "somequery");
+    scanner.processDocsByStatus(supportMock, "somequery", null);
   }
 }

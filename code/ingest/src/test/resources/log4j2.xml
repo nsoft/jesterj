@@ -32,7 +32,7 @@
       <appender-ref ref="STDOUT" />
       <appender-ref ref="CASSANDRA" />
     </logger>
-    <logger level="info" name="org.jesterj.ingest.model.impl.StepImpl">
+    <logger level="info" name="org.jesterj.ingest.model.impl.StepImpl" additivity="false">
       <appender-ref ref="STDOUT"/>
     </logger>
     <logger level="error" name="org.apache.http.wire" additivity="false">

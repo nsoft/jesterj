@@ -61,6 +61,7 @@ public class CassandraLog4JManager extends AbstractManager {
           "status text, " +
           "message text," +
           "md5hash text," +
+          "error_count int," +
           "PRIMARY KEY (docid, scanner));";
 
   public static final String UPGRADE_FT_TABLE_ADD_COL =

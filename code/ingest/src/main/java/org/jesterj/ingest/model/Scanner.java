@@ -96,6 +96,6 @@ public interface Scanner extends Step {
      * @param id the id of the document, see also {@link Document#getId()}
      * @return An optional that contains the document if it is possible to retreive the document by ID
      */
-    Optional<Document> fetchById(String id);
+    Optional<Document> fetchById(String id, Object helper);
 
 }

@@ -28,6 +28,7 @@ import org.objenesis.instantiator.ObjectInstantiator;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
   private static final Logger log = LogManager.getLogger();
@@ -130,6 +131,11 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
       }
 
       @Override
+      public Optional<Document> fetchById(String id, Object helper) {
+        return Optional.empty();
+      }
+
+      @Override
       public String getName() {
         return "foo";
       }
@@ -213,6 +219,7 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
         });
   }
 
+  @SuppressWarnings("rawtypes")
   private void assertUpdateResponse(UpdateResponse rsp) {
     // use of TolerantUpdateProcessor can cause non-thrown "errors" that we need to check for
     List errors = (List) rsp.getResponseHeader().get("errors");
