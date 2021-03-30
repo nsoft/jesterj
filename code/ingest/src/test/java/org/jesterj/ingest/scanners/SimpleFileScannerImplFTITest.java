@@ -79,7 +79,7 @@ public class SimpleFileScannerImplFTITest {
 
     try {
       plan1.activate();
-      Thread.sleep(5000);
+      Thread.sleep(15000); // is github actions really that slow?
       assertEquals(5, scannedDocs.size());
       plan1.deactivate();
 

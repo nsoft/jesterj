@@ -192,6 +192,7 @@ javadoc {
 test {
   minHeapSize = "128m"
   maxHeapSize = "1g"
+  forkEvery = 1
   exclude '**/Abstract*.class', '**/BulkTest.class'
   systemProperty "java.security.egd", "file:/dev/./urandom"
   testLogging {
@@ -209,8 +210,7 @@ test {
         '--add-opens', 'java.base/jdk.internal.math=ALL-UNNAMED',
         '--add-opens', 'java.base/jdk.internal.module=ALL-UNNAMED',
         '--add-opens', 'java.base/jdk.internal.util.jar=ALL-UNNAMED',
-        '--add-opens', 'jdk.management/com.sun.management.internal=ALL-UNNAMED',
-        '--patch-module', "foo=" + files(sourceSets.test.java.outputDir).asPath
+        '--add-opens', 'jdk.management/com.sun.management.internal=ALL-UNNAMED'
     ]
   }
 }
