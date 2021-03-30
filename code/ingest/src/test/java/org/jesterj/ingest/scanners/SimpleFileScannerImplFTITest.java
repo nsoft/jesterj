@@ -83,32 +83,32 @@ public class SimpleFileScannerImplFTITest {
       assertEquals(5, scannedDocs.size());
       plan1.deactivate();
 
-      Thread.sleep(5000);
+      Thread.sleep(15000);
 
       plan1.activate();
-      Thread.sleep(5000);
+      Thread.sleep(15000);
       assertEquals(10, scannedDocs.size()); // test that 5 NEW docs were scanned
       plan1.deactivate();
 
-      Thread.sleep(5000);
+      Thread.sleep(15000);
 
       plan2.activate();
-      Thread.sleep(5000);
+      Thread.sleep(15000);
       assertEquals(14, scannedDocs.size()); // test that 4 NEW docs were seen (a 5th will have errored but not been counted)
       plan2.deactivate();
 
-      Thread.sleep(5000);
+      Thread.sleep(15000);
 
       plan1.activate();
-      Thread.sleep(5000);
+      Thread.sleep(15000);
       assertEquals(19, scannedDocs.size()); // test that 5 NEW docs were scanned
       plan1.deactivate();
       assertTrue(scannedDocs.containsKey(errorId[0])); // AND the error doc was one of them
 
-      Thread.sleep(5000);
+      Thread.sleep(15000);
 
       planFinish.activate();
-      Thread.sleep(5000);
+      Thread.sleep(15000);
       planFinish.deactivate();
       assertEquals(44, scannedDocs.size());
       scannedDocs.clear();
@@ -116,12 +116,12 @@ public class SimpleFileScannerImplFTITest {
       // they do not get sent down the pipeline, and so the counter
       // step won't see them
 
-      Thread.sleep(5000);
+      Thread.sleep(15000);
 
       planFinish.activate();
-      Thread.sleep(5000);
+      Thread.sleep(15000);
       planFinish.deactivate();
-      Thread.sleep(3500);
+      Thread.sleep(15000);
       assertEquals(0, scannedDocs.size());
     } finally {
       Cassandra.stop();
