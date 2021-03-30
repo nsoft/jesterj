@@ -21,7 +21,7 @@ public class PauseEveryFiveTestProcessor implements DocumentProcessor {
     count++;
     if (count % 5 == 1 && count > 1) {
       try {
-        Thread.sleep(30000);
+        Thread.sleep(60000);
       } catch (InterruptedException e) {
         count = 0;
         return new Document[0];
