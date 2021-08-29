@@ -32,7 +32,6 @@ plugins {
   id 'idea'
   id 'jacoco'
   id 'signing'
-  id 'maven'
   id 'maven-publish'
   id 'com.github.jk1.dependency-license-report' version '0.3.4'
   id "com.github.onslip.gradle-one-jar" version "1.0.5"
@@ -293,15 +292,100 @@ jacocoTestReport.dependsOn test
 
 artifactoryPublish.dependsOn packUnoJar
 
+task sourceJar(type: Jar, dependsOn: classes) {
+  classifier = 'sources'
+  from sourceSets.main.allSource
+  archiveFileName = 'jesterj-ingest-'+project.version+'-sources.jar'
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+  classifier = 'javadoc'
+  from javadoc.destinationDir
+  archiveFileName = 'jesterj-ingest-'+project.version+'-javadoc.jar'
+}
+
 publishing {
+
   publications {
     mavenJava(MavenPublication) {
+      customizePom(pom)
+
+      pom {
+        description 'Document ingestion for search'
+        name = 'JesterJ Ingester'
+        url = 'https://github.com/nsoft/jesterj'
+        artifactId = 'jesterj-ingest'
+
+        parent {
+          groupId = 'org.sonatype.oss'
+          artifactId = 'oss-parent'
+          version = '7'
+        }
+        licenses {
+          license {
+            name = 'The Apache Software License, Version 2.0'
+            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            distribution = 'repo'
+          }
+        }
+        scm {
+          connection = 'scm:git:git@github.com:nsoft/jesterj.git'
+          developerConnection = 'scm:git:git@github.com:nsoft/jesterj.git'
+          url = 'git@github.com:nsoft/jesterj.git'
+        }
+        developers {
+          developer {
+            id = 'nsoft'
+            name = 'Patrick Heck'
+            email = 'gus@needhamsoftware.com'
+          }
+        }
+
+      }
+
       groupId project.group
       artifactId 'jesterj-ingest'
       version project.version
+
       from components.java
-      artifact source: file(unoJardest), classifier: "node"
+
+      artifact sourceJar
+      artifact javadocJar
+
     }
+  }
+  repositories {
+    maven {
+      url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+//      credentials {
+//        username sonatypeUsername
+//        password sonatypePassword
+//      }
+    }
+  }
+}
+
+private Object customizePom(pom) {
+  pom.withXml {
+    def root = asNode()
+
+    // eliminate test-scoped dependencies (no need in maven central POMs)
+    root.dependencies.removeAll { dep ->
+      dep.scope == "test"
+    }
+
+    // add all items necessary for maven central publication
+    root.children().last() + {
+      resolveStrategy = Closure.DELEGATE_FIRST
+
+
+    }
+    def children = root.children()
+    def versionIndex = children.indexOf(children.find { it.name().localPart == 'version' })
+    // Stuff that sonatype wants... there may be a way to make these appear automatically but...
+    // http://issues.gradle.org/browse/GRADLE-1285
+    children.add(versionIndex + 1, new Node(null, 'packaging', 'jar'))
+
   }
 }
 
@@ -342,27 +426,7 @@ ext.releaseRepo = 'https://oss.sonatype.org/service/local/staging/deploy/maven2'
 ext.snapshotRepo = 'https://oss.sonatype.org/content/repositories/snapshots'
 ext.testingRepo = 'file:///tmp/myRepo/'
 ext.uploadRepo = isRelease ? releaseRepo : (isSnapshot ? snapshotRepo : testingRepo)
-
-
-task uploadSnapshot(dependsOn: uploadArchives) {}
-task uploadRelease(dependsOn: uploadArchives) {}
-
-task sourcesJar(type: Jar, dependsOn: classes) {
-  classifier = 'sources'
-  from sourceSets.main.allSource
-  archiveFileName = 'jesterj-ingest-'+project.version+'-sources.jar'
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-  classifier = 'javadoc'
-  from javadoc.destinationDir
-  archiveFileName = 'jesterj-ingest-'+project.version+'-javadoc.jar'
-}
-
-artifacts {
-  archives sourcesJar
-  archives javadocJar
-}
+println uploadRepo
 
 // A little idiot proofing...
 task checkUploadDest {
@@ -387,68 +451,29 @@ task checkUploadDest {
   }
 }
 
+uploadArchives.dependsOn checkUploadDest
+task uploadSnapshot(dependsOn: uploadArchives) {}
+task uploadRelease(dependsOn: uploadArchives) {}
+
+
 // Uncomment this to do sonatype uploads (fails on all other machines looking for gpg key otherwise
 //
 signing {
     required { !isLocalVersion && gradle.taskGraph.hasTask('uploadArchives') }
-    sign configurations.archives
+    sign publishing.publications
 }
 
-
-ext.isLocalVersion = !version.endsWith("LOCAL")
-
-uploadArchives {
-  it.dependsOn checkUploadDest
-  repositories {
-    mavenDeployer {
-      beforeDeployment { deployment -> signing.signPom(deployment) }
-      repository(url: project.uploadRepo) {
-        authentication(userName: propOrDefault('sonatypeUsername','foo'), password: propOrDefault('sonatypePassword','foo'))
-      }
-      pom.project {
-        parent {
-          groupId 'org.sonatype.oss'
-          artifactId 'oss-parent'
-          //noinspection GroovyAssignabilityCheck
-          version '7'
-        }
-        artifactId 'jesterj-ingest'
-        name 'JesterJ Ingester'
-        description 'Document ingestion for search'
-        url 'https://github.com/nsoft/jesterj'
-        licenses {
-          license {
-            name 'The Apache Software License, Version 2.0'
-            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-            distribution 'repo'
-          }
-        }
-        scm {
-          connection 'scm:git:git@github.com:nsoft/jesterj.git'
-          developerConnection 'scm:git:git@github.com:nsoft/jesterj.git'
-          url 'git@github.com:nsoft/jesterj.git'
-        }
-        developers {
-          developer {
-            id 'nsoft'
-            name 'Patrick Heck'
-            email 'gus@needhamsoftware.com'
-          }
-        }
-      }
-      pom.withXml { root ->
-        def children = root.asNode().children()
-        def versionIndex = children.indexOf(children.find { it.name().localPart == 'version' })
-        // Stuff that sonatype wants... there may be a way to make these appear automatically but...
-        // http://issues.gradle.org/browse/GRADLE-1285
-        children.add(versionIndex + 1, new Node(null, 'packaging', 'jar'))
-      }
-    }
+model {
+  tasks.generatePomFileForMavenJavaPublication {
+    destination = file("$buildDir/generated-pom.xml")
   }
 }
 
+ext.isLocalVersion = !version.endsWith("LOCAL")
+
+
 jar.manifest.attributes getManifestAttributes()
-sourcesJar.manifest.attributes getManifestAttributes()
+sourceJar.manifest.attributes getManifestAttributes()
 javadocJar.manifest.attributes getManifestAttributes()
 
 @SuppressWarnings("GroovyAssignabilityCheck")
@@ -472,6 +497,3 @@ def getJdk() {
   "${System.getProperty('java.version')} (${System.getProperty('java.vm.vendor')} ${System.getProperty('java.vm.version')})"
 }
 
-def propOrDefault(String prop, String defaultVal) {
-  return project.hasProperty(prop) ? project.getProperty(prop) : defaultVal
-}
