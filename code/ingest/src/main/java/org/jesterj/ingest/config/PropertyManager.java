@@ -37,11 +37,16 @@ public class PropertyManager extends Representer {
   public static final AnnotationUtil AUTIL = new AnnotationUtil();
 
   @Override
-  protected Set<Property> getProperties(Class<?> type) throws IntrospectionException {
+  protected Set<Property> getProperties(Class<?> type)  {
     Set<Property> set = super.getProperties(type);
     Set<Property> filtered = new TreeSet<>();
 
-    BeanInfo beanInfo = Introspector.getBeanInfo(type);
+    BeanInfo beanInfo = null;
+    try {
+      beanInfo = Introspector.getBeanInfo(type);
+    } catch (IntrospectionException e) {
+      throw new RuntimeException(e);
+    }
     PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
     Map<String, PropertyDescriptor> propMap = Arrays.asList(propertyDescriptors).stream().collect(Collectors.toMap(PropertyDescriptor::getName, Function.identity()));
     for (Property prop : set) {
