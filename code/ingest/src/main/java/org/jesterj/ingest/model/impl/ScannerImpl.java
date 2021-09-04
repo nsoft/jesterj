@@ -40,7 +40,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
@@ -138,17 +137,17 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       PreparedStatement preparedQuery = getCassandra().getPreparedQuery(RESET_DOCS_U);
 
       BatchStatement bs = createCassandraBatch();
-      List<BoundStatement> bsPile = createListBS();
+      List<BoundStatement> boundStatements = createListBS();
       for (DocKey docKey : strandedDocs) {
         BoundStatement statement = preparedQuery.bind(docKey.getDocid(), docKey.getScanner());
-        bsPile.add(statement);
+        boundStatements.add(statement);
       }
-      while (bsPile.size() > 0) {
-        int maxPerBatch = Math.min(bsPile.size(), 100);
-        List<BoundStatement> batch = bsPile.subList(0, maxPerBatch);
+      while (boundStatements.size() > 0) {
+        int maxPerBatch = Math.min(boundStatements.size(), 100);
+        List<BoundStatement> batch = boundStatements.subList(0, maxPerBatch);
         log.debug("Processing batch of {}", batch.size());
         session.execute(bs.addAll(batch));
-        bsPile.removeAll(batch);
+        boundStatements.removeAll(batch);
       }
     }
     // call AFTER we set up the tables :)
@@ -696,7 +695,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         log.error("Cassandra null or still starting for scan operation, Docs Dirty in C* skipped");
         return;
       }
-      processDirtyAndRestart(cassandra, null);
+      processDirtyAndRestartStatuses(cassandra, null);
     }
   }
 
@@ -730,8 +729,10 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     };
   }
 
-  protected void processDirtyAndRestart(CassandraSupport cassandra, Object helper) {
-    ScannerImpl.this.processDocsByStatus(cassandra, FIND_RESTART_FOR_SCANNER_Q, getIdMangler(helper));
-    ScannerImpl.this.processDocsByStatus(cassandra, FIND_DIRTY_FOR_SCANNER_Q, getIdMangler(helper));
+  protected void processDirtyAndRestartStatuses(CassandraSupport cassandra, Object helper) {
+    if (this.isRemembering()) {
+      ScannerImpl.this.processDocsByStatus(cassandra, FIND_RESTART_FOR_SCANNER_Q, getIdMangler(helper));
+      ScannerImpl.this.processDocsByStatus(cassandra, FIND_DIRTY_FOR_SCANNER_Q, getIdMangler(helper));
+    }
   }
 }

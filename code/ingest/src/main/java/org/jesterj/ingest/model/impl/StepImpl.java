@@ -290,9 +290,12 @@ public class StepImpl implements Step {
           worker.interrupt();
         }
       } catch (InterruptedException e) {
-        // ignore
+        // reset thread interrupt status
+        //noinspection ResultOfMethodCallIgnored
+        Thread.interrupted();
       }
     }
+    this.queue.clear();
     processor.close();
   }
 
@@ -502,7 +505,7 @@ public class StepImpl implements Step {
   protected void reportException(Document doc, Exception e, String message, Object... params) {
     StringWriter buff = new StringWriter();
     e.printStackTrace(new PrintWriter(buff));
-    String errorMsg = message + " " + e.getMessage() + "\n" + buff.toString();
+    String errorMsg = message + " " + e.getMessage() + "\n" + buff;
     reportDocStatus(Status.ERROR, doc, errorMsg, params);
     log.error("Step Exception!", e );
   }

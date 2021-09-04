@@ -110,7 +110,7 @@ public class JdbcScanner extends ScannerImpl {
         try (Connection conn = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
              Statement statement = createStatement(conn);
              ResultSet rs = statement.executeQuery(sqlStatement)) {
-          processDirtyAndRestart(getCassandra(), conn);
+          processDirtyAndRestartStatuses(getCassandra(), conn);
           log.info("{} successfully queried database {}", getName(), jdbcUrl);
 
           String[] columnNames = getColumnNames(rs);

@@ -38,6 +38,7 @@ import java.io.File;
 import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
@@ -79,36 +80,51 @@ public class SimpleFileScannerImplFTITest {
 
     try {
       plan1.activate();
-      Thread.sleep(15000); // is github actions really that slow?
+      // now scanner should find all docs, attempt to index them, all marked
+      // as processing...
+      Thread.sleep(1500); // is github actions really that slow?
+      // the pause ever 5 should have let 5 through and then paused for 30 sec
       assertEquals(5, scannedDocs.size());
       plan1.deactivate();
 
-      Thread.sleep(15000);
+      // plan has been deactivated, leaving 5 as indexed and the rest as processing
+
+      Thread.sleep(1500);
+      assertEquals(5, scannedDocs.size());
 
       plan1.activate();
-      Thread.sleep(15000);
+      // plan should first queue all processing docs (from prior scan) and then proceed with new
+      // scan, but that scan should never start because only the first 5 docs queued up will be
+      // processed before pausing another 30 seconds. Since the map is keyed by ID an increase in
+      // the size of the map shows that the previous documents were not processed.
+      Thread.sleep(1500);
       assertEquals(10, scannedDocs.size()); // test that 5 NEW docs were scanned
       plan1.deactivate();
 
-      Thread.sleep(15000);
+      Thread.sleep(1500);
+      assertEquals(10, scannedDocs.size()); // test plan really deactivated
 
       plan2.activate();
-      Thread.sleep(15000);
+      Thread.sleep(1500);
       assertEquals(14, scannedDocs.size()); // test that 4 NEW docs were seen (a 5th will have errored but not been counted)
       plan2.deactivate();
 
-      Thread.sleep(15000);
+      String eid = errorId[0];
+      assertNotNull(eid);
+
+      Thread.sleep(1500);
+      assertEquals(14, scannedDocs.size()); // test plan really deactivated
 
       plan1.activate();
-      Thread.sleep(15000);
+      Thread.sleep(1500);
       assertEquals(19, scannedDocs.size()); // test that 5 NEW docs were scanned
       plan1.deactivate();
-      assertTrue(scannedDocs.containsKey(errorId[0])); // AND the error doc was one of them
+      assertTrue(scannedDocs.containsKey(eid)); // AND the error doc was one of them
 
-      Thread.sleep(15000);
+      Thread.sleep(1500);
 
       planFinish.activate();
-      Thread.sleep(15000);
+      Thread.sleep(1500);
       planFinish.deactivate();
       assertEquals(44, scannedDocs.size());
       scannedDocs.clear();
@@ -116,12 +132,12 @@ public class SimpleFileScannerImplFTITest {
       // they do not get sent down the pipeline, and so the counter
       // step won't see them
 
-      Thread.sleep(15000);
+      Thread.sleep(1500);
 
       planFinish.activate();
-      Thread.sleep(15000);
+      Thread.sleep(1500);
       planFinish.deactivate();
-      Thread.sleep(15000);
+      Thread.sleep(1500);
       assertEquals(0, scannedDocs.size());
     } finally {
       Cassandra.stop();
@@ -166,7 +182,7 @@ public class SimpleFileScannerImplFTITest {
         .withRoot(tragedies)
         .named(SHAKESPEAR)
         .rememberScannedIds(true)
-        .scanFreqMS(3000);
+        .scanFreqMS(300);
 
     planBuilder
         .named("testScan")

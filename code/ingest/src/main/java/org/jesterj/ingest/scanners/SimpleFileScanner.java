@@ -54,7 +54,6 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   private transient volatile boolean ready;
   private final MemoryUsage heapMemoryUsage;
   private int memWaitTimeout;
-  private boolean checkDb = true;
 
   @SuppressWarnings("WeakerAccess")
   protected SimpleFileScanner() {
@@ -68,16 +67,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   public Runnable getScanOperation() {
     //TODO: consider pulling this check up to ScannerImpl so its similar for
     // all ScannerImpl subclasses
-    if (checkDb) {
-      log.info("Checking DB");
-      checkDb = false;
-      return () -> {
-        SimpleFileScanner.super.getScanOperation().run();
-        ready = true;
-      };
-    } else {
-      log.info("Scanning File System");
-      checkDb = true;
+
       return () -> {
         try {
           if (isScanActive()) {
@@ -88,6 +78,8 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
           // set up our watcher if needed
           scanStarted();
           this.ready = false; // ensure initial walk completes before new scans are started.
+          // always start with previously scanned docs
+          processDirtyAndRestartStatuses(getCassandra(),null);
           try {
             Files.walkFileTree(rootDir.toPath(), new RootWalker());
           } catch (IOException e) {
@@ -104,7 +96,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
           scanFinished();
         }
       };
-    }
+
   }
 
   @Override

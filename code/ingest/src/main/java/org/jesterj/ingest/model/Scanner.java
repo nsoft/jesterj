@@ -94,6 +94,7 @@ public interface Scanner extends Step {
      * Load a document based on the document's id.
      *
      * @param id the id of the document, see also {@link Document#getId()}
+     * @param helper an additional object arg in which to pass source specific ID logic.
      * @return An optional that contains the document if it is possible to retreive the document by ID
      */
     Optional<Document> fetchById(String id, Object helper);

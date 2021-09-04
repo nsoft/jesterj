@@ -201,7 +201,7 @@ test {
   }
 
   doFirst {
-    jvmArgs = [
+    jvmArgs += [
         '--add-modules', 'ALL-MODULE-PATH',
         '--add-opens', 'java.base/java.lang.module=ALL-UNNAMED',
         '--add-opens', 'java.base/jdk.internal.loader=ALL-UNNAMED',
