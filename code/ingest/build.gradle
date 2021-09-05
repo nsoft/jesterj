@@ -165,6 +165,7 @@ dependencies {
   implementation 'xml-resolver:xml-resolver:1.2'
   testImplementation 'junit:junit:4.11'
   implementation 'org.easymock:easymock:4.1'
+  testImplementation 'org.hsqldb:hsqldb:2.6.0'
   testImplementation ('com.needhamsoftware:easier-mock:2.0') {
     exclude group:'org.easymock'
   }

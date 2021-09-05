@@ -42,7 +42,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class SimpleFileScannerImplFTITest {
+public class SimpleFileScannerImplFTITest extends ScannerImplTest {
 
   private static final String SHAKESPEAR = "Shakespear_scanner";
   private static final Logger log = LogManager.getLogger();
@@ -142,34 +142,6 @@ public class SimpleFileScannerImplFTITest {
     } finally {
       Cassandra.stop();
     }
-  }
-
-  @NotNull
-  private NamedBuilder<DocumentProcessor> getScannedDocRecorder(HashMap<String, Document> scannedDocs) {
-    return new NamedBuilder<>() {
-
-      @Override
-      public NamedBuilder<DocumentProcessor> named(String name) {
-        return null;
-      }
-
-      @Override
-      public DocumentProcessor build() {
-        return new DocumentProcessor() {
-          @Override
-          public String getName() {
-            return null;
-          }
-
-          @Override
-          public Document[] processDocument(Document document) {
-            scannedDocs.put(document.getId(), document);
-            log.info("Recording {}", document.getId());
-            return new Document[] {document};
-          }
-        };
-      }
-    };
   }
 
   @SafeVarargs
