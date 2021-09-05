@@ -38,6 +38,7 @@ import java.io.Reader;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -295,7 +296,18 @@ public class JdbcScanner extends ScannerImpl {
 
   @Override
   public Optional<Document> fetchById(String id, Object helper) {
-    // TODO: implement this
+    // TODO: implement this, something like:
+    String sql =  "select * from " + this.table + " where " +this.getDatabasePkColumnName()+ " = ?";
+
+    Connection connection = (Connection) helper;
+    try {
+      PreparedStatement preparedStatement = connection.prepareStatement(sql);
+      preparedStatement.setString(1,getIdMangler(helper).fromObject(id));
+      preparedStatement.execute();
+    } catch (SQLException e) {
+      log.error("Error in sql to fetch document:{}", sql);
+      log.error("Exception was:", e);
+    }
     return Optional.empty();
   }
 
