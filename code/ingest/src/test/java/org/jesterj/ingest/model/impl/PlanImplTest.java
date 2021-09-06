@@ -29,7 +29,7 @@ import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.processors.LogAndDrop;
 import org.jesterj.ingest.routers.DuplicateToAll;
-import org.jesterj.ingest.scanners.SimpleFileWatchScanner;
+import org.jesterj.ingest.scanners.SimpleFileScanner;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -80,7 +80,7 @@ public class PlanImplTest {
   public void testSimple2Step() throws NoSuchFieldException, IllegalAccessException {
     replay();
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-    SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
+    SimpleFileScanner.Builder scannerBuilder = new SimpleFileScanner.Builder();
     StepImpl.Builder dropStepBuilder = new StepImpl.Builder();
 
     scannerBuilder.withRoot(new File("/Users/gus/foo/bar")).named(SCAN_FOO_BAR).batchSize(10)
@@ -136,7 +136,7 @@ public class PlanImplTest {
   public void testFailInvalidName() {
     replay();
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-    SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
+    SimpleFileScanner.Builder scannerBuilder = new SimpleFileScanner.Builder();
     StepImpl.Builder dropStepBuilder = new StepImpl.Builder();
 
     scannerBuilder.withRoot(new File("/Users/gus/foo/bar")).named(SCAN_FOO_BAR).batchSize(10);
@@ -158,7 +158,7 @@ public class PlanImplTest {
   public void testFailNullStepName() {
     replay();
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-    SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
+    SimpleFileScanner.Builder scannerBuilder = new SimpleFileScanner.Builder();
     StepImpl.Builder dropStepBuilder = new StepImpl.Builder();
 
     scannerBuilder.withRoot(new File("/Users/gus/foo/bar")).named("legal_name").batchSize(10);
@@ -181,7 +181,7 @@ public class PlanImplTest {
   public void testScannerPredecessorNotAllowed() {
     replay();
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-    SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
+    SimpleFileScanner.Builder scannerBuilder = new SimpleFileScanner.Builder();
     StepImpl.Builder dropStepBuilder = new StepImpl.Builder();
 
     scannerBuilder.withRoot(new File("/Users/gus/foo/bar")).named(SCAN_FOO_BAR).batchSize(10);
@@ -200,7 +200,7 @@ public class PlanImplTest {
   public void testNonScannerPredecessorRequired() {
     replay();
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-    SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
+    SimpleFileScanner.Builder scannerBuilder = new SimpleFileScanner.Builder();
     StepImpl.Builder dropStepBuilder = new StepImpl.Builder();
 
     scannerBuilder.withRoot(new File("/Users/gus/foo/bar")).named(SCAN_FOO_BAR).batchSize(10);
@@ -219,7 +219,7 @@ public class PlanImplTest {
   public void testRejectDuplicateName() {
     replay();
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-    SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
+    SimpleFileScanner.Builder scannerBuilder = new SimpleFileScanner.Builder();
     StepImpl.Builder dropStepBuilder = new StepImpl.Builder();
 
     scannerBuilder.withRoot(new File("/Users/gus/foo/bar")).named(SCAN_FOO_BAR).batchSize(10);
@@ -238,7 +238,7 @@ public class PlanImplTest {
   public void testRejectUnknownName() {
     replay();
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-    SimpleFileWatchScanner.Builder scannerBuilder = new SimpleFileWatchScanner.Builder();
+    SimpleFileScanner.Builder scannerBuilder = new SimpleFileScanner.Builder();
     StepImpl.Builder dropStepBuilder = new StepImpl.Builder();
 
     scannerBuilder.withRoot(new File("/Users/gus/foo/bar")).named(SCAN_FOO_BAR).batchSize(10);
