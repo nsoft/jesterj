@@ -34,7 +34,6 @@ import org.jesterj.ingest.processors.SimpleDateTimeReformatter;
 import org.jesterj.ingest.processors.TikaProcessor;
 import org.jesterj.ingest.routers.DuplicateToAll;
 import org.jesterj.ingest.scanners.SimpleFileScanner;
-import org.jesterj.ingest.scanners.SimpleFileWatchScanner;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
