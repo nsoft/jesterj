@@ -384,7 +384,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     return new DefaultOp();
   }
 
-  protected void processDocsByStatus(CassandraSupport cassandra, String findForScannerQ, Object helper) {
+  protected void processDocsByStatus(CassandraSupport cassandra, String findForScannerQ) {
     PreparedStatement pq = cassandra.getPreparedQuery(findForScannerQ);
     BoundStatement bs = pq.bind(getName());
     ResultSet rs = cassandra.getSession().execute(bs);
@@ -392,7 +392,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     int i=0;
     for (Row r : rs) {
       i++;
-      fetchById(r.getString(0), helper).ifPresent(this::docFound);
+      fetchById(r.getString(0)).ifPresent(this::docFound);
     }
     log.info("updated {} FTI records", i);
   }
@@ -695,44 +695,16 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         log.error("Cassandra null or still starting for scan operation, Docs Dirty in C* skipped");
         return;
       }
-      processDirtyAndRestartStatuses(cassandra, null);
+      processDirtyAndRestartStatuses(cassandra);
     }
   }
 
-  public abstract static class IdMangler {
-    private Object helper;
 
-    public IdMangler(Object helper) {
-      this.helper = helper;
-    }
 
-    public IdMangler() {}
-
-    abstract Object fromString(String id);
-    public String fromObject(Object obj) {
-      return String.valueOf(obj);
-    }
-  }
-
-  /**
-   * Hook for enabling calculation of an ObjectId
-   *
-   * @param helper an object
-   * @return An object to translate Ids
-   */
-  protected IdMangler getIdMangler(Object helper) {
-    return new IdMangler(helper) {
-      @Override
-      Object fromString(String id) {
-        return id;
-      }
-    };
-  }
-
-  protected void processDirtyAndRestartStatuses(CassandraSupport cassandra, Object helper) {
+  protected void processDirtyAndRestartStatuses(CassandraSupport cassandra) {
     if (this.isRemembering()) {
-      ScannerImpl.this.processDocsByStatus(cassandra, FIND_RESTART_FOR_SCANNER_Q, getIdMangler(helper));
-      ScannerImpl.this.processDocsByStatus(cassandra, FIND_DIRTY_FOR_SCANNER_Q, getIdMangler(helper));
+      ScannerImpl.this.processDocsByStatus(cassandra, FIND_RESTART_FOR_SCANNER_Q);
+      ScannerImpl.this.processDocsByStatus(cassandra, FIND_DIRTY_FOR_SCANNER_Q);
     }
   }
 }

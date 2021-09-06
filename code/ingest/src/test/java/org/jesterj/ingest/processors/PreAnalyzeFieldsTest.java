@@ -131,7 +131,7 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
       }
 
       @Override
-      public Optional<Document> fetchById(String id, Object helper) {
+      public Optional<Document> fetchById(String id) {
         return Optional.empty();
       }
 

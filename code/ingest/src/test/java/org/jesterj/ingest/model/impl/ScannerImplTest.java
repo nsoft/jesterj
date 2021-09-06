@@ -402,10 +402,10 @@ public class ScannerImplTest {
     expect(iterMock.hasNext()).andReturn(false).times(1);
     expect(iterMock.next()).andReturn(rowMock);
     expect(rowMock.getString(0)).andReturn("foobarId");
-    expect(scanner.fetchById("foobarId", null)).andReturn(Optional.of(docMock));
+    expect(scanner.fetchById("foobarId")).andReturn(Optional.of(docMock));
     scanner.docFound(docMock);
 
     replay();
-    scanner.processDocsByStatus(supportMock, "somequery", null);
+    scanner.processDocsByStatus(supportMock, "somequery");
   }
 }

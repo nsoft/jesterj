@@ -158,7 +158,7 @@ public class SimpleFileWatchScanner extends ScannerImpl implements FileScanner {
   }
 
   @Override
-  public Optional<Document> fetchById(String id, Object helper) {
+  public Optional<Document> fetchById(String id) {
     try {
       File file = new File(new URI(id));
       return makeDoc(file.toPath(), Document.Operation.NEW, Files.readAttributes(file.toPath(),BasicFileAttributes.class));
