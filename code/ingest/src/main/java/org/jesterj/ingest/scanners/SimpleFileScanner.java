@@ -79,7 +79,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
           scanStarted();
           this.ready = false; // ensure initial walk completes before new scans are started.
           // always start with previously scanned docs
-          processDirtyAndRestartStatuses(getCassandra(),null);
+          processDirtyAndRestartStatuses(getCassandra());
           try {
             Files.walkFileTree(rootDir.toPath(), new RootWalker());
           } catch (IOException e) {
@@ -100,7 +100,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   }
 
   @Override
-  public Optional<Document> fetchById(String id, Object helper) {
+  public Optional<Document> fetchById(String id) {
     try {
       File file = new File(new URI(id));
       return makeDoc(file.toPath(), Document.Operation.NEW, Files.readAttributes(file.toPath(),BasicFileAttributes.class));

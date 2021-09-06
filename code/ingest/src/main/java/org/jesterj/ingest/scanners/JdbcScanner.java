@@ -26,11 +26,11 @@ import org.apache.pdfbox.io.IOUtils;
 import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
-import org.jesterj.ingest.model.exception.ConfigurationException;
 import org.jesterj.ingest.model.exception.PersistenceException;
 import org.jesterj.ingest.model.impl.DocumentImpl;
 import org.jesterj.ingest.model.impl.ScannerImpl;
 import org.jesterj.ingest.utils.SqlUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -66,6 +66,7 @@ public class JdbcScanner extends ScannerImpl {
   private String sqlStatement;
   private String table;
   private String pkColumn;
+  private String connectionTestQuery;
   private transient volatile boolean ready;
 
   // For MySQL, this may need to be set by user to Integer.MIN_VALUE:
@@ -85,6 +86,9 @@ public class JdbcScanner extends ScannerImpl {
   // Use the ISO 8601 date format supported by Lucene, e.g. 2011-12-03T10:15:30Z
   private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_INSTANT;
 
+  private Connection connection;
+  private Object CONN_LOCK = new Object();
+
   @Override
   public void activate() {
     ready = true;
@@ -94,6 +98,18 @@ public class JdbcScanner extends ScannerImpl {
   @Override
   public void deactivate() {
     ready = false;
+    try {
+      if (isConnected()) {
+        // yes minor race potential here but shutting down so don't care, and also don't care if we kill
+        // in progress activities, (we have FTI to handle half done stuff)
+        connection.close();
+      }
+    } catch (Throwable e) {
+      log.error("Could not close database connection on deactivate!", e);
+      if (e instanceof Error) {
+        throw (Error) e;
+      }
+    }
     super.deactivate();
   }
 
@@ -108,10 +124,14 @@ public class JdbcScanner extends ScannerImpl {
         // Establish a connection and execute the query.
         this.ready = false;
         scanStarted();
-        try (Connection conn = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
-             Statement statement = createStatement(conn);
+        synchronized (CONN_LOCK) {
+          if (!isConnected()) {
+            connection = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
+          }
+        }
+        try (Statement statement = createStatement(connection);
              ResultSet rs = statement.executeQuery(sqlStatement)) {
-          processDirtyAndRestartStatuses(getCassandra(), conn);
+          processDirtyAndRestartStatuses(getCassandra());
           log.info("{} successfully queried database {}", getName(), jdbcUrl);
 
           String[] columnNames = getColumnNames(rs);
@@ -123,13 +143,13 @@ public class JdbcScanner extends ScannerImpl {
               log.debug("{} begining processing of result set", getName());
             }
             String docId = rs.getString(docIdColumnIdx);
-            docId = jdbcUrl + "/" + table + "/" + docId;
+            docId = docIdFromPkVal(docId);
             Document doc = makeDoc(rs, columnNames, docId);
             JdbcScanner.this.docFound(doc);
             count++;
           }
 
-        } catch (ConfigurationException | PersistenceException | SQLException ex) {
+        } catch (PersistenceException | SQLException ex) {
           log.error(getName() + " JDBC scanner error, rows processed=" + count, ex);
         }
         scanFinished();
@@ -139,9 +159,28 @@ public class JdbcScanner extends ScannerImpl {
         log.error(e);
         e.printStackTrace(); // todo get rid of this when #63 is fixed
       } finally {
-        log.debug("{} Database rows processed by {}", count, getName());
+        log.debug("{} Database rows queued by {}", count, getName());
       }
     };
+  }
+
+  @NotNull
+  private String docIdFromPkVal(String docId) {
+    docId = jdbcUrl + "/" + table + "/" + docId;
+    return docId;
+  }
+
+  private boolean isConnected() {
+    if (connection == null) {
+      return false;
+    } else {
+      try {
+        connection.prepareStatement(connectionTestQuery).executeQuery();
+      } catch (SQLException throwables) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -295,17 +334,30 @@ public class JdbcScanner extends ScannerImpl {
   }
 
   @Override
-  public Optional<Document> fetchById(String id, Object helper) {
+  public Optional<Document> fetchById(String id) {
     // TODO: implement this, something like:
     String sql =  "select * from " + this.table + " where " +this.getDatabasePkColumnName()+ " = ?";
 
-    Connection connection = (Connection) helper;
-    try {
-      PreparedStatement preparedStatement = connection.prepareStatement(sql);
-      preparedStatement.setString(1,getIdMangler(helper).fromObject(id));
-      preparedStatement.execute();
+    int slash = id.lastIndexOf("/") + 1;
+    int hash = id.indexOf('#');
+    int endOfParentDocId = hash < 0 ? id.length() : hash;
+    // theoretically could be some other unique indexed column but usually it's the PK
+    String pkValue = id.substring(slash,endOfParentDocId);
+    try (PreparedStatement preparedStatement = this.connection.prepareStatement(sql);){
+      preparedStatement.setString(1, pkValue);
+      ResultSet resultSet = preparedStatement.executeQuery();
+      Document value = null;
+      if(resultSet.next()) {
+         value = makeDoc(resultSet, getColumnNames(resultSet), docIdFromPkVal(pkValue));
+      }
+      if (value != null) {
+        return Optional.of(value);
+      } else {
+        log.warn("Did not find {}", id);
+        return Optional.empty();
+      }
     } catch (SQLException e) {
-      log.error("Error in sql to fetch document:{}", sql);
+      log.error("Error in sql to fetch document:[{}] args was:{}", sql,pkValue);
       log.error("Exception was:", e);
     }
     return Optional.empty();
@@ -369,6 +421,11 @@ public class JdbcScanner extends ScannerImpl {
     }
     public Builder withPKColumn(String pkCol) {
       getObj().pkColumn = pkCol;
+      return this;
+    }
+
+    public Builder testingConnectionWith(String query) {
+      getObj().connectionTestQuery = query;
       return this;
     }
 
