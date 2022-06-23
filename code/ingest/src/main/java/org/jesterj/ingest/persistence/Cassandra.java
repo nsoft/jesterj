@@ -49,6 +49,7 @@ public class Cassandra {
   // that circularity will cause a deadlock (trust me it's ugly). So yes the System.out prints must stay,
   // though they should all fire only during system startup.
 
+
   private static CassandraDaemon cassandra;
   @SuppressWarnings("rawtypes")
   private static final ConcurrentLinkedQueue<RunnableFuture> finalBootActions = new ConcurrentLinkedQueue<>();
@@ -127,7 +128,7 @@ public class Cassandra {
     } catch (IOException | ConfigurationException e) {
       e.printStackTrace();
     }
-    cassandra = new CassandraDaemon();
+    cassandra = new JJCassandraDaemon();
     try {
       // keep cassandra from clobering system.out and sytem.err
       System.setProperty("cassandra-foreground", "true");

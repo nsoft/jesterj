@@ -30,7 +30,7 @@ public class ScannerImplTest {
           @Override
           public Document[] processDocument(Document document) {
             scannedDocs.put(document.getId(), document);
-            log.info("Recording {}", document.getId());
+            log.trace("Recording {}", document.getId());
             return new Document[] {document};
           }
         };

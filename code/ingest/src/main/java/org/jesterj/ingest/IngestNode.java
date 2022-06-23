@@ -61,7 +61,7 @@ public class IngestNode implements Runnable, IngestService {
 //      sdm = new ServiceDiscoveryManager(dlm, lrm);
 //    } catch (IOException e) {
 //      e.printStackTrace();
-//      System.exit(2);
+//      System.exit(1);
 //    }
 //
 //    ServiceTemplate srTemplate = new ServiceTemplate(null, new Class[]{ServiceRegistrar.class}, null);

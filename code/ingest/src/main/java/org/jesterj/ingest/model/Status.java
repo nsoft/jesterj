@@ -92,7 +92,8 @@ public enum Status implements Serializable {
   },
 
   /**
-   * The document has been accepted by the destination index, but may not be searchable until the next commit.
+   * The document has been accepted by the destination (usually a search index), but may not be searchable until
+   * the next commit.
    */
   INDEXED {
     @Override

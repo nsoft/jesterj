@@ -98,4 +98,7 @@ public interface Scanner extends Step {
      */
     Optional<Document> fetchById(String id);
 
+    boolean isRemembering();
+
+    boolean isHashing();
 }

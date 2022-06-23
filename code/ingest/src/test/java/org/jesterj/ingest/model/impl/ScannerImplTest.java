@@ -31,6 +31,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -40,12 +41,14 @@ import static com.copyright.easiertest.EasierMocks.prepareMocks;
 import static com.copyright.easiertest.EasierMocks.replay;
 import static com.copyright.easiertest.EasierMocks.reset;
 import static com.copyright.easiertest.EasierMocks.verify;
+import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.jesterj.ingest.model.impl.ScannerImpl.FIND_BATCHED_FOR_SCANNER_Q;
 import static org.jesterj.ingest.model.impl.ScannerImpl.FIND_ERROR_FOR_SCANNER_Q;
 import static org.jesterj.ingest.model.impl.ScannerImpl.FIND_PROCESSING_FOR_SCANNER_Q;
 import static org.jesterj.ingest.model.impl.ScannerImpl.FIND_RESTART_FOR_SCANNER_Q;
 import static org.jesterj.ingest.model.impl.ScannerImpl.RESET_DOCS_U;
+import static org.jesterj.ingest.model.impl.ScannerImpl.TIMEOUT;
 import static org.jesterj.ingest.model.impl.ScannerImpl.UPDATE_HASH_U;
 import static org.junit.Assert.assertTrue;
 
@@ -340,6 +343,7 @@ public class ScannerImplTest {
     expect(docMock.getSourceScannerName()).andReturn("Arthur Dent");
     expect(statementMock.bind("DEADBEEF", "42", "Arthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(null);
+    //expect(bsMock.setTimeout(Duration.ofSeconds(600))).andReturn(bsMock);
     scanner.superSendToNext(docMock);
     replay();
     scanner.sendToNext(docMock);
@@ -351,6 +355,7 @@ public class ScannerImplTest {
     expect(supportMock.getPreparedQuery("storedQueryName")).andReturn(statementMock);
     expect(scanner.getName()).andReturn("scannerName");
     expect(statementMock.bind("scannerName")).andReturn(bsMock);
+    expect(bsMock.setTimeout(Duration.ofSeconds(600))).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
     List<Row> rows = new ArrayList<>();
     rows.add(rowMock);
@@ -380,10 +385,13 @@ public class ScannerImplTest {
     expect(mockKey.getDocid()).andReturn("foo");
     expect(mockKey.getScanner()).andReturn("bar");
     expect(statementMock.bind("foo","bar")).andReturn(bsMock);
+    expect(bsMock.setTimeout(Duration.ofSeconds(600))).andReturn(bsMock);
     List<BoundStatement> boundStatements = new ArrayList<>();
     expect(scanner.createListBS()).andReturn(boundStatements);
     boundStatements.add(bsMock);
     expect(batchMock.addAll(boundStatements)).andReturn(batchMock);
+    expect(batchMock.setTimeout(Duration.ofSeconds(600))).andReturn(batchMock);
+
     expect(sessionMock.execute(batchMock)).andReturn(null); // unused
     scanner.superActivate();
     replay();
@@ -395,6 +403,7 @@ public class ScannerImplTest {
     expect(supportMock.getPreparedQuery("somequery")).andReturn(statementMock);
     expect(scanner.getName()).andReturn("foo");
     expect(statementMock.bind("foo")).andReturn(bsMock);
+    expect(bsMock.setTimeout(Duration.ofSeconds(600))).andReturn(bsMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
     expect(rsMock.iterator()).andReturn(iterMock);

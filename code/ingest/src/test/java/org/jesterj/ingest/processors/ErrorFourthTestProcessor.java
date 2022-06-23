@@ -23,7 +23,7 @@ public class ErrorFourthTestProcessor implements DocumentProcessor {
   public Document[] processDocument(Document document) {
     count++;
     if (count % 5 == 4 ) {
-      document.setStatus(Status.ERROR);
+      document.setStatus(Status.ERROR,"Unit Test 4th doc drop");
       log.info("Erroring {}",document.getId());
       lastErrorId[0] = document.getId();
     }

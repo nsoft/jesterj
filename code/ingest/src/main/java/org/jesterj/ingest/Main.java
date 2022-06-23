@@ -80,7 +80,7 @@ public class Main {
         JJ_DIR = jjDir.getCanonicalPath();
       } catch (IOException e) {
         e.printStackTrace();
-        System.exit(1);
+        System.exit(10);
       }
     }
   }
@@ -144,7 +144,7 @@ public class Main {
                   p.activate();
                 } else {
                   System.out.println("Please specify the java config via -Djj.javaConfig=<location of jar file>");
-                  System.exit(1);
+                  System.exit(11);
                 }
               }
               while (true) {
@@ -187,7 +187,7 @@ public class Main {
         } catch (InterruptedException ex) {
           ex.printStackTrace();
         }
-        System.exit(1);
+        System.exit(12);
       }
     }
   }
@@ -228,7 +228,7 @@ public class Main {
       cassandraDir = new File(cassandraHome);
       if (!cassandraDir.isDirectory()) {
         System.err.println("\nERROR: --cassandra-home must specify a directory\n");
-        System.exit(1);
+        System.exit(13);
       }
     }
     String id = (String) parsedArgs.get("<id>");
@@ -243,7 +243,7 @@ public class Main {
     File file = new File(javaConfig);
     if (!file.exists()) {
       System.err.println("File not found:" + file);
-      System.exit(1);
+      System.exit(14);
     }
 
     boolean isUnoJar = false;
@@ -254,7 +254,7 @@ public class Main {
       isUnoJar = attr != null && attr.trim().equalsIgnoreCase("uno-jar");
     } catch (IOException e) {
       e.printStackTrace();
-      System.exit(1);
+      System.exit(15);
     }
     boolean finalIsUnoJar = isUnoJar;
     if (log != null) {
@@ -306,7 +306,7 @@ public class Main {
       }
       if (classesWithAnnotation.size() == 0) {
         System.err.println("No Plan Found!");
-        System.exit(1);
+        System.exit(16);
       }
       @SuppressWarnings("rawtypes")
       Class config = jesterJLoader.loadClass(planProducers.get(0));
@@ -315,7 +315,7 @@ public class Main {
       return provider.getPlan();
     } catch (ClassNotFoundException e) {
       System.err.println("Found a plan class but could not load Plan's class file!");
-      System.exit(1);
+      System.exit(17);
       throw new RuntimeException(); // compiler doesn't understand system.exit
     }
 
@@ -370,7 +370,7 @@ public class Main {
     }
     if ((boolean) result.get("--help")) {
       System.out.println(usageStr);
-      System.exit(1);
+      System.exit(18);
     }
     return result;
   }
@@ -382,7 +382,7 @@ public class Main {
    * @return true if the system is shutting down
    */
 
-  public static boolean isNotShuttingDown() {
+  public synchronized static boolean isNotShuttingDown() {
     try {
       Runtime.getRuntime().addShutdownHook(DUMMY_HOOK);
       Runtime.getRuntime().removeShutdownHook(DUMMY_HOOK);

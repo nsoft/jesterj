@@ -25,6 +25,7 @@ import guru.nidi.graphviz.model.Factory;
 import guru.nidi.graphviz.model.Graph;
 import guru.nidi.graphviz.model.Node;
 import org.jesterj.ingest.config.Transient;
+import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Step;
@@ -135,8 +136,43 @@ public class PlanImpl implements Plan {
 
   @Override
   public synchronized void deactivate() {
-    getStepsMap().values().forEach(Step::deactivate);
+    // Need to ensure that we never have a live thread feeding documents to a step that is already stopped.
+    // since this will cause potential deadlock if the queue fills up and the step is blocked on a put()
+    // while holding it's own monitor... so complications below for thread safety. Below we refer to
+    // any connected sets of steps from the upstream side that do not have multiple inputs as a "level"
+    // We process deactivations level by level.
+
+    List<Step> nextLevel = getStepsMap().values().stream().filter(s -> s instanceof Scanner).collect(Collectors.toList());
+    List<Step> currentLevel;
+    do {
+      //todo: FIXME this doesn't really work. Need to back ref prior steps and check all prior steps are inactive.
+      currentLevel = nextLevel;
+      nextLevel = new ArrayList<>();
+      for (Step step : currentLevel) {
+        if (!step.isActivePriorSteps()){
+          step.deactivate();
+        } else {
+          nextLevel.add(step);
+        }
+        for (Step nextStep : step.getNextSteps().values()) {
+          deactivateStep(nextStep, nextLevel);
+        }
+      }
+    } while (!nextLevel.isEmpty());
     this.setActive(false);
+  }
+
+  private void deactivateStep(Step step, List<Step> nextLevel) {
+    if (step.isJoinPoint()) {
+      nextLevel.add(step);
+      return;
+    }
+    if (!step.getNextSteps().isEmpty()) {
+      for (Step nextStep : step.getNextSteps().values()) {
+        deactivateStep(nextStep,nextLevel);
+      }
+    }
+    step.deactivate();
   }
 
   @Transient
@@ -300,10 +336,14 @@ public class PlanImpl implements Plan {
         }
       }
 
+      if (predecessors.keySet().size() > 1) {
+        builder.isJoinPoint();
+      }
       for (String successor : successors) {
         builder.addNextStep(steps.get(successor));
       }
       StepImpl step = builder.build();
+
       String stepName = step.getName();
       steps.put(stepName, step);
     }

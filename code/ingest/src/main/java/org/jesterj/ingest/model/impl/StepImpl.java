@@ -70,20 +70,24 @@ public class StepImpl implements Step {
   DocumentConsumer documentConsumer = new DocumentConsumer(); // stateless bean
   private LinkedBlockingQueue<Document> queue;
   private int batchSize; // no concurrency by default
-  private LinkedHashMap<String, Step> nextSteps = new LinkedHashMap<>();
+  private final LinkedHashMap<String, Step> nextSteps = new LinkedHashMap<>();
   private volatile boolean active;
   private JavaSpace outputSpace;
   private JavaSpace inputSpace;
   private String stepName;
   private Router router = new RouteByStepName();
-  private DocumentProcessor processor = new DefaultWarningProcessor();
-  private Thread worker;
+  private volatile DocumentProcessor processor = new DefaultWarningProcessor();
+  private volatile Thread worker;
+  private final Object WORKER_LOCK = new Object();
   private Plan plan;
   private Cloner<Document> cloner = new Cloner<>();
 
   private List<Runnable> deferred = new ArrayList<>();
   private final Object sideEffectListLock = new Object();
   private Step[] possibleSideEffects;
+  private int shutdownTimeout;
+  private boolean joinPoint;
+  private final List<Step> priorSteps = new ArrayList<>();
 
   StepImpl() {
   }
@@ -222,9 +226,8 @@ public class StepImpl implements Step {
   }
 
   @Override
-  public Step[] getSubsequentSteps() {
-    //TODO: Something that isn't brain dead
-    return new Step[0];
+  public boolean isJoinPoint() {
+    return joinPoint;
   }
 
   @Override
@@ -267,36 +270,48 @@ public class StepImpl implements Step {
   }
 
   @Override
-  public void activate() {
+  public synchronized void activate() {
     log.info("Starting {} ", getName());
     if (worker == null || !worker.isAlive()) {
-      log.info("Starting new thread for {} ", getName());
-      worker = new Thread(this);
-      worker.setName("jj-worker-" + this.stepName);
-      worker.setDaemon(true);
-      worker.start();
+      synchronized (WORKER_LOCK) {
+        log.info("Starting new thread for {} ", getName());
+        worker = new Thread(this);
+        worker.setName("jj-worker-" + this.stepName + "-" + System.currentTimeMillis());
+        worker.setDaemon(true);
+        worker.start();
+      }
     }
     this.active = true;
   }
 
   @Override
-  public void deactivate() {
+  public synchronized void deactivate() {
     this.active = false;
+    // make this method idempotent so that it can be called any number of times without NPE, and can be
+    // called by the joined thread  without getting stuck in a join/interrupt loop.
     if (worker != null) {
-      try {
-        worker.join(1000);
-        if (worker.isAlive()) {
-          log.warn("{} was slow shutting down, interrupting..", getName());
-          worker.interrupt();
+      Thread workerShuttingDown;
+      synchronized (WORKER_LOCK) {
+        workerShuttingDown = worker;
+        worker = null;
+      }
+      if (workerShuttingDown != null) {
+        try {
+          shutdownTimeout = 1000;
+          workerShuttingDown.join(shutdownTimeout);
+          if (workerShuttingDown.isAlive()) {
+            log.warn("{} was slow shutting down, interrupting..", getName());
+            workerShuttingDown.interrupt();
+          }
+        } catch (InterruptedException e) {
+          log.error("Thread on which shutdown was was interrupted while shutting down {}", getName());
         }
-      } catch (InterruptedException e) {
-        // reset thread interrupt status
-        //noinspection ResultOfMethodCallIgnored
-        Thread.interrupted();
       }
     }
     this.queue.clear();
-    processor.close();
+    if (processor != null) {
+      processor.close();
+    }
   }
 
   @Transient
@@ -317,7 +332,7 @@ public class StepImpl implements Step {
         if (this.possibleSideEffects == null) {
           if (nextSteps.isEmpty()) {
             if (processor.hasExternalSideEffects()) {
-              possibleSideEffects = new Step[] {this};
+              possibleSideEffects = new Step[]{this};
             } else {
               // oddball case! but shoudlnt
               possibleSideEffects = new Step[0];
@@ -343,8 +358,14 @@ public class StepImpl implements Step {
     return possibleSideEffects;
   }
 
-  LinkedHashMap<String, Step> getNextSteps() {
+  @Override
+  public LinkedHashMap<String, Step> getNextSteps() {
     return nextSteps;
+  }
+
+  @Override
+  public boolean isActivePriorSteps() {
+    return priorSteps.stream().anyMatch(Step::isActive);
   }
 
   private void pushToNextIfOk(Document document) {
@@ -354,10 +375,14 @@ public class StepImpl implements Step {
       boolean foundStep = false;
       Deque<Document> clones = new ArrayDeque<>();
       Step last = null;
-      while (!foundStep) {
+      while (!foundStep) { // if the queue is full for the next step we may need to try again
         Step[] next = getNext(document);
         if (next == null) {
-          reportDocStatus(Status.DROPPED, document, "No qualifying next step found by {} in {}", router, getName());
+          if (getNextSteps().size() == 0) {
+            reportDocStatus(Status.INDEXED, document, "Terminal Step {} OK", getName());
+          } else {
+            reportDocStatus(Status.DROPPED, document, "No qualifying next step found by {} in {}", router, getName());
+          }
           return;
         }
         if (next.length == 1) {
@@ -368,7 +393,7 @@ public class StepImpl implements Step {
           // In this case we have a specific set of steps that need to get a copy
           // we don't want to repeatedly ask and we have to block.
           foundStep = true;
-          log.info("Distributing doc {} to {} ", () -> document.getId(), () -> Arrays.stream(next).map(Step::getName).collect(Collectors.toList()));
+          log.info("Distributing doc {} to {} ", document::getId, () -> Arrays.stream(next).map(Step::getName).collect(Collectors.toList()));
           for (int i = 0; i < next.length; i++) {
             // clone before attempting to push just in case mutable state in the delegate mutates to cause exception
             // part way through. This would indicate some form of bad design, but let's be safe anyway.
@@ -380,6 +405,7 @@ public class StepImpl implements Step {
           }
           // Ok, so we have our copies, now distribute...
           for (Step aNext : next) {
+            // todo: this blocks on the first busy step, which seems suboptimal
             pushToStep(clones.pop(), aNext, true);
           }
         }
@@ -413,7 +439,7 @@ public class StepImpl implements Step {
       } else {
         log.error("This code path (javaspaces) not yet supported");
         System.err.println("This code path (java spaces) not yet supported");
-        System.exit(2);
+        System.exit(99);
 //      if (this.isFinalHelper)) {
 //        // remote processing is our only option.
 //        log.debug("todo: send to JavaSpace");
@@ -441,7 +467,7 @@ public class StepImpl implements Step {
       log.info(status.getMarker(), message, messageParams);
     } catch (AppenderLoggingException e) {
       if (Main.isNotShuttingDown()) {
-        log.error("Could not contact our internal Cassandra!!!" + e);
+        log.error("Could not contact our internal Cassandra!!!", e);
       }
     } finally {
       ThreadContext.clearAll();
@@ -451,35 +477,15 @@ public class StepImpl implements Step {
   @Override
   public void run() {
     try {
-      //noinspection InfiniteLoopStatement
-      while (true) {
-        while (!this.active) {
-          log.trace("inactive: {}", getName());
-          try {
-            Thread.sleep(50);
-          } catch (InterruptedException e) {
-            // ignore
-          }
-        }
-        log.trace("active: {}", getName());
-        ArrayList<Document> temp = null;
-        if (peek() != null) {
-          temp = new ArrayList<>();
-          for (int i = 0; i < queue.size(); i++) {
-            temp.add(queue.take());
-          }
-        }
-        if (temp != null) {
-          log.trace("{} took {} from queue", getName(), temp.size());
-          temp.forEach(documentConsumer);
-          continue;
-        }
-
+      while (this.active) {
         try {
-          // if we don't have work make sure we let others do their work.
-          Thread.sleep(0,5);
+          log.trace("active: {}", getName());
+          Document document = queue.take();
+          log.trace("{} took {} from queue", getName(), document.getId());
+          documentConsumer.accept(document);
         } catch (InterruptedException e) {
-          // ignore
+          this.deactivate();
+          break;
         }
       }
     } catch (Throwable t) {
@@ -507,7 +513,11 @@ public class StepImpl implements Step {
     e.printStackTrace(new PrintWriter(buff));
     String errorMsg = message + " " + e.getMessage() + "\n" + buff;
     reportDocStatus(Status.ERROR, doc, errorMsg, params);
-    log.error("Step Exception!", e );
+    if (e instanceof InterruptedException) {
+      log.debug("Step interrupted!", e);
+    } else {
+      log.error("Step Exception!", e);
+    }
   }
 
   @SuppressWarnings("unused")
@@ -537,8 +547,8 @@ public class StepImpl implements Step {
         if (document.getStatus() == Status.ERROR ||
             document.getStatus() == Status.DROPPED ||
             document.getStatus() == Status.DEAD) {
-          log.fatal("ATTEMPTED TO CONSUME {}} DOCUMENT!!",document.getStatus());
-          log.fatal("offending doc:{}",document.getId() );
+          log.fatal("ATTEMPTED TO CONSUME {}} DOCUMENT!!", document.getStatus());
+          log.fatal("offending doc:{}", document.getId());
           log.fatal(new RuntimeException("Bad Doc Status:" + document.getStatus()));
           Thread.dumpStack();
           System.exit(9999);
@@ -600,6 +610,11 @@ public class StepImpl implements Step {
       return this;
     }
 
+    public Builder withShutdownWait(int millis) {
+      getObj().shutdownTimeout = millis;
+      return this;
+    }
+
     public Builder routingBy(ConfiguredBuildable<? extends Router> router) {
       StepImpl currObj = getObj(); // make sure that this cant' change after build() called.
       getObj().addDeferred(() -> currObj.router = router.build());
@@ -609,6 +624,11 @@ public class StepImpl implements Step {
     public Builder withProcessor(ConfiguredBuildable<? extends DocumentProcessor> processor) {
       StepImpl currObj = getObj(); // make sure that this cant' change after build() called.
       getObj().addDeferred(() -> currObj.processor = processor.build());
+      return this;
+    }
+
+    Builder isJoinPoint() {
+      getObj().joinPoint = true;
       return this;
     }
 
@@ -641,8 +661,14 @@ public class StepImpl implements Step {
      * @param step a fully built step
      */
     void addNextStep(Step step) {
+      step.addPredecessor(getObj());
       getObj().nextSteps.put(step.getName(), step);
     }
+  }
+
+  @Override
+  public void addPredecessor(StepImpl obj) {
+    this.priorSteps.add(obj);
   }
 
   @Override

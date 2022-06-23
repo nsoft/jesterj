@@ -267,7 +267,7 @@ public class PlanImplTest {
   public void testDeactivate() {
     LinkedHashMap<String, Step> stringStepLinkedHashMap = new LinkedHashMap<>();
     stringStepLinkedHashMap.put("foo", stepMock);
-    expect(plan.getStepsMap()).andReturn(stringStepLinkedHashMap);
+    expect(plan.getStepsMap()).andReturn(stringStepLinkedHashMap).anyTimes();
     stepMock.deactivate();
     plan.setActive(false);
     replay();

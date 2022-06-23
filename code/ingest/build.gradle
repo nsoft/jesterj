@@ -32,7 +32,7 @@ plugins {
   id 'idea'
   id 'jacoco'
   id 'signing'
-  id 'maven'
+//  id 'maven'
   id 'maven-publish'
   id 'com.github.jk1.dependency-license-report' version '0.3.4'
   id "com.github.onslip.gradle-one-jar" version "1.0.5"
@@ -191,11 +191,11 @@ javadoc {
 // these are just support classes for the Trie Tests swiped from commons/collections
 // they don't actually have test methods which causes Junit to complain. Just don't run them.
 test {
-  minHeapSize = "128m"
-  maxHeapSize = "1g"
-  forkEvery = 1
+  maxHeapSize = "4g"
+  //maxParallelForks = 6
   exclude '**/Abstract*.class', '**/BulkTest.class'
   systemProperty "java.security.egd", "file:/dev/./urandom"
+  systemProperty "jj.log.dir", "build"
   testLogging {
     events "passed", "skipped", "failed"
     exceptionFormat "full"
@@ -398,55 +398,114 @@ signing {
 
 ext.isLocalVersion = !version.endsWith("LOCAL")
 
-uploadArchives {
-  it.dependsOn checkUploadDest
-  repositories {
-    mavenDeployer {
-      beforeDeployment { deployment -> signing.signPom(deployment) }
-      repository(url: project.uploadRepo) {
-        authentication(userName: propOrDefault('sonatypeUsername','foo'), password: propOrDefault('sonatypePassword','foo'))
-      }
-      pom.project {
-        parent {
-          groupId 'org.sonatype.oss'
-          artifactId 'oss-parent'
-          //noinspection GroovyAssignabilityCheck
-          version '7'
-        }
-        artifactId 'jesterj-ingest'
-        name 'JesterJ Ingester'
-        description 'Document ingestion for search'
-        url 'https://github.com/nsoft/jesterj'
+//uploadArchives {
+//  it.dependsOn checkUploadDest
+//  repositories {
+//    mavenDeployer {
+//      beforeDeployment { deployment -> signing.signPom(deployment) }
+//      repository(url: project.uploadRepo) {
+//        authentication(userName: propOrDefault('sonatypeUsername','foo'), password: propOrDefault('sonatypePassword','foo'))
+//      }
+//      pom.project {
+//        parent {
+//          groupId 'org.sonatype.oss'
+//          artifactId 'oss-parent'
+//          //noinspection GroovyAssignabilityCheck
+//          version '7'
+//        }
+//        artifactId 'jesterj-ingest'
+//        name 'JesterJ Ingester'
+//        description 'Document ingestion for search'
+//        url 'https://github.com/nsoft/jesterj'
+//        licenses {
+//          license {
+//            name 'The Apache Software License, Version 2.0'
+//            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+//            distribution 'repo'
+//          }
+//        }
+//        scm {
+//          connection 'scm:git:git@github.com:nsoft/jesterj.git'
+//          developerConnection 'scm:git:git@github.com:nsoft/jesterj.git'
+//          url 'git@github.com:nsoft/jesterj.git'
+//        }
+//        developers {
+//          developer {
+//            id 'nsoft'
+//            name 'Patrick Heck'
+//            email 'gus@needhamsoftware.com'
+//          }
+//        }
+//      }
+//      pom.withXml { root ->
+//        def children = root.asNode().children()
+//        def versionIndex = children.indexOf(children.find { it.name().localPart == 'version' })
+//        // Stuff that sonatype wants... there may be a way to make these appear automatically but...
+//        // http://issues.gradle.org/browse/GRADLE-1285
+//        children.add(versionIndex + 1, new Node(null, 'packaging', 'jar'))
+//      }
+//    }
+//  }
+//}
+
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      artifactId = 'jesterj-ingest'
+//      from components.java
+
+      pom {
+        name = 'My Library'
+        description = 'A concise description of my library'
+        url = 'http://www.example.com/library'
+        properties = [
+            myProp: "value",
+            "prop.with.dots": "anotherValue"
+        ]
         licenses {
           license {
-            name 'The Apache Software License, Version 2.0'
-            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-            distribution 'repo'
+            name = 'The Apache License, Version 2.0'
+            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            distribution = 'repo'
           }
-        }
-        scm {
-          connection 'scm:git:git@github.com:nsoft/jesterj.git'
-          developerConnection 'scm:git:git@github.com:nsoft/jesterj.git'
-          url 'git@github.com:nsoft/jesterj.git'
         }
         developers {
           developer {
-            id 'nsoft'
-            name 'Patrick Heck'
-            email 'gus@needhamsoftware.com'
+            id = 'johnd'
+            name = 'John Doe'
+            email = 'john.doe@example.com'
           }
         }
+        scm {
+          connection = 'scm:git:git://example.com/my-library.git'
+          developerConnection = 'scm:git:ssh://example.com/my-library.git'
+          url = 'http://example.com/my-library/'
+        }
       }
-      pom.withXml { root ->
-        def children = root.asNode().children()
-        def versionIndex = children.indexOf(children.find { it.name().localPart == 'version' })
-        // Stuff that sonatype wants... there may be a way to make these appear automatically but...
-        // http://issues.gradle.org/browse/GRADLE-1285
-        children.add(versionIndex + 1, new Node(null, 'packaging', 'jar'))
+    }
+  }
+  repositories {
+    maven {
+      def releasesRepoUrl = 'http://localhost:8081/repository/maven-releases'
+      def snapshotsRepoUrl = 'http://localhost:8081/repository/maven-snapshots'
+      url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+      allowInsecureProtocol=true
+      credentials {
+        username "admin"
+        password "admin123"
       }
     }
   }
 }
+
+
+javadoc {
+  if(JavaVersion.current().isJava9Compatible()) {
+    options.addBooleanOption('html5', true)
+  }
+}
+
+generateMetadataFileForMavenJavaPublication.dependsOn(packUnoJar)
 
 jar.manifest.attributes getManifestAttributes()
 sourcesJar.manifest.attributes getManifestAttributes()

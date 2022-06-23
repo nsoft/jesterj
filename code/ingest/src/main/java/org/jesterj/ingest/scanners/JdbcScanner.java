@@ -87,7 +87,7 @@ public class JdbcScanner extends ScannerImpl {
   private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_INSTANT;
 
   private Connection connection;
-  private Object CONN_LOCK = new Object();
+  private final Object CONN_LOCK = new Object();
 
   @Override
   public void activate() {
@@ -114,8 +114,8 @@ public class JdbcScanner extends ScannerImpl {
   }
 
   @Override
-  public Runnable getScanOperation() {
-    return () -> {
+  public ScanOp getScanOperation() {
+    return new ScanOp(() -> {
       // Remainder of operation is implemented here instead of relying on DefaultOp to avoid spamming the DB with
       // queries for individual rows.
       int count = 0;
@@ -123,7 +123,6 @@ public class JdbcScanner extends ScannerImpl {
         log.info("{} connecting to database {}", getName(), jdbcUrl);
         // Establish a connection and execute the query.
         this.ready = false;
-        scanStarted();
         synchronized (CONN_LOCK) {
           if (!isConnected()) {
             connection = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
@@ -152,16 +151,15 @@ public class JdbcScanner extends ScannerImpl {
         } catch (PersistenceException | SQLException ex) {
           log.error(getName() + " JDBC scanner error, rows processed=" + count, ex);
         }
-        scanFinished();
-        this.ready = true;
       } catch (Exception e) {
         log.error("JDBC operation for {} failed.", getName());
         log.error(e);
         e.printStackTrace(); // todo get rid of this when #63 is fixed
       } finally {
+        this.ready = true;
         log.debug("{} Database rows queued by {}", count, getName());
       }
-    };
+    }, this);
   }
 
   @NotNull

@@ -37,6 +37,7 @@ import org.jesterj.ingest.persistence.CassandraSupport;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Queue;
@@ -235,6 +236,7 @@ public class JesterJAppender extends AbstractAppender {
     // error case more expensive, but it **should** be the less common case.
     PreparedStatement pq = cassandra.getPreparedQuery(FTI_ERROR_COUNT_Q);
     BoundStatement bs = pq.bind(docId);
+    bs = bs.setTimeout(Duration.ofSeconds(600));
     ResultSet rs = s.execute(bs);
     List<Row> allRows = rs.all();
     if (allRows.size() > 1 ) {

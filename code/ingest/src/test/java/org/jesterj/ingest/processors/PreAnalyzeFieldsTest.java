@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+// need to ignore org.apache.zookeeper.server.SessionTrackerImpl thread
 
 public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
   private static final Logger log = LogManager.getLogger();
@@ -54,17 +55,6 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
 
   private static CloudSolrClient solrClient;
 
-  @BeforeClass
-  public static void throwAway() {
-    log.info("BEFORE_CLASS BEGINS");
-    // this is just ot keep checkClusterConfiguration happy... actually better to do this per-test
-    // to avoid cross talk between tests (see SOLR-12801 test revamp in solr)
-    // future versions of solr won't require this....
-    Objenesis objenesis = new ObjenesisStd();
-    ObjectInstantiator<MiniSolrCloudCluster> instantiatorOf = objenesis.getInstantiatorOf(MiniSolrCloudCluster.class);
-    cluster = instantiatorOf.newInstance();
-    log.info("BEFORE_CLASS ENDSS");
-  }
 
   @Before
   public void doBefore() throws Exception {
@@ -121,7 +111,7 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
 
     Scanner s = new ScannerImpl() {
       @Override
-      public Runnable getScanOperation() {
+      public ScanOp getScanOperation() {
         return null;
       }
 
