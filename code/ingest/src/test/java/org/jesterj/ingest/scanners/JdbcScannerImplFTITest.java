@@ -17,8 +17,6 @@
 package org.jesterj.ingest.scanners;
 
 import com.google.common.io.Files;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
@@ -30,7 +28,6 @@ import org.jesterj.ingest.processors.ErrorFourthTestProcessor;
 import org.jesterj.ingest.processors.PauseEveryFiveTestProcessor;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -54,8 +51,8 @@ import static org.junit.Assert.assertTrue;
 public class JdbcScannerImplFTITest extends ScannerImplTest {
 
   private static final String SHAKESPEAR = "Shakespear_scanner";
-  private static final Logger log = LogManager.getLogger();
   public static final String SQL_1 = "SELECT * FROM play";
+  public static final int PAUSE_MILLIS = 2000; // values smaller than this become flaky
 
   @Before
   public void setUp() {
@@ -74,20 +71,20 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
     PreparedStatement insert = c.prepareStatement("INSERT INTO play VALUES (?,?,?)");
 
     File tragedies = new File("src/test/resources/test-data");
-    java.nio.file.Files.walkFileTree(tragedies.toPath(), new FileVisitor<Path>() {
+    java.nio.file.Files.walkFileTree(tragedies.toPath(), new FileVisitor<>() {
       @Override
-      public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+      public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
         return FileVisitResult.CONTINUE;
       }
 
       @Override
       public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
         try {
-          insert.setString(1,String.valueOf(idNext.getAndIncrement()));
+          insert.setString(1, String.valueOf(idNext.getAndIncrement()));
           String uri = file.toUri().toString();
           insert.setString(2, uri.substring(uri.lastIndexOf(File.separator) + 1));
           String text = new String(java.nio.file.Files.readAllBytes(file));
-          insert.setString(3,text);
+          insert.setString(3, text);
           insert.execute();
         } catch (SQLException e) {
           throw new IOException(e);
@@ -101,7 +98,7 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
       }
 
       @Override
-      public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+      public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
         return FileVisitResult.CONTINUE;
       }
     });
@@ -123,26 +120,31 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
     String[] errorId = new String[1];
 
     NamedBuilder<? extends DocumentProcessor> scannedDocRecorder = getScannedDocRecorder(scannedDocs);
-    PauseEveryFiveTestProcessor.Builder pause30Every5 = new PauseEveryFiveTestProcessor.Builder().named("pause5");
+    PauseEveryFiveTestProcessor.Builder pause30Every5 = new PauseEveryFiveTestProcessor.Builder()
+        .named("pause5")
+        .pausingFor(PAUSE_MILLIS);
+    PauseEveryFiveTestProcessor.Builder pause30Every5p2 = new PauseEveryFiveTestProcessor.Builder()
+        .named("pause5p2")
+        .pausingFor(PAUSE_MILLIS);
     NamedBuilder<? extends DocumentProcessor> error4thof5 =
         new ErrorFourthTestProcessor.Builder().named("error4").withErrorReporter(errorId);
 
-    Plan plan1 = getPlan( pause30Every5,scannedDocRecorder);
-    Plan plan2 = getPlan(pause30Every5,error4thof5, scannedDocRecorder);
-    Plan planFinish = getPlan(scannedDocRecorder);
+    Plan plan1 = getPlan("plan1", pause30Every5,scannedDocRecorder);
+    Plan plan2 = getPlan("plan2", pause30Every5p2,error4thof5, scannedDocRecorder);
+    Plan planFinish = getPlan("finish", scannedDocRecorder);
 
     try {
       plan1.activate();
       // now scanner should find all docs, attempt to index them, all marked
       // as processing...
-      Thread.sleep(1500); // is github actions really that slow?
+      Thread.sleep(3*PAUSE_MILLIS/4);
       // the pause ever 5 should have let 5 through and then paused for 30 sec
       assertEquals(5, scannedDocs.size());
       plan1.deactivate();
 
       // plan has been deactivated, leaving 5 as indexed and the rest as processing
 
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(5, scannedDocs.size());
 
       plan1.activate();
@@ -150,34 +152,34 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
       // scan, but that scan should never start because only the first 5 docs queued up will be
       // processed before pausing another 30 seconds. Since the map is keyed by ID an increase in
       // the size of the map shows that the previous documents were not processed.
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(10, scannedDocs.size()); // test that 5 NEW docs were scanned
       plan1.deactivate();
 
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(10, scannedDocs.size()); // test plan really deactivated
 
       plan2.activate();
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(14, scannedDocs.size()); // test that 4 NEW docs were seen (a 5th will have errored but not been counted)
       plan2.deactivate();
 
       String eid = errorId[0];
       assertNotNull(eid);
 
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(14, scannedDocs.size()); // test plan really deactivated
 
       plan1.activate();
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(19, scannedDocs.size()); // test that 5 NEW docs were scanned
       plan1.deactivate();
-      assertTrue(scannedDocs.containsKey(eid)); // AND the error doc was one of them
+      assertTrue("key:" + eid + " docs:" + scannedDocs ,scannedDocs.containsKey(eid)); // AND the error doc was one of them
 
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
 
       planFinish.activate();
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       planFinish.deactivate();
       assertEquals(44, scannedDocs.size());
       scannedDocs.clear();
@@ -185,12 +187,12 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
       // they do not get sent down the pipeline, and so the counter
       // step won't see them
 
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
 
       planFinish.activate();
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       planFinish.deactivate();
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(0, scannedDocs.size());
     } finally {
       Cassandra.stop();
@@ -198,7 +200,7 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
   }
 
   @SafeVarargs
-  private Plan getPlan(NamedBuilder<? extends DocumentProcessor>... processors) {
+  private Plan getPlan(String planName, NamedBuilder<? extends DocumentProcessor>... processors) {
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
     JdbcScanner.Builder scannerBuilder = new JdbcScanner.Builder();
 
@@ -215,10 +217,10 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
         .withQueryTimeout(3600)
         .withSqlStatement(SQL_1)
         .rememberScannedIds(true)
-        .scanFreqMS(300);
+        .scanFreqMS(PAUSE_MILLIS/4);
 
     planBuilder
-        .named("testScan")
+        .named(planName)
         .addStep(scannerBuilder)
         .withIdField("id");
     String prior = SHAKESPEAR;
@@ -226,6 +228,7 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
     for (NamedBuilder<? extends DocumentProcessor> processor : processors) {
       StepImpl.Builder testStepBuilder = new StepImpl.Builder();
       testStepBuilder.named("test" + count++)
+          .withShutdownWait(50)
           .withProcessor(
               processor
           );

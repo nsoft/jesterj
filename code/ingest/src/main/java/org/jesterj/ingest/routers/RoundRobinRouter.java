@@ -1,6 +1,7 @@
 package org.jesterj.ingest.routers;
 
 import org.jesterj.ingest.model.Document;
+import org.jesterj.ingest.model.NextSteps;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.model.impl.NamedBuilder;
@@ -14,12 +15,12 @@ public class RoundRobinRouter implements Router {
   private String name;
 
   @Override
-  public Step[] route(Document doc, LinkedHashMap<String, Step> nextSteps) {
+  public NextSteps route(Document doc, LinkedHashMap<String, Step> nextSteps) {
     if (availableSteps == null) {
       availableSteps = nextSteps.values().toArray(new Step[0]);
     }
     int stepIndex = nextTarget.getAndIncrement() % availableSteps.length;
-    return new Step[]{availableSteps[stepIndex]};
+    return new NextSteps(doc, availableSteps[stepIndex]);
   }
 
   @Override

@@ -193,7 +193,7 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
       solrClient.close();
     } catch (IOException e) {
       // oh well... we're going away anyway
-      e.printStackTrace();
+      log.debug(e);
     }
   }
 

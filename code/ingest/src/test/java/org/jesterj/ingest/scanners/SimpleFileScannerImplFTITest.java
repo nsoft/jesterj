@@ -42,10 +42,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
+//@Ignore
 public class SimpleFileScannerImplFTITest extends ScannerImplTest {
 
   private static final String SHAKESPEAR = "Shakespear_scanner";
   private static final Logger log = LogManager.getLogger();
+  public static final int PAUSE_MILLIS = 2000;
 
   @Before
   public void setUp() {
@@ -53,6 +55,7 @@ public class SimpleFileScannerImplFTITest extends ScannerImplTest {
 
   @After
   public void tearDown() {
+    System.out.println("Tearing down-xxxxxx");
   }
 
   // this has been segregated to it's own test because something about starting cassandra after
@@ -70,26 +73,33 @@ public class SimpleFileScannerImplFTITest extends ScannerImplTest {
     String[] errorId = new String[1];
 
     NamedBuilder<? extends DocumentProcessor> scannedDocRecorder = getScannedDocRecorder(scannedDocs);
-    PauseEveryFiveTestProcessor.Builder pause30Every5 = new PauseEveryFiveTestProcessor.Builder().named("pause5");
+    PauseEveryFiveTestProcessor.Builder pauseEvery5 =
+        new PauseEveryFiveTestProcessor.Builder()
+            .pausingFor(PAUSE_MILLIS);
+    PauseEveryFiveTestProcessor.Builder pauseEvery5_2 =
+        new PauseEveryFiveTestProcessor.Builder()
+            .pausingFor(PAUSE_MILLIS);
     NamedBuilder<? extends DocumentProcessor> error4thof5 =
         new ErrorFourthTestProcessor.Builder().named("error4").withErrorReporter(errorId);
 
-    Plan plan1 = getPlan( pause30Every5,scannedDocRecorder);
-    Plan plan2 = getPlan(pause30Every5,error4thof5, scannedDocRecorder);
+    pauseEvery5.named("pause_plan1");
+    Plan plan1 = getPlan( pauseEvery5,getScannedDocRecorder(scannedDocs));
+    pauseEvery5.named("pause_plan2");
+    Plan plan2 = getPlan(pauseEvery5_2,error4thof5, getScannedDocRecorder(scannedDocs));
     Plan planFinish = getPlan(scannedDocRecorder);
 
     try {
       plan1.activate();
       // now scanner should find all docs, attempt to index them, all marked
       // as processing...
-      Thread.sleep(1500); // is github actions really that slow?
-      // the pause ever 5 should have let 5 through and then paused for 30 sec
+      Thread.sleep(3*PAUSE_MILLIS/4);
+      // the pause every 5 should have let 5 through and then paused for 30 sec
       assertEquals(5, scannedDocs.size());
       plan1.deactivate();
 
       // plan has been deactivated, leaving 5 as indexed and the rest as processing
 
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(5, scannedDocs.size());
 
       plan1.activate();
@@ -97,34 +107,34 @@ public class SimpleFileScannerImplFTITest extends ScannerImplTest {
       // scan, but that scan should never start because only the first 5 docs queued up will be
       // processed before pausing another 30 seconds. Since the map is keyed by ID an increase in
       // the size of the map shows that the previous documents were not processed.
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(10, scannedDocs.size()); // test that 5 NEW docs were scanned
       plan1.deactivate();
 
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(10, scannedDocs.size()); // test plan really deactivated
 
       plan2.activate();
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(14, scannedDocs.size()); // test that 4 NEW docs were seen (a 5th will have errored but not been counted)
       plan2.deactivate();
 
       String eid = errorId[0];
       assertNotNull(eid);
 
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(14, scannedDocs.size()); // test plan really deactivated
 
       plan1.activate();
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(19, scannedDocs.size()); // test that 5 NEW docs were scanned
       plan1.deactivate();
       assertTrue(scannedDocs.containsKey(eid)); // AND the error doc was one of them
 
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
 
       planFinish.activate();
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       planFinish.deactivate();
       assertEquals(44, scannedDocs.size());
       scannedDocs.clear();
@@ -132,12 +142,12 @@ public class SimpleFileScannerImplFTITest extends ScannerImplTest {
       // they do not get sent down the pipeline, and so the counter
       // step won't see them
 
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
 
       planFinish.activate();
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       planFinish.deactivate();
-      Thread.sleep(1500);
+      Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(0, scannedDocs.size());
     } finally {
       Cassandra.stop();
@@ -150,11 +160,11 @@ public class SimpleFileScannerImplFTITest extends ScannerImplTest {
     SimpleFileScanner.Builder scannerBuilder = new SimpleFileScanner.Builder();
 
     File tragedies = new File("src/test/resources/test-data");
-    scannerBuilder.named("test_scanner")
+    scannerBuilder.named("test_scanner_"+getClass().getName())
         .withRoot(tragedies)
         .named(SHAKESPEAR)
         .rememberScannedIds(true)
-        .scanFreqMS(300);
+        .scanFreqMS(PAUSE_MILLIS/4);
 
     planBuilder
         .named("testScan")
@@ -165,6 +175,7 @@ public class SimpleFileScannerImplFTITest extends ScannerImplTest {
     for (NamedBuilder<? extends DocumentProcessor> processor : processors) {
       StepImpl.Builder testStepBuilder = new StepImpl.Builder();
       testStepBuilder.named("test" + count++)
+          .withShutdownWait(50)
           .withProcessor(
               processor
           );

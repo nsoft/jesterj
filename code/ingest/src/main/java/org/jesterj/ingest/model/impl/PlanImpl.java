@@ -25,6 +25,7 @@ import guru.nidi.graphviz.model.Factory;
 import guru.nidi.graphviz.model.Graph;
 import guru.nidi.graphviz.model.Node;
 import org.jesterj.ingest.config.Transient;
+import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Step;
@@ -52,13 +53,13 @@ public class PlanImpl implements Plan {
 
   @Override
   public Step[] getSteps() {
-    return getStepsMap().values().toArray(new Step[getStepsMap().values().size()]);
+    return getStepsMap().values().toArray(new Step[0]);
   }
 
   @Override
   public Step[] getExecutableSteps() {
     // for now...
-    return getStepsMap().values().toArray(new Step[getStepsMap().values().size()]);
+    return getStepsMap().values().toArray(new Step[0]);
   }
 
 
@@ -107,7 +108,7 @@ public class PlanImpl implements Plan {
     LinkedHashMap<String, Step> nextSteps = step.getNextSteps();
     Node node = nodes.computeIfAbsent(step.getName(), Factory::node);
     if (step instanceof Scanner) {
-      node= node.with(Color.BLUE,Style.lineWidth(3));
+      node = node.with(Color.BLUE, Style.lineWidth(3));
       nodes.replace(step.getName(), node);
     }
     knownSteps.add(step.getName());
@@ -135,8 +136,40 @@ public class PlanImpl implements Plan {
 
   @Override
   public synchronized void deactivate() {
-    getStepsMap().values().forEach(Step::deactivate);
+    // Need to ensure that we never have a live thread feeding documents to a step that is already stopped.
+    // since this will cause potential deadlock if the queue fills up and the step is blocked on a put()
+    // while holding it's own monitor... so complications below for thread safety. Below we refer to
+    // any connected sets of steps from the upstream side that do not have multiple inputs as a "level"
+    // We process deactivations level by level.
+
+    Set<Step> nextLevel = getStepsMap().values().stream().filter(s -> s instanceof Scanner).collect(Collectors.toCollection(LinkedHashSet::new));
+    Set<Step> currentLevel;
+    do {
+      currentLevel = nextLevel;
+      nextLevel = new LinkedHashSet<>();
+      for (Step step : currentLevel) {
+        if (step.isActive()) {
+          step.deactivate();
+        }
+        for (Step nextStep : step.getNextSteps().values()) {
+          deactivateStep(nextStep, nextLevel);
+        }
+      }
+    } while (!nextLevel.isEmpty());
     this.setActive(false);
+  }
+
+  private void deactivateStep(Step step, Set<Step> nextLevel) {
+    if (step.isActivePriorSteps()) {
+      nextLevel.add(step);
+      return;
+    }
+    for (Step nextStep : step.getNextSteps().values()) {
+      deactivateStep(nextStep, nextLevel);
+    }
+    if (step.isActive()) {
+      step.deactivate();
+    }
   }
 
   @Transient
@@ -239,7 +272,7 @@ public class PlanImpl implements Plan {
      */
     public Builder addStep(StepImpl.Builder step, String... predecessors) {
       if (!step.isValid()) {
-        throw new RuntimeException("Invalid configuration for step " + step.getStepName() );
+        throw new RuntimeException("Invalid configuration for step " + step.getStepName());
       }
       if ((predecessors == null || predecessors.length == 0) && !(step instanceof ScannerImpl.Builder)) {
         throw new IllegalArgumentException("Only scanners can have no predecessor");
@@ -251,7 +284,7 @@ public class PlanImpl implements Plan {
       builders.put(step.getStepName(), step);
       if (predecessors != null) {
         for (String predecessor : predecessors) {
-          if (!builders.keySet().contains(predecessor)) {
+          if (!builders.containsKey(predecessor)) {
             throw new IllegalArgumentException("Unknown Step as predecessor:" + predecessor);
           }
           this.predecessors.put(step.getStepName(), predecessor);
@@ -263,7 +296,7 @@ public class PlanImpl implements Plan {
 
     List<StepImpl.Builder> findScanners() {
       return builders.keySet().stream().filter(stepName ->
-          !predecessors.keySet().contains(stepName))
+              !predecessors.keySet().contains(stepName))
           .map(stepName -> builders.get(stepName))
           .collect(Collectors.toList());
     }
@@ -291,7 +324,7 @@ public class PlanImpl implements Plan {
           .filter(stepName -> predecessors.get(stepName).contains(builder.getStepName())).collect(Collectors.toSet());
 
       List<String> unbuiltSuccessors = successors.stream()
-          .filter(stepName -> !steps.keySet().contains(stepName)).collect(Collectors.toList());
+          .filter(stepName -> !steps.containsKey(stepName)).collect(Collectors.toList());
 
       if (unbuiltSuccessors.size() > 0) {
         pendingBuilders.add(builder);
@@ -304,6 +337,7 @@ public class PlanImpl implements Plan {
         builder.addNextStep(steps.get(successor));
       }
       StepImpl step = builder.build();
+
       String stepName = step.getName();
       steps.put(stepName, step);
     }

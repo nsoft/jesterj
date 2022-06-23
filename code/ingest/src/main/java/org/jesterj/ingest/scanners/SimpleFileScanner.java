@@ -28,7 +28,9 @@ import org.jesterj.ingest.model.impl.ScannerImpl;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.management.*;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.FileVisitResult;
@@ -36,8 +38,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Date;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Scanner for local filesystems. This scanner periodically does a full walk of the filesystem. No persistent
@@ -47,11 +49,13 @@ import java.util.Optional;
  * the index latency instead. This scanner will not start a new scan until the current one completes.
  * Files to be processed must fit in JVM memory.
  */
+@SuppressWarnings("SameParameterValue")
 public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   private static final Logger log = LogManager.getLogger();
+  private final AtomicInteger opCountTrace = new AtomicInteger(0);
 
   private File rootDir;
-  private transient volatile boolean ready;
+  private transient volatile boolean scanning;
   private final MemoryUsage heapMemoryUsage;
   private int memWaitTimeout;
 
@@ -64,58 +68,50 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
 
   @Transient
   @Override
-  public Runnable getScanOperation() {
+  public ScanOp getScanOperation() {
     //TODO: consider pulling this check up to ScannerImpl so its similar for
     // all ScannerImpl subclasses
 
-      return () -> {
+    return new ScanOp(() -> {
+      log.trace("Scan Op:{}" , opCountTrace::incrementAndGet);
+      synchronized (SimpleFileScanner.this) {
+        System.out.println("Acquired lock on " + SimpleFileScanner.this);
+        setScanning(true); // ensure initial walk completes before new scans are started.
         try {
-          if (isScanActive()) {
-            return;
-          } else  {
-            log.info("Starting scan of {} at {}", this.rootDir, new Date());
-          }
-          // set up our watcher if needed
-          scanStarted();
-          this.ready = false; // ensure initial walk completes before new scans are started.
-          // always start with previously scanned docs
-          processDirtyAndRestartStatuses(getCassandra());
-          try {
-            Files.walkFileTree(rootDir.toPath(), new RootWalker());
-          } catch (IOException e) {
-            log.error("failed to walk filesystem!", e);
-            throw new RuntimeException(e);
-          } finally {
-            this.ready = true;
-          }
-          // Process pending events. Not very likely to have concurrent scans, and even so, it doesn't
-          // seem likely to cause problems.
-        } catch (Exception e) {
-          log.error("Exception while processing files!", e);
+          log.trace("About to walk");
+          Files.walkFileTree(rootDir.toPath(), new RootWalker());
+        } catch (IOException e) {
+          log.error("failed to walk filesystem!", e);
+          throw new RuntimeException(e);
         } finally {
-          scanFinished();
+          setScanning(false);
         }
-      };
+      }
+    }, this);
+  }
 
+  @Override
+  public boolean isScanning() {
+    return this.scanning;
   }
 
   @Override
   public Optional<Document> fetchById(String id) {
     try {
       File file = new File(new URI(id));
-      return makeDoc(file.toPath(), Document.Operation.NEW, Files.readAttributes(file.toPath(),BasicFileAttributes.class));
+      return makeDoc(file.toPath(), Document.Operation.NEW, Files.readAttributes(file.toPath(), BasicFileAttributes.class));
     } catch (URISyntaxException e) {
       log.error("Malformed doc id, can't fetch document: {}", id);
       return Optional.empty();
     } catch (IOException e) {
-      log.error("Could not read file attributes! Document skipped!",e);
+      log.error("Could not read file attributes! Document skipped!", e);
       return Optional.empty();
     }
   }
 
-  @Override
-  public boolean isReady() {
-    return ready;
+
+  protected void setScanning(boolean scanning) {
+    this.scanning = scanning;
   }
 
   private class RootWalker extends SimpleFileVisitor<Path> {
@@ -126,8 +122,9 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-      log.debug("found file {}", file);
+      log.trace("found file {}", file);
       Optional<Document> document = makeDoc(file, Document.Operation.NEW, attrs);
+      log.trace("Created:{}", document::get);
       document.ifPresent(SimpleFileScanner.this::docFound);
       return FileVisitResult.CONTINUE;
     }
@@ -150,7 +147,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
       long size = attributes.size();
       memThrottle(size, "Timed out waiting for available memory to process file (" + size + " bytes):" + file);
       rawData = Files.readAllBytes(file);
-      log.debug("Bytes Read:{}", rawData.length );
+      log.trace("Bytes Read:{}", rawData.length);
     } catch (IOException e) {
       log.error("Could not read bytes from file:" + file, e);
     } catch (InterruptedException e) {
@@ -182,19 +179,21 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     while (true) {
       long l = heapMemoryUsage.getMax() - heapMemoryUsage.getUsed();
       if (!(size > l)) break;
-      if ((count++ % 100) == 0){
+      if ((count++ % 100) == 0) {
         log.warn("waiting for memory... ({} avail {} required for next doc)",
             l, size);
       }
       // hint to the JVM that we're waiting for memory to be available
       System.gc();
+      //noinspection BusyWait
       Thread.sleep(10);
-      if ( System.currentTimeMillis() - memWaitStart < memWaitTimeout) {
-        log.error("Unable to free up memory to load file within {} seconds", memWaitStart/1000);
+      if (System.currentTimeMillis() - memWaitStart < memWaitTimeout) {
+        log.error("Unable to free up memory to load file within {} seconds", memWaitStart / 1000);
         log.error("Possible sources of FileScanner memory avaiability issue: " +
             "1) File is very large, " +
             "2) processing of prior files is slow or stalled, " +
             "3) Memory settings are too low");
+        //noinspection BusyWait
         Thread.sleep(100);
         RuntimeException runtimeException = new RuntimeException(message);
         runtimeException.printStackTrace();
@@ -203,6 +202,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     }
   }
 
+  @SuppressWarnings("unused")
   public static class Builder extends ScannerImpl.Builder {
 
     private SimpleFileScanner obj;

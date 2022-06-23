@@ -33,10 +33,12 @@ import org.apache.logging.log4j.core.config.plugins.PluginElement;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.jesterj.ingest.model.Status;
+import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.persistence.CassandraSupport;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Queue;
@@ -235,7 +237,9 @@ public class JesterJAppender extends AbstractAppender {
     // error case more expensive, but it **should** be the less common case.
     PreparedStatement pq = cassandra.getPreparedQuery(FTI_ERROR_COUNT_Q);
     BoundStatement bs = pq.bind(docId);
+    bs = bs.setTimeout(Duration.ofSeconds(600));
     ResultSet rs = s.execute(bs);
+    Cassandra.printErrors(rs);
     List<Row> allRows = rs.all();
     if (allRows.size() > 1 ) {
       // can't log because logging from logging is well ... dangerous :)
@@ -246,4 +250,5 @@ public class JesterJAppender extends AbstractAppender {
     }
     return errorCount;
   }
+
 }

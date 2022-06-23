@@ -27,10 +27,14 @@ import java.io.Closeable;
 public interface DocumentProcessor extends Configurable, Closeable {
 
   /**
-   * Mutate, validate or transmit an item (to a search index). Implementations must not throw any
-   * {@link java.lang.Throwable} that is not a JVM {@link java.lang.Error} All item processors are responsible
-   * for setting a reasonable status and status message via {@link Document#setStatus(Status)} and
-   * {@link Document#setStatusMessage(String)}. The item processor has no need to add the item to the getNext
+   * Mutate, validate or transmit an document (to a search index). Implementations must not throw any
+   * {@link java.lang.Throwable} that is not a JVM {@link java.lang.Error} and should be written expecting the
+   * possibility that the code might be interrupted at any point. Practically this means Document processors
+   * will perform a single persistent or externally visible action. Large complex processors that write to
+   * disk, DB, or elsewhere multiple times run the risk of partial completion, and thus those actions must be
+   * idempotent so that subsequent re-execution of the code is safe. "Check then write" is of course a performance
+   * anti-pattern. All document may set status and status message via {@link Document#setStatus(Status)} and
+   * {@link Document#setStatusMessage(String)}. The document processor has no need to add the document to the getNext
    * step in the plan as this will be handled by the Step's infrastructure based on the status of the plan.
    *
    * @param document the item to process

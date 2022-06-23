@@ -24,6 +24,7 @@ import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractManager;
+import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.persistence.CassandraSupport;
 
 import java.util.Optional;
@@ -38,7 +39,7 @@ public class CassandraLog4JManager extends AbstractManager {
 
   public static final String CREATE_LOG_KEYSPACE =
       "CREATE KEYSPACE IF NOT EXISTS jj_logging " +
-          "WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };";
+          "WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };";
 
   // Possibly move these to wide rows with time values?
   public static final String CREATE_LOG_TABLE =
@@ -124,20 +125,6 @@ public class CassandraLog4JManager extends AbstractManager {
     });
   }
 
-  void die(Exception e) {
-    // Let logging config complete and then die. This avoids deadlocking the JVM shutdown thread
-    // as it attempts to create a JUL logger.
-    executor.execute(() -> {
-      try {
-        LogManager.getRootLogger().error("!!!!\n!!!!\nShutting down in 5 seconds due to persistence failure: " + e.getMessage() + "\n!!!!\n!!!!");
-        Thread.sleep(5000);
-      } catch (InterruptedException e1) {
-        e1.printStackTrace();
-      }
-      System.exit(3);
-    });
-  }
-
 
   public boolean isReady() {
     return cassandraReady.isDone();
@@ -176,6 +163,21 @@ public class CassandraLog4JManager extends AbstractManager {
         }
       }
       return null;
+    }
+
+    void die(Exception e) {
+      // Let logging config complete and then die. This avoids deadlocking the JVM shutdown thread
+      // as it attempts to create a JUL logger.
+      executor.execute(() -> {
+        try {
+          LogManager.getRootLogger().error("!!!!\n!!!!\nShutting down in 5 seconds due to persistence failure: " + e.getMessage() + "\n!!!!\n!!!!");
+          Cassandra.stop();
+          Thread.sleep(5000);
+        } catch (InterruptedException e1) {
+          e1.printStackTrace();
+        }
+        System.exit(30);
+      });
     }
 
     CassandraSupport getCassandra() {

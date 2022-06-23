@@ -16,22 +16,28 @@
 
 package org.jesterj.ingest.persistence;
 
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.metadata.Node;
 import org.apache.cassandra.auth.AuthKeyspace;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.ConfigurationLoader;
 import org.apache.cassandra.config.YamlConfigurationLoader;
 import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.service.CassandraDaemon;
+import org.apache.log4j.Logger; // must not use before cassandra boots!
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
@@ -49,11 +55,16 @@ public class Cassandra {
   // that circularity will cause a deadlock (trust me it's ugly). So yes the System.out prints must stay,
   // though they should all fire only during system startup.
 
+  static {
+    System.setProperty("cassandra.native.epoll.enabled", "false");
+  }
+
   private static CassandraDaemon cassandra;
   @SuppressWarnings("rawtypes")
   private static final ConcurrentLinkedQueue<RunnableFuture> finalBootActions = new ConcurrentLinkedQueue<>();
   private static String listenAddress;
 
+  private static Object log;
   private volatile static boolean booting = true;
 
   /**
@@ -72,6 +83,7 @@ public class Cassandra {
   public static void start(File cassandraDir) {
     start(cassandraDir, null);
   }
+
   public static void start(File cassandraDir, String listenAddress) {
 
     System.out.println("Booting internal cassandra");
@@ -103,6 +115,7 @@ public class Cassandra {
 
       ConfigurationLoader cl = new YamlConfigurationLoader();
       Config conf = cl.loadConfig();
+      System.out.println("CASSANDRA DIR:" + cassandraDir);
 
       try {
         ServerSocket s = new ServerSocket(0);
@@ -127,7 +140,7 @@ public class Cassandra {
     } catch (IOException | ConfigurationException e) {
       e.printStackTrace();
     }
-    cassandra = new CassandraDaemon();
+    cassandra = new JJCassandraDaemon();
     try {
       // keep cassandra from clobering system.out and sytem.err
       System.setProperty("cassandra-foreground", "true");
@@ -161,11 +174,14 @@ public class Cassandra {
   public static String getListenAddress() {
     return listenAddress;
   }
+
   public static InetSocketAddress getSocketAddress() {
-    return new InetSocketAddress(listenAddress,9042);
+    return new InetSocketAddress(listenAddress, 9042);
   }
 
   public static void stop() {
+    booting = true;
+    log = null;
     cassandra.stop();
     cassandra.destroy();
   }
@@ -182,4 +198,38 @@ public class Cassandra {
     return t;
   }
 
+  public static void main(String[] args) {
+    // DO NOT USE: this main method exists for developer debugging when developing JesterJ itself only!
+    // Unmaintained, potentially harmful
+    // Use at own risk
+    // Your mileage may vary
+    // Limitations and exclusions may apply
+    // Offers not in combination
+    // "Ah, this is obviously some strange usage of the word 'safe' that I wasn't previously aware of"
+    File file = new File(args[0]);
+    start(file);
+  }
+
+  public static void printErrors(ResultSet rs) {
+    for (Map.Entry<Node, Throwable> error : rs.getExecutionInfo().getErrors()) {
+      String message = error.getKey() + ":" + error.getValue();
+      if (booting) {
+        System.out.println(message);
+      } else {
+        if (log == null) {
+          try {
+            // LogManager can't be referenced directly because it starts a status logger of its own.
+            Class<?> logManagerClass = Class.forName("org.apache.logging.log4j.LogManager");
+            Method getLogger = logManagerClass.getMethod("getLogger");
+            log = getLogger.invoke(logManagerClass);
+          } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            System.out.println("Failed to instantiate logger in Cassandra.java:" + e.getMessage());
+          }
+        }
+        if (log != null) {
+          ((Logger) log).error(message);
+        }
+      }
+    }
+  }
 }

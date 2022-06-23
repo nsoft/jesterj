@@ -31,13 +31,14 @@ import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Status;
-import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.persistence.CassandraSupport;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -49,6 +50,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.jesterj.ingest.persistence.Cassandra.printErrors;
+
 /**
  * A base implementation of a scanner that doesn't do anything. {@link #getScanOperation()} and
  * {@link #getDocumentTracker()} should be overridden for most implementations.
@@ -57,6 +60,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
 
   private static final Logger log = LogManager.getLogger();
   public static final int DEF_MAX_ERROR_RETRY = Integer.getInteger("org.jesterj.scanner.max_error_retry", 3);
+  public static final int TIMEOUT = 600;
 
   private boolean hashing;
   private long interval;
@@ -64,7 +68,10 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   private int retryErrors = DEF_MAX_ERROR_RETRY;
 
   // can be used to avoid starting a scan while one is still running. This is not required however
-  // and can be ignored if desired.
+  // and can be ignored if desired. 
+  // todo: consider if this is even something we want to support. Having trouble thinking of a good
+  //  use case for concurrent scans that can't be serviced by creating a plan with more than one scanner
+  //  could simplify checks on this and isReady() which are redundant if we don't have concurrent scans.
   @SuppressWarnings("WeakerAccess")
   protected final AtomicInteger activeScans = new AtomicInteger(0);
 
@@ -73,7 +80,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
           60L, TimeUnit.SECONDS,
           new SynchronousQueue<>(), r -> {
         Thread scanner = new Thread(r);
-        scanner.setName("jj-scan-" + ScannerImpl.this.getName());
+        scanner.setName("jj-scan-" + ScannerImpl.this.getName() + "-" + System.nanoTime());
         scanner.setDaemon(true);
         return scanner;
       });
@@ -137,9 +144,11 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       PreparedStatement preparedQuery = getCassandra().getPreparedQuery(RESET_DOCS_U);
 
       BatchStatement bs = createCassandraBatch();
+      bs = bs.setTimeout(Duration.ofSeconds(600));
       List<BoundStatement> boundStatements = createListBS();
       for (DocKey docKey : strandedDocs) {
         BoundStatement statement = preparedQuery.bind(docKey.getDocid(), docKey.getScanner());
+        statement = statement.setTimeout(Duration.ofSeconds(600));
         boundStatements.add(statement);
       }
       while (boundStatements.size() > 0) {
@@ -178,7 +187,9 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     BoundStatement statement;
     preparedQuery = getCassandra().getPreparedQuery(query);
     statement = preparedQuery.bind(getName());
+    statement = statement.setTimeout(Duration.ofSeconds(600));
     ResultSet batchedRs = session.execute(statement);
+    printErrors(batchedRs);
     List<DocKey> batchedKeys = batchedRs.all().stream()
         .map((row) -> createKey(row.getString(0), row.getString(1))).collect(Collectors.toList());
     if (log.isInfoEnabled()) {
@@ -237,14 +248,16 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     Future<?> scanner = null;
     long last = System.nanoTime() - 1; // minus 1 in case we get to the next call really really fast.
     if (isActive()) {
-      scanner = safeSubmit();
+      scanner =   safeSubmit();
       last = System.nanoTime();
     }
     try {
       while (this.isActive()) {
         try {
+          //noinspection BusyWait
           Thread.sleep(25);
-          if (isReady() && longerAgoThanInterval(last)) {
+          boolean timeForNextScan = longerAgoThanInterval(last);
+          if (!isScanning() && timeForNextScan) {
             scanner = safeSubmit();
             last = System.nanoTime();
           }
@@ -256,7 +269,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         }
       }
     } catch (Throwable t) {
-      log.error("Exited scanner due to throwable!",t);
+      log.error("Exited scanner due to throwable!", t);
       throw t;
     } finally {
       log.info("Exited {}", getName());
@@ -284,6 +297,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   @Override
   public void sendToNext(Document doc) {
     if (isRemembering()) {
+      log.trace ("Creating FTI record");
       CqlSession session = getCassandra().getSession();
       PreparedStatement preparedQuery = getCassandra().getPreparedQuery(UPDATE_HASH_U);
       BoundStatement bind = preparedQuery.bind(doc.getHash(), doc.getId(), doc.getSourceScannerName());
@@ -291,6 +305,8 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     }
     superSendToNext(doc);
   }
+
+
 
   // mockable method for unit tests
   void superSendToNext(Document doc) {
@@ -316,9 +332,11 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     int errorCount = 0;
     String md5 = null;
     if (isRemembering()) {
+      log.trace("We are remembering");
       PreparedStatement preparedQuery = getCassandra().getPreparedQuery(FTI_CHECK_Q);
       CqlSession session = getCassandra().getSession();
       ResultSet statusRs = session.execute(preparedQuery.bind(id, getName()));
+      printErrors(statusRs);
       if (statusRs.getAvailableWithoutFetching() > 0) {
         if (statusRs.getAvailableWithoutFetching() > 1 || !statusRs.isFullyFetched()) {
           log.error("FATAL: duplicate primary keys in cassandra table??");
@@ -334,7 +352,10 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
           errorCount = next.getInt(2);
         }
       }
+    } else {
+      log.trace("Not Remembering");
     }
+    log.trace("Memory complete");
     if (errorCount >= retryErrors && status == Status.RESTART) {
       // we've tried several times, and the document is unchanged
       // just skip it until the document changes or someone resets the status
@@ -360,6 +381,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         }
       }
     }
+    log.trace("Sending {}",doc.getId());
     sendToNext(doc);
   }
 
@@ -380,17 +402,23 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
    * process those records using the scanner's document fetching logic (empty by default)
    */
   @Override
-  public Runnable getScanOperation() {
-    return new DefaultOp();
-  }
+  public abstract ScanOp getScanOperation();
+
 
   protected void processDocsByStatus(CassandraSupport cassandra, String findForScannerQ) {
+    if (!isActive()) {
+      return;
+    }
     PreparedStatement pq = cassandra.getPreparedQuery(findForScannerQ);
     BoundStatement bs = pq.bind(getName());
+    bs=bs.setTimeout(Duration.ofSeconds(TIMEOUT));
     ResultSet rs = cassandra.getSession().execute(bs);
     log.info("found {} using {}", rs, findForScannerQ);
-    int i=0;
+    int i = 0;
     for (Row r : rs) {
+      if (!isActive()) {
+        break;
+      }
       i++;
       fetchById(r.getString(0)).ifPresent(this::docFound);
     }
@@ -403,8 +431,8 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   }
 
   @Override
-  public Step[] getSubsequentSteps() {
-    return new Step[0];
+  public boolean isActivePriorSteps() {
+    return false;
   }
 
 //  @Override
@@ -412,6 +440,11 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
 //    return false;
 //  }
 
+
+  @Override
+  public void addPredecessor(StepImpl obj) {
+    throw new UnsupportedOperationException("Scanners cannot have predecessors");
+  }
 
   @Override
   public boolean add(Document document) {
@@ -572,14 +605,20 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     activeScans.incrementAndGet();
   }
 
+  /**
+   * Decrement the active Scans. While it's possible to do more in an overridden version this method be very
+   * careful since it runs in a finally block after the step has been deactivated.
+   */
   public void scanFinished() {
     activeScans.decrementAndGet();
   }
 
+  @Override
   public boolean isRemembering() {
     return remembering;
   }
 
+  @Override
   public boolean isHashing() {
     return hashing;
   }
@@ -686,19 +725,43 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
 
   }
 
-  private class DefaultOp implements Runnable {
+  public class ScanOp implements Runnable {
+    private final Runnable custom;
+    private final Scanner scanner;
+
+    public ScanOp(Runnable custom, Scanner scanner) {
+      this.custom = custom;
+      this.scanner = scanner;
+    }
+
     @Override
     public void run() {
       CassandraSupport cassandra = ScannerImpl.this.getCassandra();
-      if (cassandra == null || Cassandra.isBooting()) {
-        // this is ok during unit tests, not ok otherwise
-        log.error("Cassandra null or still starting for scan operation, Docs Dirty in C* skipped");
+      if ( scanner.isRemembering() && (cassandra == null || Cassandra.isBooting()) ) {
+        log.error("Cassandra null or still starting for scan operation, Invocation skipped");
         return;
       }
-      processDirtyAndRestartStatuses(cassandra);
+      try {
+        if (isScanActive()) {
+          log.info("Skipping scan, there is already an active scan");
+          return;
+        } else  {
+          log.info("{} of plan {} Starting scan of at {} on {}", scanner.getName(),getPlan().getName(), new Date(), Thread.currentThread().getName());
+        }
+        // set up our watcher if needed
+        scanStarted();
+        processDirtyAndRestartStatuses(getCassandra());
+        custom.run();
+      } catch (Exception e) {
+        if (Thread.interrupted()) {
+          scanner.deactivate();
+        }
+        log.error("Exception while processing files!", e);
+      } finally {
+        scanFinished();
+      }
     }
   }
-
 
 
   protected void processDirtyAndRestartStatuses(CassandraSupport cassandra) {

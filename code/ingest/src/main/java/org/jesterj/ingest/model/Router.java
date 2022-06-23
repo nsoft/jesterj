@@ -24,5 +24,5 @@ import java.util.LinkedHashMap;
  * Date: 3/18/16
  */
 public interface Router extends Configurable {
-  Step[] route(Document doc, LinkedHashMap<String, Step> nextSteps);
+  NextSteps route(Document doc, LinkedHashMap<String, Step> nextSteps);
 }

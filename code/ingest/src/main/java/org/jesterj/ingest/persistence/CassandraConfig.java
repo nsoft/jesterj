@@ -55,6 +55,7 @@ public class CassandraConfig {
   private String rpc_address = "127.0.0.1";
   private Integer num_tokens = 256;
   private Integer write_request_timeout_in_ms = 20000;
+  private Integer read_request_timeout_in_ms = 20000;
 
   public ArrayList getSeed_provider() {
     return seed_provider;
@@ -308,6 +309,14 @@ public class CassandraConfig {
 
   public void setEnable_user_defined_functions(Boolean enable_user_defined_functions) {
     this.enable_user_defined_functions = enable_user_defined_functions;
+  }
+
+  public Integer getRead_request_timeout_in_ms() {
+    return read_request_timeout_in_ms;
+  }
+
+  public void setRead_request_timeout_in_ms(Integer read_request_timeout_in_ms) {
+    this.read_request_timeout_in_ms = read_request_timeout_in_ms;
   }
 
 

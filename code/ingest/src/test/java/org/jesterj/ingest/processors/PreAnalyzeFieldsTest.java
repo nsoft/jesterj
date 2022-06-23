@@ -1,8 +1,11 @@
 package org.jesterj.ingest.processors;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
+import org.apache.lucene.util.QuickPatchThreadsFilter;
+import org.apache.solr.SolrIgnoredThreadsFilter;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.request.CollectionAdminRequest;
@@ -15,6 +18,7 @@ import org.apache.solr.cloud.SolrCloudTestCase;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.cloud.Slice;
+import org.jesterj.ingest.CassandraDriverThreadFilter;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.impl.DocumentImpl;
@@ -29,7 +33,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+// need to ignore org.apache.zookeeper.server.SessionTrackerImpl thread
 
+@SuppressWarnings("SameParameterValue")
+@ThreadLeakFilters(filters = {
+    SolrIgnoredThreadsFilter.class,
+    QuickPatchThreadsFilter.class,
+    CassandraDriverThreadFilter.class
+})
 public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
   private static final Logger log = LogManager.getLogger();
   public static final String CONFIG = "preanalyze";
@@ -54,17 +65,6 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
 
   private static CloudSolrClient solrClient;
 
-  @BeforeClass
-  public static void throwAway() {
-    log.info("BEFORE_CLASS BEGINS");
-    // this is just ot keep checkClusterConfiguration happy... actually better to do this per-test
-    // to avoid cross talk between tests (see SOLR-12801 test revamp in solr)
-    // future versions of solr won't require this....
-    Objenesis objenesis = new ObjenesisStd();
-    ObjectInstantiator<MiniSolrCloudCluster> instantiatorOf = objenesis.getInstantiatorOf(MiniSolrCloudCluster.class);
-    cluster = instantiatorOf.newInstance();
-    log.info("BEFORE_CLASS ENDSS");
-  }
 
   @Before
   public void doBefore() throws Exception {
@@ -121,12 +121,12 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
 
     Scanner s = new ScannerImpl() {
       @Override
-      public Runnable getScanOperation() {
+      public ScanOp getScanOperation() {
         return null;
       }
 
       @Override
-      public boolean isReady() {
+      public boolean isScanning() {
         return false;
       }
 

@@ -19,6 +19,7 @@ package org.jesterj.ingest.routers;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Document;
+import org.jesterj.ingest.model.NextSteps;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.model.impl.NamedBuilder;
@@ -38,13 +39,13 @@ public class RouteByStepName implements Router {
   private String name;
 
   @Override
-  public Step[] route(Document doc, LinkedHashMap<String, Step> nextSteps) {
+  public NextSteps route(Document doc, LinkedHashMap<String, Step> nextSteps) {
     Step dest = nextSteps.get(doc.getFirstValue(JESTERJ_NEXT_STEP_NAME));
     if (dest == null) {
       log.warn("Document " + doc.getId() + " dropped! no value for " + JESTERJ_NEXT_STEP_NAME +
           " You probably want to either set a different router or provide a value.");
     }
-    return new Step[]{dest};
+    return new NextSteps(doc, dest);
   }
 
   @Override

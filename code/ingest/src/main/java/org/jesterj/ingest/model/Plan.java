@@ -36,27 +36,12 @@ public interface Plan extends JiniServiceProvider, Active, Configurable {
 
   /**
    * Get the subset of steps that will execute when the plan is activated. This should be a continuous set of steps
-   * that can be traversed in total via {@link org.jesterj.ingest.model.Step#getNext(Document)}.
+   * that can be traversed in total via {@link org.jesterj.ingest.model.Step#getNextSteps(Document)}.
    *
    * @return a List of steps in the plan that will be executed
    */
   @Transient
   Step[] getExecutableSteps();
-
-
-  /**
-   * Is this plan installed as a helper, or as a primary. Implementations that need something other than
-   * the default logic are almost inconceivable.
-   *
-   * @return true if the first step is not the first executable step, or the last step is not the
-   * last executable step.
-   */
-//  @Transient
-//  default boolean isHelping() {
-//    Step[] all = getSteps();
-//    Step[] exec = getExecutableSteps();
-//    return (all[0] != exec[0] || all[all.length - 1] != exec[exec.length - 1]);
-//  }
 
   /**
    * This is the field that is to be used as a docId

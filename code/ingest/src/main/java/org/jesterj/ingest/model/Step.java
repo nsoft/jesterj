@@ -22,6 +22,9 @@ package org.jesterj.ingest.model;
  * Date: 9/28/14
  */
 
+import org.jesterj.ingest.model.impl.StepImpl;
+
+import java.util.LinkedHashMap;
 import java.util.concurrent.BlockingQueue;
 
 /**
@@ -46,19 +49,14 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Documen
   int getBatchSize();
 
   /**
-   * Get the getNext step in the plan for the given document
+   * Get the next step in the plan for the given document
    *
    * @return the getNext step
    * @param d the document for which a next step should be determined.
    */
-  Step[] getNext(Document d);
+  NextSteps getNextSteps(Document d);
 
-  /**
-   * Get all the steps to which a document might travel
-   *
-   * @return downstream steps
-   */
-  Step[] getSubsequentSteps();
+
 
   /**
    * Get the plan instance to which this step belongs.
@@ -86,4 +84,15 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Documen
 
   Step[] getPossibleSideEffects();
 
+  /**
+   * Is this a step receiving input from more than one prior step
+   *
+   * @return true if predecessors &gt; 1
+   */
+
+  LinkedHashMap<String, Step> getNextSteps();
+
+  boolean isActivePriorSteps();
+
+  void addPredecessor(StepImpl obj);
 }

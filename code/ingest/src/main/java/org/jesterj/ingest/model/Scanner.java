@@ -88,7 +88,7 @@ public interface Scanner extends Step {
      *
      * @return true if a new scan should be started
      */
-    boolean isReady();
+    boolean isScanning();
 
     /**
      * Load a document based on the document's id.
@@ -98,4 +98,7 @@ public interface Scanner extends Step {
      */
     Optional<Document> fetchById(String id);
 
+    boolean isRemembering();
+
+    boolean isHashing();
 }

@@ -72,7 +72,7 @@ public class SqlUtils {
 
     try {
 
-      log.debug("Establishing JDBC connection to '{}'", jdbcUrl);
+      log.debug("Establishing JDBC connection to '{}' on thread {}", jdbcUrl, Thread.currentThread().getName());
 
       // Get a connection
       connection = DriverManager.getConnection(jdbcUrl, jdbcUser, jdbcPassword);

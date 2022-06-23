@@ -31,7 +31,11 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 /**
  * A class to globalize the cluster and session objects, while providing query caches on a per-instance basis.
@@ -145,10 +149,12 @@ public class CassandraSupport {
     // Only to be called when shutting down cassandra entirely.
     // This would only ever be done on JVM shutdown.
     public void deactivate() {
+      System.out.println("CLOSING CASSANDRA:");
+      Thread.dumpStack();
       sessionRef.close();
     }
 
-    private Session sessionRef = SessionHolder.INSTANCE;
+    private final Session sessionRef = SessionHolder.INSTANCE;
 
     @NonNull
     @Override

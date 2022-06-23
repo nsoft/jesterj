@@ -17,6 +17,7 @@
 package org.jesterj.ingest.routers;
 
 import org.jesterj.ingest.model.Document;
+import org.jesterj.ingest.model.NextSteps;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.model.impl.NamedBuilder;
@@ -30,8 +31,8 @@ public class DuplicateToAll implements Router {
   private String name;
 
   @Override
-  public Step[] route(Document doc, LinkedHashMap<String, Step> nextSteps) {
-    return nextSteps.values().toArray(new Step[nextSteps.size()]);
+  public NextSteps route(Document doc, LinkedHashMap<String, Step> nextSteps) {
+    return new NextSteps(doc, nextSteps.values().toArray(new Step[0]));
   }
 
   @Override
