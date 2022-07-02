@@ -47,7 +47,7 @@ public class SimpleFileScannerImplFTITest extends ScannerImplTest {
 
   private static final String SHAKESPEAR = "Shakespear_scanner";
   private static final Logger log = LogManager.getLogger();
-  public static final int PAUSE_MILLIS = 32000;
+  public static final int PAUSE_MILLIS = 1200;
 
   @Before
   public void setUp() {

@@ -85,7 +85,7 @@ public class StepImpl implements Step {
   private List<Runnable> deferred = new ArrayList<>();
   private final Object sideEffectListLock = new Object();
   private Step[] possibleSideEffects;
-  private int shutdownTimeout;
+  private int shutdownTimeout = 1000;
   private boolean joinPoint;
   private final List<Step> priorSteps = new ArrayList<>();
 
@@ -279,6 +279,7 @@ public class StepImpl implements Step {
         worker.setName("jj-worker-" + this.stepName + "-" + System.currentTimeMillis());
         worker.setDaemon(true);
         worker.start();
+        log.info("started {} ({})", worker.getName(), worker.getId());
       }
     }
     this.active = true;
@@ -297,7 +298,6 @@ public class StepImpl implements Step {
       }
       if (workerShuttingDown != null) {
         try {
-          shutdownTimeout = 1000;
           workerShuttingDown.join(shutdownTimeout);
           if (workerShuttingDown.isAlive()) {
             log.warn("{} was slow shutting down, interrupting..", getName());

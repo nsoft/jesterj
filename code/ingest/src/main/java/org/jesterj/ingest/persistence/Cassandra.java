@@ -49,6 +49,9 @@ public class Cassandra {
   // that circularity will cause a deadlock (trust me it's ugly). So yes the System.out prints must stay,
   // though they should all fire only during system startup.
 
+  static {
+    System.setProperty("cassandra.native.epoll.enabled","false");
+  }
 
   private static CassandraDaemon cassandra;
   @SuppressWarnings("rawtypes")

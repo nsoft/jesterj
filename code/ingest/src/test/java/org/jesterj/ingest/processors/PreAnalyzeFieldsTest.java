@@ -1,8 +1,11 @@
 package org.jesterj.ingest.processors;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
+import org.apache.lucene.util.QuickPatchThreadsFilter;
+import org.apache.solr.SolrIgnoredThreadsFilter;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.request.CollectionAdminRequest;
@@ -15,6 +18,7 @@ import org.apache.solr.cloud.SolrCloudTestCase;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.cloud.Slice;
+import org.jesterj.ingest.CassandraDriverThreadFilter;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.impl.DocumentImpl;
@@ -31,6 +35,11 @@ import java.util.List;
 import java.util.Optional;
 // need to ignore org.apache.zookeeper.server.SessionTrackerImpl thread
 
+@ThreadLeakFilters(defaultFilters = true, filters = {
+    SolrIgnoredThreadsFilter.class,
+    QuickPatchThreadsFilter.class,
+    CassandraDriverThreadFilter.class
+})
 public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
   private static final Logger log = LogManager.getLogger();
   public static final String CONFIG = "preanalyze";

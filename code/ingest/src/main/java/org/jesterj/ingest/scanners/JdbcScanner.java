@@ -26,6 +26,7 @@ import org.apache.pdfbox.io.IOUtils;
 import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
+import org.jesterj.ingest.model.exception.ConfigurationException;
 import org.jesterj.ingest.model.exception.PersistenceException;
 import org.jesterj.ingest.model.impl.DocumentImpl;
 import org.jesterj.ingest.model.impl.ScannerImpl;
@@ -86,17 +87,16 @@ public class JdbcScanner extends ScannerImpl {
   // Use the ISO 8601 date format supported by Lucene, e.g. 2011-12-03T10:15:30Z
   private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_INSTANT;
 
-  private Connection connection;
-  private final Object CONN_LOCK = new Object();
+  private volatile Connection connection;
 
   @Override
-  public void activate() {
+  public synchronized void activate() {
     ready = true;
     super.activate();
   }
 
   @Override
-  public void deactivate() {
+  public synchronized void deactivate() {
     ready = false;
     try {
       if (isConnected()) {
@@ -116,50 +116,53 @@ public class JdbcScanner extends ScannerImpl {
   @Override
   public ScanOp getScanOperation() {
     return new ScanOp(() -> {
-      // Remainder of operation is implemented here instead of relying on DefaultOp to avoid spamming the DB with
-      // queries for individual rows.
-      int count = 0;
-      try {
-        log.info("{} connecting to database {}", getName(), jdbcUrl);
-        // Establish a connection and execute the query.
-        this.ready = false;
-        synchronized (CONN_LOCK) {
+      synchronized (this) {
+        setReady(false); // ensure initial walk completes before new scans are started.
+
+        // Remainder of operation is implemented here instead of relying on DefaultOp to avoid spamming the DB with
+        // queries for individual rows.
+        int count = 0;
+        try {
+          log.info("{} connecting to database {}", getName(), jdbcUrl);
           if (!isConnected()) {
             connection = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
           }
-        }
-        try (Statement statement = createStatement(connection);
-             ResultSet rs = statement.executeQuery(sqlStatement)) {
-          processDirtyAndRestartStatuses(getCassandra());
-          log.info("{} successfully queried database {}", getName(), jdbcUrl);
+          try (Statement statement = createStatement(connection);
+               ResultSet rs = statement.executeQuery(sqlStatement)) {
+            processDirtyAndRestartStatuses(getCassandra());
+            log.info("{} successfully queried database {}", getName(), jdbcUrl);
 
-          String[] columnNames = getColumnNames(rs);
-          int docIdColumnIdx = getDocIdColumnIndex(columnNames, getDatabasePkColumnName());
+            String[] columnNames = getColumnNames(rs);
+            int docIdColumnIdx = getDocIdColumnIndex(columnNames, getDatabasePkColumnName());
 
-          // For each row
-          while (rs.next()) {
-            if (count == 0) {
-              log.debug("{} begining processing of result set", getName());
+            // For each row
+            while (rs.next()) {
+              if (count == 0) {
+                log.debug("{} beginning processing of result set", getName());
+              }
+              String docId = rs.getString(docIdColumnIdx);
+              docId = docIdFromPkVal(docId);
+              Document doc = makeDoc(rs, columnNames, docId);
+              JdbcScanner.this.docFound(doc);
+              count++;
             }
-            String docId = rs.getString(docIdColumnIdx);
-            docId = docIdFromPkVal(docId);
-            Document doc = makeDoc(rs, columnNames, docId);
-            JdbcScanner.this.docFound(doc);
-            count++;
-          }
 
-        } catch (PersistenceException | SQLException ex) {
-          log.error(getName() + " JDBC scanner error, rows processed=" + count, ex);
+          } catch (PersistenceException | SQLException ex) {
+            log.error(getName() + " JDBC scanner error, rows processed=" + count, ex);
+          }
+        } catch (Exception e) {
+          log.error("JDBC operation for {} failed.", getName());
+          log.error(e);
+        } finally {
+          this.ready = true;
+          log.debug("{} Database rows queued by {}", count, getName());
         }
-      } catch (Exception e) {
-        log.error("JDBC operation for {} failed.", getName());
-        log.error(e);
-        e.printStackTrace(); // todo get rid of this when #63 is fixed
-      } finally {
-        this.ready = true;
-        log.debug("{} Database rows queued by {}", count, getName());
       }
     }, this);
+  }
+
+  private void setReady(boolean b) {
+    this.ready = b;
   }
 
   @NotNull
@@ -334,19 +337,19 @@ public class JdbcScanner extends ScannerImpl {
   @Override
   public Optional<Document> fetchById(String id) {
     // TODO: implement this, something like:
-    String sql =  "select * from " + this.table + " where " +this.getDatabasePkColumnName()+ " = ?";
+    String sql = "select * from " + this.table + " where " + this.getDatabasePkColumnName() + " = ?";
 
     int slash = id.lastIndexOf("/") + 1;
     int hash = id.indexOf('#');
     int endOfParentDocId = hash < 0 ? id.length() : hash;
     // theoretically could be some other unique indexed column but usually it's the PK
-    String pkValue = id.substring(slash,endOfParentDocId);
-    try (PreparedStatement preparedStatement = this.connection.prepareStatement(sql);){
+    String pkValue = id.substring(slash, endOfParentDocId);
+    try (PreparedStatement preparedStatement = getConnection().prepareStatement(sql);) {
       preparedStatement.setString(1, pkValue);
       ResultSet resultSet = preparedStatement.executeQuery();
       Document value = null;
-      if(resultSet.next()) {
-         value = makeDoc(resultSet, getColumnNames(resultSet), docIdFromPkVal(pkValue));
+      if (resultSet.next()) {
+        value = makeDoc(resultSet, getColumnNames(resultSet), docIdFromPkVal(pkValue));
       }
       if (value != null) {
         return Optional.of(value);
@@ -355,10 +358,20 @@ public class JdbcScanner extends ScannerImpl {
         return Optional.empty();
       }
     } catch (SQLException e) {
-      log.error("Error in sql to fetch document:[{}] args was:{}", sql,pkValue);
+      log.error("Error in sql to fetch document:[{}] args was:{}", sql, pkValue);
       log.error("Exception was:", e);
+    } catch (ConfigurationException | PersistenceException e) {
+      log.error("JDBC operation for {} failed in fetchById", getName());
+      log.error(e);
     }
     return Optional.empty();
+  }
+
+  private Connection getConnection() throws ConfigurationException, PersistenceException {
+    if (!isConnected()) {
+      connection = sqlUtils.createJdbcConnection(jdbcDriver, jdbcUrl, jdbcUser, jdbcPassword, autoCommit);
+    }
+    return connection;
   }
 
   /**
@@ -417,6 +430,7 @@ public class JdbcScanner extends ScannerImpl {
       getObj().contentColumn = contentColumn;
       return this;
     }
+
     public Builder withPKColumn(String pkCol) {
       getObj().pkColumn = pkCol;
       return this;

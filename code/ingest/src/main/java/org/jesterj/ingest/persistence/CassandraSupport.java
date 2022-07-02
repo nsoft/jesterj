@@ -145,6 +145,8 @@ public class CassandraSupport {
     // Only to be called when shutting down cassandra entirely.
     // This would only ever be done on JVM shutdown.
     public void deactivate() {
+      System.out.println("CLOSING CASSANDRA:");
+      Thread.dumpStack();
       sessionRef.close();
     }
 

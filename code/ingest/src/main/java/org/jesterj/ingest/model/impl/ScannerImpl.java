@@ -79,7 +79,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
           60L, TimeUnit.SECONDS,
           new SynchronousQueue<>(), r -> {
         Thread scanner = new Thread(r);
-        scanner.setName("jj-scan-" + ScannerImpl.this.getName());
+        scanner.setName("jj-scan-" + ScannerImpl.this.getName() + "-" + System.nanoTime());
         scanner.setDaemon(true);
         return scanner;
       });
@@ -733,7 +733,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
           log.info("Skipping scan, there is already an active scan");
           return;
         } else  {
-          log.info("{} Starting scan of at {}", scanner.getName() , new Date());
+          log.info("{} of plan {} Starting scan of at {} on {}", scanner.getName(),getPlan().getName(), new Date(), Thread.currentThread().getName());
         }
         // set up our watcher if needed
         scanStarted();

@@ -9,7 +9,7 @@ import org.jesterj.ingest.model.impl.NamedBuilder;
 
 public class PauseEveryFiveTestProcessor implements DocumentProcessor {
   private static final Logger log = LogManager.getLogger();
-  int count = 0;
+  private int count = 0;
   private String name;
   private int millis;
 
@@ -48,7 +48,7 @@ public class PauseEveryFiveTestProcessor implements DocumentProcessor {
     }
 
     public PauseEveryFiveTestProcessor.Builder pausingFor(int milis) {
-      obj.millis = milis;
+      getObj().millis = milis;
       return this;
     }
 

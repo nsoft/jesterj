@@ -145,7 +145,6 @@ public class PlanImpl implements Plan {
     List<Step> nextLevel = getStepsMap().values().stream().filter(s -> s instanceof Scanner).collect(Collectors.toList());
     List<Step> currentLevel;
     do {
-      //todo: FIXME this doesn't really work. Need to back ref prior steps and check all prior steps are inactive.
       currentLevel = nextLevel;
       nextLevel = new ArrayList<>();
       for (Step step : currentLevel) {

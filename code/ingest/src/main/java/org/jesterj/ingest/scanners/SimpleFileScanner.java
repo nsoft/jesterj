@@ -85,6 +85,11 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   }
 
   @Override
+  public boolean isReady() {
+    return this.ready;
+  }
+
+  @Override
   public Optional<Document> fetchById(String id) {
     try {
       File file = new File(new URI(id));
@@ -98,10 +103,6 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     }
   }
 
-  @Override
-  public boolean isReady() {
-    return ready;
-  }
 
   protected void setReady(boolean ready) {
     this.ready = ready;
