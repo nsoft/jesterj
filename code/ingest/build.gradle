@@ -147,7 +147,7 @@ dependencies {
   implementation 'org.apache.river:reggie:2.2.2'
   implementation 'org.apache.cassandra:cassandra-all:4.0.2'
   implementation 'com.datastax.oss:java-driver-core:4.14.1'
-  implementation 'org.yaml:snakeyaml:1.14'
+  implementation 'org.yaml:snakeyaml:1.30'
   implementation 'org.apache.velocity:velocity:1.7'
 
   // this is driven by the Solr dep, but we need to make explicit the bridge libs
@@ -523,13 +523,13 @@ def getManifestAttributes() {
   return attrs
 }
 
-def getTimestamp() {
+static def getTimestamp() {
   def dt = new Date()
   def df = new SimpleDateFormat('yyyy-MM-dd HH:mm:ss', Locale.ENGLISH)
   df.format(dt)
 }
 
-def getJdk() {
+static def getJdk() {
   "${System.getProperty('java.version')} (${System.getProperty('java.vm.vendor')} ${System.getProperty('java.vm.version')})"
 }
 
