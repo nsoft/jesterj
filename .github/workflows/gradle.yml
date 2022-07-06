@@ -26,7 +26,7 @@ jobs:
       run: chmod +x gradlew
       working-directory: ${{env.working-directory}}
     - name: Build with Gradle
-      run: ./gradlew  --debug jacocoTestReport
+      run: ./gradlew jacocoTestReport
       working-directory: ${{env.working-directory}}
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
