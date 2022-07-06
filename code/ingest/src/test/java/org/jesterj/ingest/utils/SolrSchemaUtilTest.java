@@ -35,7 +35,7 @@ public class SolrSchemaUtilTest {
     assertNotNull(schemaDocument);
 
     // note we want to avoid any examples with substitution because substitution is not supported.
-    FieldType anInt = solrSchemaUtil.getFieldType(schemaDocument, "pint", Version.LUCENE_7_6_0.toString(), 1.0f, loader);
+    FieldType anInt = solrSchemaUtil.getFieldType(schemaDocument, "pint", Version.LUCENE_9_0_0.toString(), 1.0f, loader);
     assertNotNull(anInt);
     assertEquals("pint", anInt.getTypeName());
     assertEquals(anInt.getNamedPropertyValues(false).get("docValues"), true);
@@ -48,7 +48,7 @@ public class SolrSchemaUtilTest {
     assertNotNull(schemaDocument);
 
     // note we want to avoid any examples with substitution because substitution is not supported.
-    FieldType textField = solrSchemaUtil.getFieldType(schemaDocument, "text", Version.LUCENE_7_6_0.toString(), 1.0f, loader);
+    FieldType textField = solrSchemaUtil.getFieldType(schemaDocument, "text", Version.LUCENE_9_0_0.toString(), 1.0f, loader);
     assertNotNull(textField);
     assertEquals("text", textField.getTypeName());
     assertNotNull(textField.getIndexAnalyzer());
@@ -62,7 +62,7 @@ public class SolrSchemaUtilTest {
     assertNotNull(schemaDocument);
 
     // note we want to avoid any examples with substitution because substitution is not supported.
-    FieldType textField = solrSchemaUtil.getFieldType(schemaDocument, "teststop", Version.LUCENE_7_6_0.toString(), 1.0f, loader);
+    FieldType textField = solrSchemaUtil.getFieldType(schemaDocument, "teststop", Version.LUCENE_9_0_0.toString(), 1.0f, loader);
     assertNotNull(textField);
     assertEquals("teststop", textField.getTypeName());
     assertNotNull(textField.getIndexAnalyzer());

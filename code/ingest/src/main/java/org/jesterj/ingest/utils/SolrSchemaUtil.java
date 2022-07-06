@@ -25,19 +25,22 @@ package org.jesterj.ingest.utils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharFilterFactory;
+import org.apache.lucene.analysis.TokenFilterFactory;
+import org.apache.lucene.analysis.TokenizerFactory;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
-import org.apache.lucene.analysis.core.KeywordTokenizerFactory;
-import org.apache.lucene.analysis.util.*;
+import org.apache.lucene.util.ResourceLoader;
+import org.apache.lucene.util.ResourceLoaderAware;
 import org.apache.lucene.util.Version;
 import org.apache.solr.analysis.TokenizerChain;
 import org.apache.solr.common.SolrException;
+import org.apache.solr.common.util.DOMUtil;
 import org.apache.solr.core.SolrConfig;
 import org.apache.solr.core.SolrResourceLoader;
 import org.apache.solr.schema.FieldType;
 import org.apache.solr.schema.HasImplicitIndexAnalyzer;
 import org.apache.solr.schema.IndexSchema;
 import org.apache.solr.schema.TextField;
-import org.apache.solr.util.DOMUtil;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 import org.w3c.dom.Document;
@@ -45,7 +48,6 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -60,17 +62,25 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.apache.solr.common.params.CommonParams.NAME;
-import static org.apache.solr.schema.IndexSchema.*;
+import static org.apache.solr.schema.IndexSchema.FIELD_TYPE;
+import static org.apache.solr.schema.IndexSchema.LUCENE_MATCH_VERSION_PARAM;
+import static org.apache.solr.schema.IndexSchema.SCHEMA;
+import static org.apache.solr.schema.IndexSchema.TYPES;
+import static org.eclipse.jetty.util.URIUtil.SLASH;
 
 /**
  * A stateful utility bean for working with schema documents. This class is not thread safe.
  */
+@SuppressWarnings("rawtypes")
 public class SolrSchemaUtil {
   private static final Logger log = LogManager.getLogger();
 
@@ -115,7 +125,6 @@ public class SolrSchemaUtil {
     return db.parse(resourceAsStream);
   }
 
-  @SuppressWarnings("unchecked")
   private static <T> T create(final Class<T> classToMock) {
     Objenesis objenesis = new ObjenesisStd();
     return objenesis.getInstantiatorOf(classToMock).newInstance();
@@ -133,6 +142,7 @@ public class SolrSchemaUtil {
         node = n;
         String aClass = n.getAttributes().getNamedItem("class").getNodeValue();
         Class clazz = findClass(aClass, Object.class);
+        //noinspection deprecation
         ft = (FieldType) clazz.newInstance();
         break;
       }
@@ -293,7 +303,7 @@ public class SolrSchemaUtil {
       try {
         // No need to be core-aware as Analyzers are not in the core-aware list
         final Class<? extends Analyzer> clazz = findClass(analyzerClassName, Analyzer.class);
-        Analyzer analyzer = clazz.newInstance();
+        Analyzer analyzer = clazz.getDeclaredConstructor().newInstance();
 
         final String matchVersionStr = DOMUtil.getAttr(attrs, LUCENE_MATCH_VERSION_PARAM);
         final Version luceneMatchVersion = (matchVersionStr == null) ?
@@ -305,7 +315,8 @@ public class SolrSchemaUtil {
                   "Configuration Error: Analyzer '" + clazz.getName() +
                       "' needs a 'luceneMatchVersion' parameter");
         }
-        analyzer.setVersion(luceneMatchVersion);
+        // Not required see LUCENE-9545
+        // analyzer.setVersion(luceneMatchVersion);
         if (analyzer instanceof ResourceLoaderAware) {
           ((ResourceLoaderAware) analyzer).inform(loader);
         }
@@ -339,8 +350,8 @@ public class SolrSchemaUtil {
     final ArrayList<TokenFilterFactory> filters = new ArrayList<>();
     load(tokenFilterNodes, SCHEMA_XML_ANALYZER_FILTER, filters, TokenFilterFactory.class, luceneMatch, loader);
 
-    return new TokenizerChain(charFilters.toArray(new CharFilterFactory[charFilters.size()]),
-        tokenizers.get(0), filters.toArray(new TokenFilterFactory[filters.size()]));
+    return new TokenizerChain(charFilters.toArray(new CharFilterFactory[0]),
+        tokenizers.get(0), filters.toArray(new TokenFilterFactory[0]));
 
   }
 

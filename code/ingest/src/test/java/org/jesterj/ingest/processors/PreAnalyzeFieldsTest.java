@@ -94,7 +94,6 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
   public void testPreanalyzedJsonAccepted() throws Exception {
     log.info("BEGIN TEST");
     CollectionAdminRequest.createCollection("testCol", CONFIG, 2, 2)
-        .setMaxShardsPerNode(2)
         .process(solrClient);
     waitCol(2, "testCol");
     SolrInputDocument sdoc = sdoc("id", "1", "preanalyzed", REF_GUIDE_EXAMPLE);
@@ -147,7 +146,6 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
 
     String testCol = "testCol";
     CollectionAdminRequest.createCollection(testCol, CONFIG, 2, 2)
-        .setMaxShardsPerNode(2)
         .process(solrClient);
     waitCol(2, testCol);
 

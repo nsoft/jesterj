@@ -103,6 +103,7 @@ repositories {
 //    }
     url 'https://jesterj.jfrog.io/jesterj/libs-release/'
   }
+  mavenCentral()
 
 }
 
@@ -137,14 +138,14 @@ dependencies {
   implementation 'org.apache.tika:tika-parsers:1.23'
   implementation 'com.mchange:c3p0:0.9.5.2' // for tika deps... actual declared dep includes older LGPL version only.
 
-  implementation 'org.apache.solr:solr-core:8.5.0'
+  implementation 'org.apache.solr:solr-core:9.0.0'
 
   implementation 'com.google.guava:guava:18.0'
   implementation 'com.google.code.findbugs:jsr305:3.0.0'
 
   implementation 'jini:jini-core:2.1'
   implementation 'org.apache.river:reggie:2.2.2'
-  implementation 'org.apache.cassandra:cassandra-all:4.0.0'
+  implementation 'org.apache.cassandra:cassandra-all:4.0.2'
   implementation 'com.datastax.oss:java-driver-core:4.14.1'
   implementation 'org.yaml:snakeyaml:1.14'
   implementation 'org.apache.velocity:velocity:1.7'
@@ -177,7 +178,7 @@ dependencies {
   // using testImplementation so we don't package these...
   testImplementation (group: 'org.jacoco', name:'org.jacoco.report', version:'0.7.7.201606060606')
   testImplementation (group: 'org.jacoco', name:'org.jacoco.core', version:'0.7.7.201606060606')
-  testImplementation 'org.apache.solr:solr-test-framework:8.5.0'
+  testImplementation 'org.apache.solr:solr-test-framework:9.0.0'
 }
 
 compileJava {

@@ -38,7 +38,7 @@ public class PreAnalyzeFields implements DocumentProcessor {
   @SuppressWarnings("unused")
   private static final Logger log = LogManager.getLogger();
 
-  private ThreadLocal<Analyzer> analyzer = new ThreadLocal<>() {
+  private final ThreadLocal<Analyzer> analyzer = new ThreadLocal<>() {
     @Override
     protected Analyzer initialValue() {
       try {
@@ -58,8 +58,8 @@ public class PreAnalyzeFields implements DocumentProcessor {
   private ClassSubPathResourceLoader loader;
   private Callable<Analyzer> analyzerFactory;
   private String name;
-  private List<String> fieldsToAnalyze = new ArrayList<>();
-  private ObjectMapper mapper = new ObjectMapper();
+  private final List<String> fieldsToAnalyze = new ArrayList<>();
+  private final ObjectMapper mapper = new ObjectMapper();
 
   @Override
   public Document[] processDocument(Document document) {
@@ -124,8 +124,7 @@ public class PreAnalyzeFields implements DocumentProcessor {
 
     PreAnalyzeFields obj = new PreAnalyzeFields();
     private String typeName;
-    @SuppressWarnings("deprecation")
-    private String luceneMatch = Version.LUCENE_7_6_0.toString(); // default
+    private String luceneMatch = Version.LUCENE_9_0_0.toString(); // default
     private String schemaFile = "schema.xml"; // default
     private float schemaVersion;
 

@@ -1,6 +1,6 @@
 package org.jesterj.ingest.utils;
 
-import org.apache.lucene.analysis.util.ResourceLoader;
+import org.apache.lucene.util.ResourceLoader;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,7 +44,7 @@ public class ClassSubPathResourceLoader implements ResourceLoader {
   public <T> T newInstance(String cname, Class<T> expectedType) {
     Class<? extends T> clazz = findClass(cname, expectedType);
     try {
-      return clazz.newInstance();
+      return clazz.getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException("Cannot create instance: " + cname, e);
     }
