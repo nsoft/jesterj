@@ -23,6 +23,7 @@ import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.io.StringWriter;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -46,7 +47,7 @@ public class FieldTemplateProcessor implements DocumentProcessor {
 
   private String name;
   private String templateField;
-  private VelocityEngine engine = new VelocityEngine();
+  private final VelocityEngine engine = new VelocityEngine();
 
   @Override
   public String getName() {
@@ -55,7 +56,7 @@ public class FieldTemplateProcessor implements DocumentProcessor {
 
   @Override
   public Document[] processDocument(Document document) {
-    VelocityContext velocityContext = new VelocityContext(document.asMap());
+    VelocityContext velocityContext = new VelocityContext(new HashMap<>(document.asMap()));
     List<String> values = document.removeAll(templateField);
 
     for (String value : values) {

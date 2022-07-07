@@ -17,7 +17,6 @@
 package org.jesterj.ingest.processors;
 
 import org.apache.cassandra.utils.ConcurrentBiMap;
-import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -30,6 +29,7 @@ import org.jesterj.ingest.model.Status;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -153,7 +153,7 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
       }
       // Note that raw data should be empty or have been converted to the bytes of a utf-8 string.
       if (document.getRawData() != null && document.getRawData().length > 0) {
-        String value = new String(document.getRawData(), Charset.forName("UTF-8"));
+        String value = new String(document.getRawData(), StandardCharsets.UTF_8);
         doc.addField(textContentField, value);
       }
       if (fieldsField != null) {
@@ -234,6 +234,7 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
      * @param zk a host name, and port specification
      * @return This builder for further configuration;
      */
+    @SuppressWarnings("ConstantConditions")
     public Builder withZookeeper(String zk) {
       if (zk.indexOf(":") < -1) {
         zk += ":2181";
