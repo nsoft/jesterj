@@ -183,8 +183,6 @@ dependencies {
     exclude group:'junit'
   }
 
-  implementation 'org.javassist:javassist:3.20.0-GA' // substitute a version that handles java 8
-
   // this shouldn't be necessary but there's something dodgy going on with jacocoTestReport's classpath
   // using testImplementation so we don't package these...
   testImplementation (group: 'org.jacoco', name:'org.jacoco.report', version:'0.7.7.201606060606')
@@ -361,13 +359,15 @@ task uploadSnapshot(dependsOn: uploadArchives) {}
 task uploadRelease(dependsOn: uploadArchives) {}
 
 task sourcesJar(type: Jar, dependsOn: classes) {
-  classifier = 'sources'
+  //noinspection GroovyAccessibility
+  archiveClassifier = 'sources'
   from sourceSets.main.allSource
   archiveFileName = 'jesterj-ingest-'+project.version+'-sources.jar'
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
-  classifier = 'javadoc'
+  //noinspection GroovyAccessibility
+  archiveClassifier = 'javadoc'
   from javadoc.destinationDir
   archiveFileName = 'jesterj-ingest-'+project.version+'-javadoc.jar'
 }
@@ -544,6 +544,7 @@ static def getJdk() {
   "${System.getProperty('java.version')} (${System.getProperty('java.vm.vendor')} ${System.getProperty('java.vm.version')})"
 }
 
+@SuppressWarnings('unused')
 def propOrDefault(String prop, String defaultVal) {
   return project.hasProperty(prop) ? project.getProperty(prop) : defaultVal
 }
