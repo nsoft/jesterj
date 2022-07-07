@@ -20,9 +20,10 @@ import static com.copyright.easiertest.EasierMocks.*;
 import static org.easymock.EasyMock.aryEq;
 import static org.easymock.EasyMock.expect;
 
+@SuppressWarnings("ALL")
 public class TikaProcessorTest {
 
-  private static final String HTML = "<html><head><title>The title</title></head><body>This is some body text</body></html>";
+  private static final String HTML = "<!DOCTYPE html><html><head><title>The title</title></head><body>This is some body text</body></html>";
   private static final String XML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root><peer><child>The title</child></peer><peer>This is some body text</peer></root>";
   private static final String XML_BROKEN = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root><peer><child>The title</peer><peer>This is some body text</peer></root>";
   private static final String XML_CONFIG=
@@ -79,10 +80,12 @@ public class TikaProcessorTest {
     TikaProcessor proc = new TikaProcessor.Builder().named("foo").appendingSuffix("_tk").truncatingTextTo(20).build();
     expect(mockDocument.getRawData()).andReturn(HTML.getBytes()).anyTimes();
     mockDocument.setRawData(aryEq("This is some body te".getBytes()));
-    expect(mockDocument.put("X_Parsed_By_tk", "org.apache.tika.parser.DefaultParser")).andReturn(true);
+    expect(mockDocument.put("X_TIKA_Parsed_By_tk", "org.apache.tika.parser.DefaultParser")).andReturn(true);
+    expect(mockDocument.put("X_TIKA_Parsed_By_Full_Set_tk", "org.apache.tika.parser.DefaultParser")).andReturn(true);
     expect(mockDocument.put("dc_title_tk", "The title")).andReturn(true);
     expect(mockDocument.put("Content_Encoding_tk", "ISO-8859-1")).andReturn(true);
-    expect(mockDocument.put("title_tk", "The title")).andReturn(true);
+    // Apparently newer versions of Tika don't produce this. However, we still get other metadata.
+    // expect(mockDocument.put("title_tk", "The title")).andReturn(true);
     expect(mockDocument.put("Content_Type_tk", "text/html; charset=ISO-8859-1")).andReturn(true);
 
     replay();
@@ -91,9 +94,7 @@ public class TikaProcessorTest {
 
   @Test
   public void testXml() throws ParserConfigurationException, IOException, SAXException, TikaException {
-    DocumentBuilderFactory factory =
-        DocumentBuilderFactory.newInstance();
-    DocumentBuilder builder = factory.newDocumentBuilder();
+    DocumentBuilder builder = getDocumentBuilder();
     ByteArrayInputStream input = new ByteArrayInputStream(XML_CONFIG.getBytes("UTF-8"));
     org.w3c.dom.Document doc = builder.parse(input);
 
@@ -103,7 +104,8 @@ public class TikaProcessorTest {
     //System.out.println(new String(new byte[] {32, 32, 32, 84, 104, 101, 32, 116, 105, 116, 108, 101, 32, 84, 104, 105, 115, 32, 105, 115}));
     expect(mockDocument.getRawData()).andReturn(XML.getBytes()).anyTimes();
     mockDocument.setRawData(aryEq("   The title This is".getBytes()));
-    expect(mockDocument.put("X_Parsed_By", "org.apache.tika.parser.CompositeParser")).andReturn(true);
+    expect(mockDocument.put("X_TIKA_Parsed_By", "org.apache.tika.parser.CompositeParser")).andReturn(true);
+    expect(mockDocument.put("X_TIKA_Parsed_By_Full_Set", "org.apache.tika.parser.CompositeParser")).andReturn(true);
     expect(mockDocument.put("Content_Type", "application/xml")).andReturn(true);
 
     replay();
@@ -112,9 +114,7 @@ public class TikaProcessorTest {
 
   @Test
   public void testFieldDontTouchRaw() throws Exception {
-    DocumentBuilderFactory factory =
-        DocumentBuilderFactory.newInstance();
-    DocumentBuilder builder = factory.newDocumentBuilder();
+    DocumentBuilder builder = getDocumentBuilder();
     ByteArrayInputStream input = new ByteArrayInputStream(XML_CONFIG.getBytes("UTF-8"));
     org.w3c.dom.Document doc = builder.parse(input);
 
@@ -123,7 +123,8 @@ public class TikaProcessorTest {
         .build();
     expect(mockDocument.getRawData()).andReturn(XML.getBytes()).anyTimes();
     expect(mockDocument.put("extracted","   The title This is")).andReturn(true);
-    expect(mockDocument.put("X_Parsed_By", "org.apache.tika.parser.CompositeParser")).andReturn(true);
+    expect(mockDocument.put("X_TIKA_Parsed_By", "org.apache.tika.parser.CompositeParser")).andReturn(true);
+    expect(mockDocument.put("X_TIKA_Parsed_By_Full_Set", "org.apache.tika.parser.CompositeParser")).andReturn(true);
     expect(mockDocument.put("Content_Type", "application/xml")).andReturn(true);
 
     replay();
@@ -132,9 +133,7 @@ public class TikaProcessorTest {
 
   @Test(expected = TikaException.class)
   public void testBadConfig() throws ParserConfigurationException, IOException, SAXException, TikaException {
-    DocumentBuilderFactory factory =
-        DocumentBuilderFactory.newInstance();
-    DocumentBuilder builder = factory.newDocumentBuilder();
+    DocumentBuilder builder = getDocumentBuilder();
     ByteArrayInputStream input = new ByteArrayInputStream(XML_CONFIG_BAD.getBytes("UTF-8"));
     org.w3c.dom.Document doc = builder.parse(input);
     replay();
@@ -146,9 +145,7 @@ public class TikaProcessorTest {
 
   @Test
   public void testBadDoc() throws ParserConfigurationException, IOException, SAXException, TikaException {
-    DocumentBuilderFactory factory =
-        DocumentBuilderFactory.newInstance();
-    DocumentBuilder builder = factory.newDocumentBuilder();
+    DocumentBuilder builder = getDocumentBuilder();
     ByteArrayInputStream input = new ByteArrayInputStream(XML_CONFIG.getBytes("UTF-8"));
     org.w3c.dom.Document doc = builder.parse(input);
     TikaProcessor proc = new TikaProcessor.Builder().named("foo").appendingSuffix("_tk").truncatingTextTo(20)
@@ -162,9 +159,7 @@ public class TikaProcessorTest {
 
   @Test
   public void testEmptyDoc() throws ParserConfigurationException, IOException, SAXException, TikaException {
-    DocumentBuilderFactory factory =
-        DocumentBuilderFactory.newInstance();
-    DocumentBuilder builder = factory.newDocumentBuilder();
+    DocumentBuilder builder = getDocumentBuilder();
     ByteArrayInputStream input = new ByteArrayInputStream(XML_CONFIG.getBytes("UTF-8"));
     org.w3c.dom.Document doc = builder.parse(input);
 
@@ -177,11 +172,17 @@ public class TikaProcessorTest {
     proc.processDocument(mockDocument);
   }
 
-  @Test(expected = RuntimeException.class)
-  public void testRandomException() throws ParserConfigurationException, IOException, SAXException, TikaException {
+  private DocumentBuilder getDocumentBuilder() throws ParserConfigurationException {
     DocumentBuilderFactory factory =
         DocumentBuilderFactory.newInstance();
+    factory.setNamespaceAware(true);
     DocumentBuilder builder = factory.newDocumentBuilder();
+    return builder;
+  }
+
+  @Test(expected = RuntimeException.class)
+  public void testRandomException() throws ParserConfigurationException, IOException, SAXException, TikaException {
+    DocumentBuilder builder = getDocumentBuilder();
     ByteArrayInputStream input = new ByteArrayInputStream(XML_CONFIG.getBytes("UTF-8"));
     org.w3c.dom.Document doc = builder.parse(input);
 
@@ -196,9 +197,7 @@ public class TikaProcessorTest {
 
   @Test
   public void testExceptionToIgnoreFromTika() throws ParserConfigurationException, IOException, SAXException, TikaException {
-    DocumentBuilderFactory factory =
-        DocumentBuilderFactory.newInstance();
-    DocumentBuilder builder = factory.newDocumentBuilder();
+    DocumentBuilder builder = getDocumentBuilder();
     ByteArrayInputStream input = new ByteArrayInputStream(XML_CONFIG.getBytes("UTF-8"));
     org.w3c.dom.Document doc = builder.parse(input);
 

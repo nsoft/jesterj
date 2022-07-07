@@ -16,12 +16,12 @@
 
 package org.jesterj.ingest.model.impl;
 
-import com.coremedia.iso.Hex;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ForwardingListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import net.jini.core.entry.Entry;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.appender.AppenderLoggingException;
@@ -242,7 +242,7 @@ public class DocumentImpl implements Document {
       if (getRawData() != null) {
         md.update(getRawData());
       }
-      return Hex.encodeHex(md.digest());
+      return new String(Hex.encodeHex(md.digest(), false));
     } catch (NoSuchAlgorithmException e) {
       e.printStackTrace();
       throw new RuntimeException(e);

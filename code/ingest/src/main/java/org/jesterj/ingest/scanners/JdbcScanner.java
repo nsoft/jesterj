@@ -19,10 +19,10 @@ package org.jesterj.ingest.scanners;
 import com.copyright.easiertest.SimpleProperty;
 import com.google.common.io.CharStreams;
 import net.jini.space.JavaSpace;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.pdfbox.io.IOUtils;
 import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
@@ -251,6 +251,7 @@ public class JdbcScanner extends ScannerImpl {
         if (content instanceof Clob) {
           Clob clob = (Clob) content;
           try (Reader reader = clob.getCharacterStream()) {
+            //noinspection UnstableApiUsage
             rawBytes = CharStreams.toString(reader).getBytes();
           } catch (IOException ex) {
             String msg = String.format("I/O error while reading value of content column '%s'.", contentColumn);

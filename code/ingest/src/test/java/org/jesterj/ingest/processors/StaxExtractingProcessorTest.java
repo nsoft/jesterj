@@ -1,7 +1,7 @@
 package org.jesterj.ingest.processors;
 
 import com.copyright.easiertest.Mock;
-import org.bouncycastle.util.io.Streams;
+import org.apache.commons.io.IOUtils;
 import org.codehaus.stax2.XMLStreamReader2;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.processors.StaxExtractingProcessor.ElementSpec;
@@ -15,10 +15,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.regex.Pattern;
 
-import static com.copyright.easiertest.EasierMocks.*;
+import static com.copyright.easiertest.EasierMocks.prepareMocks;
+import static com.copyright.easiertest.EasierMocks.replay;
+import static com.copyright.easiertest.EasierMocks.reset;
+import static com.copyright.easiertest.EasierMocks.verify;
 import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.assertEquals;
 
+@SuppressWarnings("ALL")
 public class StaxExtractingProcessorTest {
 
   private static byte[] xmlBytes;
@@ -33,7 +37,10 @@ public class StaxExtractingProcessorTest {
   @BeforeClass
   public static void init() throws IOException {
     InputStream resourceAsStream = StaxExtractingProcessor.class.getResourceAsStream("/pubmed.xml");
-    xmlBytes = Streams.readAll(resourceAsStream);
+    xmlBytes = resourceAsStream != null ? IOUtils.toByteArray(resourceAsStream) : null;
+    if (xmlBytes == null) {
+      throw new IOException("Failed to load pubmed.xml as a stream resource");
+    }
   }
 
   @Before
