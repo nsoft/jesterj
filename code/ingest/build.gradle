@@ -145,7 +145,7 @@ dependencies {
 
   implementation 'jini:jini-core:2.1'
   implementation 'org.apache.river:reggie:2.2.2'
-  implementation 'org.apache.cassandra:cassandra-all:4.0.2'
+  implementation 'org.apache.cassandra:cassandra-all:4.0.4'
   implementation 'com.datastax.oss:java-driver-core:4.14.1'
   implementation 'org.yaml:snakeyaml:1.30'
   implementation 'org.apache.velocity:velocity:1.7'
