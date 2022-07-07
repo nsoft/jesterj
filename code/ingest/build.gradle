@@ -134,7 +134,7 @@ configurations.all {
 
 dependencies {
   implementation 'com.needhamsoftware.unojar:core:1.0.2'
-  implementation 'io.github.classgraph:classgraph:4.8.78'
+  implementation 'io.github.classgraph:classgraph:4.8.147'
   implementation 'org.apache.tika:tika-core:2.4.1'
   implementation 'org.apache.tika:tika-parsers-standard-package:2.4.1'
 
@@ -145,7 +145,14 @@ dependencies {
 
   implementation 'jini:jini-core:2.1'
   implementation 'org.apache.river:reggie:2.2.2'
+
+  // IDE checker reports CVE-2021-21290, CVE-2021-21295, CVE-2021-37137, CVE-2021-43797 in transitive deps.
+  // The Cassandra devs have determined that these are not relevant to usage of cassandra
+  // https://github.com/apache/cassandra/blob/c378874a9fa123891d1d75177d99dba5c4d18f9b/.build/dependency-check-suppressions.xml
+  // Note: there are (as of now) no netty import statements, so we're not using any vulnerable code either.
   implementation 'org.apache.cassandra:cassandra-all:4.0.4'
+
+  // CVE-2021-24823 --> waiting for 4.15 to release.
   implementation 'com.datastax.oss:java-driver-core:4.14.1'
   implementation 'org.yaml:snakeyaml:1.30'
   implementation 'org.apache.velocity:velocity-engine-core:2.3'
@@ -347,7 +354,6 @@ ext.releaseRepo = 'https://oss.sonatype.org/service/local/staging/deploy/maven2'
 ext.snapshotRepo = 'https://oss.sonatype.org/content/repositories/snapshots'
 ext.testingRepo = 'file:///tmp/myRepo/'
 ext.uploadRepo = isRelease ? releaseRepo : (isSnapshot ? snapshotRepo : testingRepo)
-
 
 task uploadSnapshot(dependsOn: uploadArchives) {}
 task uploadRelease(dependsOn: uploadArchives) {}
