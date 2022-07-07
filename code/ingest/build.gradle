@@ -176,7 +176,7 @@ dependencies {
   implementation 'com.fasterxml:aalto-xml:1.3.2'
   implementation 'xml-resolver:xml-resolver:1.2'
   testImplementation 'junit:junit:4.13.2'
-  implementation 'org.easymock:easymock:4.1'
+  implementation 'org.easymock:easymock:4.3'
   testImplementation 'org.hsqldb:hsqldb:2.6.1'
   testImplementation ('com.needhamsoftware:easier-mock:2.0') {
     exclude group:'org.easymock'
