@@ -34,7 +34,7 @@ plugins {
   id 'signing'
 //  id 'maven'
   id 'maven-publish'
-  id 'com.github.jk1.dependency-license-report' version '0.3.4'
+  id 'com.github.jk1.dependency-license-report' version '2.0'
   id "com.github.onslip.gradle-one-jar" version "1.0.5"
   id 'com.needhamsoftware.unojar' version '1.0.1'
 }
@@ -301,6 +301,8 @@ task generateNotices() {
   }
 }
 
+
+
 jacocoTestReport.dependsOn test
 
 artifactoryPublish.dependsOn packUnoJar
@@ -355,8 +357,8 @@ ext.snapshotRepo = 'https://oss.sonatype.org/content/repositories/snapshots'
 ext.testingRepo = 'file:///tmp/myRepo/'
 ext.uploadRepo = isRelease ? releaseRepo : (isSnapshot ? snapshotRepo : testingRepo)
 
-task uploadSnapshot(dependsOn: uploadArchives) {}
-task uploadRelease(dependsOn: uploadArchives) {}
+//task uploadSnapshot(dependsOn: uploadArchives) {}
+//task uploadRelease(dependsOn: uploadArchives) {}
 
 task sourcesJar(type: Jar, dependsOn: classes) {
   //noinspection GroovyAccessibility
