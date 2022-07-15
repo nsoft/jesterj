@@ -231,7 +231,6 @@ jacocoTestReport {
   reports {
     xml.enabled true
   }
-  jacocoClasspath += files {configurations.testCompile.resolve()}
 }
 
 jar {
