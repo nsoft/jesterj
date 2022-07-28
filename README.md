@@ -38,17 +38,10 @@ of docopt, which will hopefully become unnecessary in future versions.
 
 Presently only JDK 8 has been supported. JDK 9/10 will not be explicitly supported. Now that JDK 11 is out as an LTS version, support for it will commence. JDK 11 is supported in the master branch, but not yet released
 
-# Slack Chanel
-If you want an invite to our slack channel just send mail to:
-```
-                     ______    _           __            _                  
-   ____ ___  _______/ ____ \  (_)__  _____/ /____  _____(_)____  _________ _
-  / __ `/ / / / ___/ / __ `/ / / _ \/ ___/ __/ _ \/ ___/ // __ \/ ___/ __ `/
- / /_/ / /_/ (__  ) / /_/ / / /  __(__  ) /_/  __/ /  / // /_/ / /  / /_/ / 
- \__, /\__,_/____/\ \__,_/_/ /\___/____/\__/\___/_/__/ (_)____/_/   \__, /  
-/____/             \____/___/                     /___/            /____/   
+# Discord Server
 
-```
+Discuss features, ask questions etc on Discord: https://discord.gg/RmdTYvpXr9
+
 ## Features:
 
 In this release we have the following features
