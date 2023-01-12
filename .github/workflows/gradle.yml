@@ -34,3 +34,9 @@ jobs:
           files: code/ingest/build/reports/jacoco/test/jacocoTestReport.xml
           fail_ci_if_error: true
           verbose: true
+    - name: Submit Dependencies
+      uses: mikepenz/gradle-dependency-submission@{latest}
+      with:
+        gradle-project-path: "code/ingest"
+        gradle-build-module: ":"
+        gradle-build-configuration: "unoJarPack"
