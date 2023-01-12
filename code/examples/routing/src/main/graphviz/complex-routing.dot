@@ -3,6 +3,7 @@ digraph G {
   SplitLineAsChildren[label="SplitLinesAsChildren\n(RouteByStepName)" style="filled" fillcolor="#aaFFaa" ]
   ProcessTypeA[label="ProcessTypeA\n(DuplicateToAllRouter)" style="filled" fillcolor="#aaFFaa"]
   ProcessTypeB[label="ProcessTypeB\n(DuplicateToAllRouter)" style="filled" fillcolor="#aaFFaa"]
+  MoreTypeB[label="FurtherProcessing\n(DuplicateToAllRouter)" style="filled" fillcolor="#aaFFaa"]
   MessageB[label="MessageTypeB\n(RoundRobinRouter)" style="filled" fillcolor="#aaaaff"]
   MessageClientA[color=red fontcolor=red]
   MessageClientB[color=red fontcolor=red]
@@ -15,8 +16,9 @@ digraph G {
   SimpleFileScanner -> SplitLineAsChildren
   SplitLineAsChildren -> ProcessTypeA
   SplitLineAsChildren -> ProcessTypeB
-  ProcessTypeB -> IndexSolrB
-  ProcessTypeB -> IndexSolrCombined
+  ProcessTypeB -> MoreTypeB
+  MoreTypeB -> IndexSolrCombined
+  MoreTypeB -> IndexSolrB
   ProcessTypeB -> MessageB
   ProcessTypeA -> IndexSolrA
   ProcessTypeA -> IndexSolrCombined
