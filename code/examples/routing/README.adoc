@@ -1,6 +1,6 @@
 This is not an example of a working project. It is used to create the graphics for the wiki page on fault tolerant indexing
 
-To recreate this graphic
+Sadly it doesn't seem that GitHub can render dot directly. To recreate this graphic
 
 . Install the intellij dot plugin
 . Save the rendered image as a peer of this README file.

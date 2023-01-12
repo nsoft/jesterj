@@ -1,32 +1,37 @@
 digraph G {
-    SimpleFileScanner [color = "blue" fontcolor = blue]
-    SimpleFileScanner2 [color = "blue" fontcolor = blue]
+    OldFormatFileScanner [color = "blue" fontcolor = blue]
+    NewFormatFileScanner [color = "blue" fontcolor = blue]
     SplitLineAsChildren [label = "SplitLinesAsChildren\n(RouteByStepName)" style = "filled" fillcolor = "#aaFFaa"]
     SplitLineAsChildren2 [label = "SplitLinesAsChildren2"]
-    ProcessTypeA [label = "ProcessTypeA\n(DuplicateToAllRouter)" style = "filled" fillcolor = "#aaFFaa"]
-    ProcessTypeB [label = "ProcessTypeB\n(DuplicateToAllRouter)" style = "filled" fillcolor = "#aaFFaa"]
-    MoreTypeB [label = "FurtherProcessing\n(DuplicateToAllRouter)" style = "filled" fillcolor = "#aaFFaa"]
-    MessageB [label = "MessageTypeB\n(RoundRobinRouter)" style = "filled" fillcolor = "#aaaaff"]
+    ProcessLineItem [label = "ProcessLineItem\n(DuplicateToAllRouter)" style = "filled" fillcolor = "#aaFFaa"]
+    ProcessOrder [label = "ProcessOrder\n(DuplicateToAllRouter)" style = "filled" fillcolor = "#aaFFaa"]
+    MoreOrder [label = "ExtractNewJSONLineItem\n(RouteByStepName)" style = "filled" fillcolor = "#aaFFaa"]
+    MessageB [label = "MessageOrderReceived\n(RoundRobinRouter)" style = "filled" fillcolor = "#aaaaff"]
     MessageClientA [color = red fontcolor = red]
     MessageClientB [color = red fontcolor = red]
     MessageClientC [color = red fontcolor = red]
-    IndexSolrA [color = red fontcolor = red]
-    IndexSolrB [color = red fontcolor = red]
-    IndexSolrCombined [color = red fontcolor = red]
+    OrderReadyForSolr [label="OrderReadyForSolr\n(DuplicateToAllRouter)" style = "filled" fillcolor = "#aaFFaa"]
+    LineItemIndex [label="NewLineItemOnlyIndex" color = red fontcolor = red]
+    OrderIndex [label="NewBlockJoinOrderIndex" color = red fontcolor = red]
+    CombinedIndex [ label="LegacyCombinedIndex" color = red fontcolor = red]
 
 
-    SimpleFileScanner -> SplitLineAsChildren
-    SimpleFileScanner2 -> SplitLineAsChildren2
-    SplitLineAsChildren -> ProcessTypeA
-    SplitLineAsChildren -> ProcessTypeB
-    SplitLineAsChildren2 -> ProcessTypeB
+    OldFormatFileScanner -> SplitLineAsChildren
+    NewFormatFileScanner -> SplitLineAsChildren2
+    SplitLineAsChildren -> ProcessLineItem
+    SplitLineAsChildren -> ProcessOrder
+    SplitLineAsChildren2 -> ProcessOrder
+    MoreOrder -> ProcessLineItem
 
-    ProcessTypeB -> MoreTypeB
-    MoreTypeB -> IndexSolrCombined
-    MoreTypeB -> IndexSolrB
-    ProcessTypeB -> MessageB
-    ProcessTypeA -> IndexSolrA
-    ProcessTypeA -> IndexSolrCombined
+    ProcessOrder -> MoreOrder
+    MoreOrder -> OrderReadyForSolr
+
+
+    OrderReadyForSolr -> CombinedIndex
+    OrderReadyForSolr -> OrderIndex
+    ProcessOrder -> MessageB
+    ProcessLineItem -> LineItemIndex
+    ProcessLineItem -> CombinedIndex
     MessageB -> MessageClientA
     MessageB -> MessageClientB
     MessageB -> MessageClientC
