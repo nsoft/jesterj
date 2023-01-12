@@ -4,8 +4,18 @@ JesterJ
 [![Build Status](https://github.com/nsoft/jesterj/actions/workflows/gradle.yml/badge.svg)](https://github.com/nsoft/jesterj/actions)
 
 A new highly flexible, highly scalable document ingestion system. 
+Often the first version of a system is fairly linear and straight forward, but as time passes features and enhancements often add complexity.
+Other times, the sytem is complex from the very start, possibly because search is being added to an existing system.
+JesterJ is designed to handle complex indexing scenarios. 
+Consider the following hypothetical indexing workflow:
 
-See the [web site](http://www.jesterj.org) and the [documentation](https://github.com/nsoft/jesterj/wiki/Documentation) for more info
+![Complex Processing](https://raw.githubusercontent.com/nsoft/jesterj/79ed481c7c0b98469e3e41c96b92170837a26130/code/examples/routing/complex-routing.png)
+
+JesterJ handles such scenarios with a single centralized processing plan, and will ensure that if the system is unplugged, you won't get a second message about an order Received[^1]
+
+See the [website](http://www.jesterj.org) and the [documentation](https://github.com/nsoft/jesterj/wiki/Documentation) for more info
+
+[^1]: After issue #84 is resolved.
 
 # Getting Started
 
