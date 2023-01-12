@@ -5,13 +5,13 @@ JesterJ
 
 A new highly flexible, highly scalable document ingestion system. 
 Often the first version of a system is fairly linear and straight forward, but as time passes features and enhancements often add complexity.
-Other times, the sytem is complex from the very start, possibly because search is being added to an existing system.
+Other times, the system is complex from the very start, possibly because search is being added to an existing system.
 JesterJ is designed to handle complex indexing scenarios. 
 Consider the following hypothetical indexing workflow:
 
 ![Complex Processing](https://raw.githubusercontent.com/nsoft/jesterj/79ed481c7c0b98469e3e41c96b92170837a26130/code/examples/routing/complex-routing.png)
 
-JesterJ handles such scenarios with a single centralized processing plan, and will ensure that if the system is unplugged, you won't get a second message about an order Received[^1]
+JesterJ handles such scenarios with a single centralized processing plan, and will ensure that if the system is unplugged, you won't get a second message about an order received[^1]
 
 See the [website](http://www.jesterj.org) and the [documentation](https://github.com/nsoft/jesterj/wiki/Documentation) for more info
 
@@ -23,7 +23,7 @@ Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki
 
 # Project Status
 
-Current release version: 1.0-beta2. (But head revision in github is much better right now! New release soon)
+Current release version: 1.0-beta2. (But head revision in GitHub is much better right now! New release soon)
 
 Can be used with gradle configuration:
 
@@ -41,7 +41,7 @@ Can be used with gradle configuration:
       compile ('org.jesterj:ingest:1.0-beta2')
     }
 
-The extra repos are for a patched version of cassandra, and should go away in future releases (see https://issues.apache.org/jira/browse/CASSANDRA-13396). The clojars repo is for is for a clojure based implementation
+The extra repos are for a patched version of cassandra, and should go away in future releases (see https://issues.apache.org/jira/browse/CASSANDRA-13396). The clojars repo is for a clojure based implementation
 of docopt, which will hopefully become unnecessary in future versions.
 
 # JDK versions
@@ -71,7 +71,7 @@ In this release we have the following features
  * Runnable example to [execute a plan](https://github.com/nsoft/jesterj/blob/master/code/ingest/README.md) that scans a filesystem, and indexes the documents in solr.
 
 Release 0.1 is intended to be the smallest functional unit. Plans and steps will need to be assembled 
-in code etc and only run locally, only single node supported. Documents indexed will have fields for mod-time, 
+in code etc. and only run locally, only single node supported. Documents indexed will have fields for mod-time, 
 file name and file size.
 
 ## Progress for 1.0
@@ -82,9 +82,9 @@ file name and file size.
  * Ability to load Java based config from a jar file - experimental. 
  * More processors: Fetch URL, Regex Replace Value, Delete Field, Parse Field as Template, URL Encode Field
  * Publish jars on Maven Central
- * Up to date docs in wiki.
+ * Up-to-date docs in wiki.
  
-The Java config feature is experimental but working out better than expected. I wanted to use what I had built for a project, but the lack of externalized configuration was a blocker. It was a quick fix but it's turning out to be quite pleasant to work with. The down side is I'm not sure how it would carry forward to later stages of the project so it might still go away. Feedback welcome.
+The Java config feature is experimental but working out better than expected. I wanted to use what I had built for a project, but the lack of externalized configuration was a blocker. It was a quick fix, but it's turning out to be quite pleasant to work with. The downside is I'm not sure how it would carry forward to later stages of the project, so it might still go away. Feedback welcome.
 
 ## TODO for 1.0 final
  * 50% [test coverage](https://codecov.io/gh/nsoft/jesterj) 
@@ -92,7 +92,7 @@ The Java config feature is experimental but working out better than expected. I 
  * Build a demo jar that can be run to demonstrate the java config usage
  * Demo/tutorial to demonstrate indexing a database and a filesystem simultaneously into solr
 
-Release 1.0 is intended to be the usable for single node systems, and therefore suitable for production use on small to medium sized projects.  
+Release 1.0 is intended to be the usable for single node systems, and therefore suitable for production use on small to medium-sized projects.  
  
 ## TODO for 2.0
  * Serialized format for a plan/steps.
