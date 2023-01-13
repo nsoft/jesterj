@@ -140,6 +140,9 @@ dependencies {
 
   implementation 'org.apache.solr:solr-core:9.1.0'
 
+  // until SOLR 9.1.1 (should be safe see https://issues.apache.org/jira/browse/SOLR-16568)
+  implementation 'com.fasterxml.woodstox:woodstox-core:6.4.0'
+
   implementation 'com.google.guava:guava:31.1-jre'
   implementation 'com.google.code.findbugs:jsr305:3.0.2'
 
