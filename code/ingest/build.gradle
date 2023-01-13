@@ -160,7 +160,7 @@ dependencies {
   // CVE-2021-24823 --> waiting for 4.15 to release.
   //noinspection VulnerableLibrariesLocal
   implementation 'com.datastax.oss:java-driver-core:4.14.1'
-  implementation 'org.yaml:snakeyaml:1.30'
+  implementation 'org.yaml:snakeyaml:1.33'
   implementation 'org.apache.velocity:velocity-engine-core:2.3'
 
   implementation 'org.apache.logging.log4j:log4j-core:2.17.2'
