@@ -138,7 +138,7 @@ dependencies {
   implementation 'org.apache.tika:tika-core:2.4.1'
   implementation 'org.apache.tika:tika-parsers-standard-package:2.4.1'
 
-  implementation 'org.apache.solr:solr-core:9.0.0'
+  implementation 'org.apache.solr:solr-core:9.1.0'
 
   implementation 'com.google.guava:guava:31.1-jre'
   implementation 'com.google.code.findbugs:jsr305:3.0.2'
@@ -187,7 +187,7 @@ dependencies {
   // using testImplementation so we don't package these...
   testImplementation (group: 'org.jacoco', name:'org.jacoco.report', version:'0.7.7.201606060606')
   testImplementation (group: 'org.jacoco', name:'org.jacoco.core', version:'0.7.7.201606060606')
-  testImplementation 'org.apache.solr:solr-test-framework:9.0.0'
+  testImplementation 'org.apache.solr:solr-test-framework:9.1.0'
 }
 
 compileJava {

@@ -1,0 +1,1 @@
+This is a hack due to https://github.com/apache/solr/blob/2b567e7bb23aa7b5d94e933c68f6966fb99b65b9/solr/test-framework/src/java/org/apache/solr/util/ExternalPaths.java#L64

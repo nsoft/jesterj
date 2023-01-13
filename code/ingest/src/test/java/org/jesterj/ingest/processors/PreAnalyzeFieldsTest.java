@@ -4,16 +4,11 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
-import org.apache.lucene.util.QuickPatchThreadsFilter;
 import org.apache.solr.SolrIgnoredThreadsFilter;
-import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.request.CollectionAdminRequest;
-import org.apache.solr.client.solrj.request.QueryRequest;
 import org.apache.solr.client.solrj.response.QueryResponse;
-import org.apache.solr.client.solrj.response.TermsResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
-import org.apache.solr.cloud.MiniSolrCloudCluster;
 import org.apache.solr.cloud.SolrCloudTestCase;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
@@ -24,10 +19,10 @@ import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.impl.DocumentImpl;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.ScannerImpl;
-import org.junit.*;
-import org.objenesis.Objenesis;
-import org.objenesis.ObjenesisStd;
-import org.objenesis.instantiator.ObjectInstantiator;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -38,7 +33,6 @@ import java.util.Optional;
 @SuppressWarnings("SameParameterValue")
 @ThreadLeakFilters(filters = {
     SolrIgnoredThreadsFilter.class,
-    QuickPatchThreadsFilter.class,
     CassandraDriverThreadFilter.class
 })
 public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
@@ -110,38 +104,40 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
     };
 
     String schemaFile = "solr/configsets/preanalyze/conf/schema.xml";
-    PreAnalyzeFields paf = new PreAnalyzeFields.Builder()
-        .named("foo")
-        .forTypeNamed("text_en")
-        .preAnalyzingField("preanalyzed")
-        .fromFile(schemaFile)
-        .loadingResourcesVia(() -> plan.getClass().getClassLoader())
-        .build();
+    Document document;
+    try (PreAnalyzeFields paf = new PreAnalyzeFields.Builder()
+            .named("foo")
+            .forTypeNamed("text_en")
+            .preAnalyzingField("preanalyzed")
+            .fromFile(schemaFile)
+            .loadingResourcesVia(() -> plan.getClass().getClassLoader())
+            .build()) {
 
-    Scanner s = new ScannerImpl() {
-      @Override
-      public ScanOp getScanOperation() {
-        return null;
-      }
+      Scanner s = new ScannerImpl() {
+        @Override
+        public ScanOp getScanOperation() {
+          return null;
+        }
 
-      @Override
-      public boolean isScanning() {
-        return false;
-      }
+        @Override
+        public boolean isScanning() {
+          return false;
+        }
 
-      @Override
-      public Optional<Document> fetchById(String id) {
-        return Optional.empty();
-      }
+        @Override
+        public Optional<Document> fetchById(String id) {
+          return Optional.empty();
+        }
 
-      @Override
-      public String getName() {
-        return "foo";
-      }
-    };
-    Document document = new DocumentImpl(new byte[0], "1", plan, Document.Operation.NEW, s);
-    document.put("preanalyzed", "Quick red fox or 2 + 2 = 4");
-    paf.processDocument(document);
+        @Override
+        public String getName() {
+          return "foo";
+        }
+      };
+      document = new DocumentImpl(new byte[0], "1", plan, Document.Operation.NEW, s);
+      document.put("preanalyzed", "Quick red fox or 2 + 2 = 4");
+      paf.processDocument(document);
+    }
     assertEquals(ANALYZED, document.get("preanalyzed").get(0));
 
     String testCol = "testCol";
