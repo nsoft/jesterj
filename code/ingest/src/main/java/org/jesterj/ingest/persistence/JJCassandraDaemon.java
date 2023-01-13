@@ -1,14 +1,11 @@
 package org.jesterj.ingest.persistence;
 
-import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.service.ActiveRepairService;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.NativeAccessMBean;
-import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.MBeanWrapper;
 import org.apache.cassandra.utils.NativeLibrary;
-import org.apache.cassandra.utils.WindowsTimer;
 
 import javax.management.StandardMBean;
 import java.io.File;
@@ -29,14 +26,15 @@ class JJCassandraDaemon extends CassandraDaemon {
     super(true);
   }
 
-  private void exitOrFail(int code, String message, Throwable cause) {
+  private void exitOrFail(String message, Throwable cause) {
     if (runManaged) {
+      @SuppressWarnings("UnnecessaryLocalVariable") // for debugging
       RuntimeException t = cause != null ? new RuntimeException(message, cause) : new RuntimeException(message);
       throw t;
     } else {
       System.err.println(message);
       cause.printStackTrace();
-      System.exit(code);
+      System.exit(3);
     }
   }
 
@@ -52,12 +50,6 @@ class JJCassandraDaemon extends CassandraDaemon {
       applyConfig();
 
       registerNativeAccess();
-
-      if (FBUtilities.isWindows) {
-        // We need to adjust the system timer on windows from the default 15ms down to the minimum of 1ms as this
-        // impacts timer intervals, thread scheduling, driver interrupts, etc.
-        WindowsTimer.startTimerPeriod(DatabaseDescriptor.getWindowsTimerInterval());
-      }
 
       setup();
 
@@ -76,8 +68,7 @@ class JJCassandraDaemon extends CassandraDaemon {
 
       System.out.println("Startup complete");
     } catch (Throwable e) {
-      boolean logStackTrace =
-          e instanceof ConfigurationException ? ((ConfigurationException) e).logStackTrace : true;
+      boolean logStackTrace = !(e instanceof ConfigurationException) || ((ConfigurationException) e).logStackTrace;
 
       System.out.println("Exception (" + e.getClass().getName() + ") encountered during startup: " + e.getMessage());
 
@@ -87,14 +78,14 @@ class JJCassandraDaemon extends CassandraDaemon {
 
         // try to warn user on stdout too, if we haven't already detached
         e.printStackTrace();
-        exitOrFail(3, "Exception encountered during startup", e);
+        exitOrFail("Exception encountered during startup", e);
       } else {
         if (runManaged)
           System.err.println("Exception encountered during startup: {}" + e.getMessage());
         // try to warn user on stdout too, if we haven't already detached
         e.printStackTrace();
         System.err.println(e.getMessage());
-        exitOrFail(3, "Exception encountered during startup: " + e.getMessage(), null);
+        exitOrFail("Exception encountered during startup: " + e.getMessage(), null);
       }
     }
   }
