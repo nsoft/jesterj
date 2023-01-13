@@ -7,7 +7,7 @@ import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
 import org.jesterj.ingest.processors.*;
 import org.jesterj.ingest.routers.DuplicateToAll;
-import org.jesterj.ingest.scanners.SimpleFileWatchScanner;
+import org.jesterj.ingest.scanners.SimpleFileScanner;
 
 import java.io.File;
 
@@ -23,7 +23,7 @@ public class ShakespeareConfig implements PlanProvider {
 
   public Plan getPlan() {
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
-    SimpleFileWatchScanner.Builder scanner = new SimpleFileWatchScanner.Builder();
+    SimpleFileScanner.Builder scanner = new SimpleFileScanner.Builder();
     StepImpl.Builder formatCreated = new StepImpl.Builder();
     StepImpl.Builder formatModified = new StepImpl.Builder();
     StepImpl.Builder formatAccessed = new StepImpl.Builder();
