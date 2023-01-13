@@ -153,6 +153,10 @@ dependencies {
   //noinspection VulnerableLibrariesLocal
   implementation 'org.apache.cassandra:cassandra-all:4.1.0'
 
+  // until https://issues.apache.org/jira/browse/CASSANDRA-17966 easy and likely safe way to make CVE-2022-42004 go away
+  implementation 'com.fasterxml.jackson.core:jackson-core:2.13.4'
+  implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.4.2'
+
   // CVE-2021-24823 --> waiting for 4.15 to release.
   //noinspection VulnerableLibrariesLocal
   implementation 'com.datastax.oss:java-driver-core:4.14.1'
