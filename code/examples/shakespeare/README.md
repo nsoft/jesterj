@@ -1,12 +1,14 @@
-To see JesterJ in action, you can run this example.
+To see JesterJ in action, you can run this example. (Java 11 required)
 
-1. Clone https://github.com/nsoft/jesterj.git
-1. In /jesterj/code/ingest run `./gradlew  publishToMavenLocal` (to publish 1.0-SNAPSHOT required by this example)   
+Setup Solr
 1. Set up a local Solr Cloud node with zookeeper on 9983  (or edit ShakespeareConfig.java to match your ports)
 1. Create a collection named jjtest using the _default configset
-1. In /jesterj/code/ingest run `./gradlew packUnoJar`
-1. In this directory run `./gradlew build`
-1. In this directory run `java -jar ../../ingest/build/libs/jesterj-node-1.0-SNAPSHOT.jar build/libs/example-shakespeare-1.0-SNAPSHOT.jar foo bar`
+
+Start JesterJ
+1. Clone https://github.com/nsoft/jesterj.git
+1. In /jesterj/code/ingest run `./gradlew  publishToMavenLocal` (to publish 1.0-SNAPSHOT required by this example)
+1. In /jesterj/code/example/shakespeare run `./gradlew build`
+1. In /jesterj/code/example/shakespeare run run `java -jar ../../ingest/build/libs/jesterj-node-1.0-SNAPSHOT.jar build/libs/example-shakespeare-1.0-SNAPSHOT.jar foo bar`
 
 Your search engine(s) should have indexed shakespeare's plays within a minute or so.  
 
@@ -58,4 +60,4 @@ Should yield
 ```
 
 
-If you edit or add files the changes will be re-indexed. Happy Searching!
+If you edit or add files the changes will be re-indexed automatically. Happy Searching!
