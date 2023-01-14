@@ -23,13 +23,13 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.exception.ConfigurationException;
 import org.jesterj.ingest.model.exception.PersistenceException;
 import org.jesterj.ingest.model.impl.DocumentImpl;
 import org.jesterj.ingest.model.impl.ScannerImpl;
+import org.jesterj.ingest.routers.RouterBase;
 import org.jesterj.ingest.utils.SqlUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -56,6 +56,7 @@ import java.util.Optional;
  *
  * @author dgoldenberg
  */
+@SuppressWarnings({"SqlDialectInspection", "SqlNoDataSourceInspection"})
 public class JdbcScanner extends ScannerImpl {
 
   private static final Logger log = LogManager.getLogger();
@@ -251,7 +252,6 @@ public class JdbcScanner extends ScannerImpl {
         if (content instanceof Clob) {
           Clob clob = (Clob) content;
           try (Reader reader = clob.getCharacterStream()) {
-            //noinspection UnstableApiUsage
             rawBytes = CharStreams.toString(reader).getBytes();
           } catch (IOException ex) {
             String msg = String.format("I/O error while reading value of content column '%s'.", contentColumn);
@@ -482,7 +482,7 @@ public class JdbcScanner extends ScannerImpl {
     }
 
     @Override
-    public JdbcScanner.Builder routingBy(ConfiguredBuildable<? extends Router> router) {
+    public JdbcScanner.Builder routingBy(RouterBase.Builder<? extends Router> router) {
       super.routingBy(router);
       return this;
     }

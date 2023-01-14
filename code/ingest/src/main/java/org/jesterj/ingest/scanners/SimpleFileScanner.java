@@ -20,11 +20,11 @@ import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.config.Transient;
-import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.impl.DocumentImpl;
 import org.jesterj.ingest.model.impl.ScannerImpl;
+import org.jesterj.ingest.routers.RouterBase;
 
 import java.io.File;
 import java.io.IOException;
@@ -254,7 +254,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     }
 
     @Override
-    public SimpleFileScanner.Builder routingBy(ConfiguredBuildable<? extends Router> router) {
+    public SimpleFileScanner.Builder routingBy(RouterBase.Builder<? extends Router> router) {
       super.routingBy(router);
       return this;
     }

@@ -16,13 +16,10 @@
 
 package org.jesterj.ingest.model.impl;
 
-import org.jesterj.ingest.config.PropertyManager;
 import org.jesterj.ingest.config.Required;
 import org.jesterj.ingest.model.Configurable;
 import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.representer.Representer;
 
 /*
  * Created with IntelliJ IDEA.
@@ -31,39 +28,22 @@ import org.yaml.snakeyaml.representer.Representer;
  */
 public abstract class NamedBuilder<TYPE extends Configurable> implements ConfiguredBuildable<TYPE> {
 
-  private static final Representer propManager = new PropertyManager();
   private static final DumperOptions OPTS = new DumperOptions();
 
   static {
     OPTS.setAllowReadOnlyProperties(true);
     OPTS.setIndent(2);
   }
-  
-  private TYPE obj;
 
   @Required
   public abstract NamedBuilder<TYPE> named(String name);
 
   protected TYPE getObj() {
-    return obj;
-  }
-
-  private void setObj(TYPE obj) {
-    this.obj = obj;
+    return null; // abstract class, never used.
   }
 
   public boolean isValid() {
     return getObj().getName() != null && getObj().isValidName(getObj().getName());
   }
 
-  public String toYaml(TYPE obj) {
-    return new Yaml(propManager, OPTS).dumpAsMap(obj);
-  }
-
-  public ConfiguredBuildable<TYPE> fromYaml(String yaml) {
-    //noinspection unchecked
-    TYPE t = new Yaml().loadAs(yaml, (Class<TYPE>) getObj().getClass());
-    setObj(t);
-    return this;
-  }
 }

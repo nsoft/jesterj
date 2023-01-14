@@ -18,21 +18,31 @@ package org.jesterj.ingest.routers;
 
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.NextSteps;
-import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.Step;
-import org.jesterj.ingest.model.impl.NamedBuilder;
-
-import java.util.LinkedHashMap;
 
 /**
  * A router that simply duplicates the document to all subsequent steps.
  */
-public class DuplicateToAll implements Router {
-  private String name;
+public class DuplicateToAll extends RouterBase {
 
   @Override
-  public NextSteps route(Document doc, LinkedHashMap<String, Step> nextSteps) {
-    return new NextSteps(doc, nextSteps.values().toArray(new Step[0]));
+  public boolean isDeterministic() {
+    return true;
+  }
+
+  @Override
+  public boolean isConstantNumberOfOutputDocs() {
+    return true;
+  }
+
+  @Override
+  public int getNumberOfOutputCopies() {
+    return getStep().getNextSteps().size();
+  }
+
+  @Override
+  public NextSteps route(Document doc) {
+    return new NextSteps(doc, getStep().getNextSteps().values().toArray(new Step[0]));
   }
 
   @Override
@@ -40,13 +50,8 @@ public class DuplicateToAll implements Router {
     return name;
   }
 
-  public static class Builder extends NamedBuilder<DuplicateToAll> {
+  public static class Builder extends RouterBase.Builder<DuplicateToAll> {
     private DuplicateToAll obj = new DuplicateToAll();
-
-    public Builder named(String name) {
-      getObj().name = name;
-      return this;
-    }
 
     protected DuplicateToAll getObj() {
       return obj;

@@ -34,6 +34,7 @@ import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.processors.DefaultWarningProcessor;
 import org.jesterj.ingest.routers.RouteByStepName;
+import org.jesterj.ingest.routers.RouterBase;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -129,7 +130,6 @@ public class StepImpl implements Step {
   }
 
   public <T> T[] toArray(T[] a) {
-    //noinspection SuspiciousToArrayCall
     return queue.toArray(a);
   }
 
@@ -239,7 +239,7 @@ public class StepImpl implements Step {
   public NextSteps getNextSteps(Document doc) {
     if (nextSteps.size() == 0) return null;
     if (nextSteps.size() == 1) return new NextSteps(doc, nextSteps.values().iterator().next());
-    return router.route(doc, nextSteps);
+    return router.route(doc);
   }
 
 
@@ -637,9 +637,9 @@ public class StepImpl implements Step {
       return this;
     }
 
-    public Builder routingBy(ConfiguredBuildable<? extends Router> router) {
-      StepImpl currObj = getObj(); // make sure that this cant' change after build() called.
-      getObj().addDeferred(() -> currObj.router = router.build());
+    public Builder routingBy(RouterBase.Builder<? extends Router> router) {
+      StepImpl currObj = getObj(); // make sure that this cant change after build() called.
+      getObj().addDeferred(() -> currObj.router = router.forStep(getObj()).build());
       return this;
     }
 

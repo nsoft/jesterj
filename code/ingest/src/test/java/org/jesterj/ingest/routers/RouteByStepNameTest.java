@@ -27,7 +27,7 @@ public class RouteByStepNameTest {
   @Mock Step stepMock2;
   @Mock Document docMock1;
   @Mock Document docMock2;
-
+  @Mock Step stepMock; // step to which router is attached
 
   public RouteByStepNameTest() {
     prepareMocks(this);
@@ -48,9 +48,11 @@ public class RouteByStepNameTest {
     LinkedHashMap<String,Step> stepList = new LinkedHashMap<>();
     stepList.put("foo",stepMock1);
     stepList.put("bar",stepMock2);
+    expect(router.getStep()).andReturn(stepMock);
+    expect(stepMock.getNextSteps()).andReturn(stepList);
     expect(docMock1.getFirstValue(RouteByStepName.JESTERJ_NEXT_STEP_NAME)).andReturn("foo");
     replay();
-    NextSteps steps = router.route(docMock1, stepList);
+    NextSteps steps = router.route(docMock1);
     assertEquals(1, steps.size());
     assertTrue(steps.list().contains(stepMock1));
 
@@ -60,9 +62,11 @@ public class RouteByStepNameTest {
     LinkedHashMap<String,Step> stepList = new LinkedHashMap<>();
     stepList.put("foo",stepMock1);
     stepList.put("bar",stepMock2);
+    expect(router.getStep()).andReturn(stepMock);
+    expect(stepMock.getNextSteps()).andReturn(stepList);
     expect(docMock2.getFirstValue(RouteByStepName.JESTERJ_NEXT_STEP_NAME)).andReturn("bar");
     replay();
-    NextSteps steps = router.route(docMock2, stepList);
+    NextSteps steps = router.route(docMock2);
     assertEquals(1, steps.size());
     assertTrue(steps.list().contains(stepMock2));
   }

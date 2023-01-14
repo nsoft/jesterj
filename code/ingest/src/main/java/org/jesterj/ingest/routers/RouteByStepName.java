@@ -20,11 +20,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.NextSteps;
-import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.model.impl.NamedBuilder;
-
-import java.util.LinkedHashMap;
 
 /**
  * A router that sends documents to subsequent steps by comparing the value in a standard field
@@ -32,15 +29,30 @@ import java.util.LinkedHashMap;
  * only one step may be returned (because all steps must hae a unique value for name). Therefore this router
  * will never duplicate the document.
  */
-public class RouteByStepName implements Router {
+public class RouteByStepName extends RouterBase {
   private static final Logger log = LogManager.getLogger();
 
   public static final String JESTERJ_NEXT_STEP_NAME = "__JESTERJ_NEXT_STEP_NAME__";
   private String name;
 
   @Override
-  public NextSteps route(Document doc, LinkedHashMap<String, Step> nextSteps) {
-    Step dest = nextSteps.get(doc.getFirstValue(JESTERJ_NEXT_STEP_NAME));
+  public boolean isDeterministic() {
+    return false;
+  }
+
+  @Override
+  public boolean isConstantNumberOfOutputDocs() {
+    return false;
+  }
+
+  @Override
+  public int getNumberOfOutputCopies() {
+    return 0;
+  }
+
+  @Override
+  public NextSteps route(Document doc) {
+    Step dest = getStep().getNextSteps().get(doc.getFirstValue(JESTERJ_NEXT_STEP_NAME));
     if (dest == null) {
       log.warn("Document " + doc.getId() + " dropped! no value for " + JESTERJ_NEXT_STEP_NAME +
           " You probably want to either set a different router or provide a value.");
