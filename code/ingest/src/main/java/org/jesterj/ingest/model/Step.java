@@ -31,15 +31,9 @@ import java.util.concurrent.BlockingQueue;
  * A <code>Step</code> is a {@link BlockingQueue} with a capacity equal to it's concurrency level.
  * When the step is full, attempts to add an {@link Document} will
  * throw IllegalStateException, and the calling code MUST check for and handle this condition
- * gracefully. If this is a primary node with no helpers steps should typically use
- * {@link #offer(Object)} or {@link #offer(Object, long, java.util.concurrent.TimeUnit)} instead of
- * add. However, if there is an output {@link net.jini.space.JavaSpace} set then the typical
- * behavior would be to try an add, and if false is returned, serialize the item to the JavaSpace
- * so that helper nodes may process the overflow. For the last executable step of a helper node,
- * the step must never add or offer to the getNext step, but always place the <code>Item</code> in the
- * <code>JavaSpace</code>
+ * gracefully.
  */
-public interface Step extends Active, JiniServiceProvider, BlockingQueue<Document>, Runnable, DeferredBuilding, Configurable {
+public interface Step extends Active, BlockingQueue<Document>, Runnable, DeferredBuilding, Configurable {
 
   /**
    * Set the number of items to process concurrently.

@@ -16,7 +16,6 @@
 
 package org.jesterj.ingest.scanners;
 
-import net.jini.space.JavaSpace;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.config.Transient;
@@ -232,18 +231,6 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     @Override
     public SimpleFileScanner.Builder batchSize(int size) {
       super.batchSize(size);
-      return this;
-    }
-
-    @Override
-    public SimpleFileScanner.Builder outputSpace(JavaSpace outputSpace) {
-      super.outputSpace(outputSpace);
-      return this;
-    }
-
-    @Override
-    public SimpleFileScanner.Builder inputSpace(JavaSpace inputSpace) {
-      super.inputSpace(inputSpace);
       return this;
     }
 

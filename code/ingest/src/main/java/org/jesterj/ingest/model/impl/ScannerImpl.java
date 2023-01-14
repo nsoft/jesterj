@@ -18,7 +18,7 @@ package org.jesterj.ingest.model.impl;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.*;
-import net.jini.space.JavaSpace;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Document;
@@ -554,32 +554,6 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   }
 
   @Override
-  public void advertise() {
-    // ignore for now
-  }
-
-  @Override
-  public void stopAdvertising() {
-    // ignore for now
-  }
-
-  @Override
-  public void acceptJiniRequests() {
-    // ignore for now
-  }
-
-  @Override
-  public void denyJiniRequests() {
-    // ignore for now
-  }
-
-  @Override
-  public boolean readyForJiniRequests() {
-    return false;
-  }
-
-
-  @Override
   protected Logger getLogger() {
     return log;
   }
@@ -631,17 +605,6 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       return this;
     }
 
-    @Override
-    public ScannerImpl.Builder outputSpace(JavaSpace outputSpace) {
-      super.outputSpace(outputSpace);
-      return this;
-    }
-
-    @Override
-    public ScannerImpl.Builder inputSpace(JavaSpace inputSpace) {
-      super.inputSpace(inputSpace);
-      return this;
-    }
 
     @Override
     public ScannerImpl.Builder named(String stepName) {

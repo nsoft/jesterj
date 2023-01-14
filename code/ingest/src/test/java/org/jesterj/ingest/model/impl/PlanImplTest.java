@@ -129,13 +129,7 @@ public class PlanImplTest {
         .withIdField("id");
     Plan plan = planBuilder.build();
 
-    // silly coverage stuff...
-    plan.acceptJiniRequests();
-    plan.denyJiniRequests();
-    plan.advertise();
-    plan.stopAdvertising();
-    assertNotNull(plan.visualize());
-    assertFalse(plan.readyForJiniRequests());
+    assertNotNull(plan.visualize()); // todo test this more explicitly
     assertFalse(plan.isActive());
 
     assertNull(plan.findStep(null));
@@ -462,31 +456,6 @@ public class PlanImplTest {
     @Override
     public boolean isValidName(String name) {
       return mock.isValidName(name);
-    }
-
-    @Override
-    public void advertise() {
-      mock.advertise();
-    }
-
-    @Override
-    public void stopAdvertising() {
-      mock.stopAdvertising();
-    }
-
-    @Override
-    public void acceptJiniRequests() {
-      mock.acceptJiniRequests();
-    }
-
-    @Override
-    public void denyJiniRequests() {
-      mock.denyJiniRequests();
-    }
-
-    @Override
-    public boolean readyForJiniRequests() {
-      return mock.readyForJiniRequests();
     }
 
     @Override

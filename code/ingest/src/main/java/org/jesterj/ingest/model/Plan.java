@@ -25,7 +25,7 @@ import java.awt.image.BufferedImage;
  * User: gus
  * Date: 9/28/14
  */
-public interface Plan extends JiniServiceProvider, Active, Configurable {
+public interface Plan extends Active, Configurable {
 
   /**
    * Return every {@link Step} in the plan regardless of whether or not it will be executing when the plan is activated
@@ -38,7 +38,7 @@ public interface Plan extends JiniServiceProvider, Active, Configurable {
    * Get the subset of steps that will execute when the plan is activated. This should be a continuous set of steps
    * that can be traversed in total via {@link org.jesterj.ingest.model.Step#getNextSteps(Document)}.
    *
-   * @return a List of steps in the plan that will be executed
+   * @return an Array of steps in the plan that will be executed
    */
   @Transient
   Step[] getExecutableSteps();

@@ -26,7 +26,6 @@ import org.jesterj.ingest.forkjoin.JesterJForkJoinThreadFactory;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.utils.JesterJLoader;
-import org.jesterj.ingest.utils.JesterjPolicy;
 import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
@@ -40,7 +39,6 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.security.Policy;
 import java.util.*;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
@@ -67,6 +65,7 @@ public class Main {
   private static final Object HAPPENS_BEFORE = new Object();
 
   public static String JJ_DIR;
+  @SuppressWarnings("InstantiatingAThreadWithDefaultRunMethod")
   private static final Thread DUMMY_HOOK = new Thread();
 
   static {
@@ -100,7 +99,6 @@ public class Main {
           // ensure that the main method completes before this thread runs.
           synchronized (HAPPENS_BEFORE) {
             try {
-              initRMI();
 
               // Next check our args and die if they are FUBAR
               Map<String, Object> parsedArgs = usage(args);
@@ -213,8 +211,9 @@ public class Main {
     System.setProperty("log4j.configurationFile", logConfig);
     File configFile = new File(logConfig);
     if (!configFile.exists()) {
-      InputStream log4jxml = Main.class.getResourceAsStream("/log4j2.xml");
-      Files.copy(log4jxml, configFile.toPath());
+      try (InputStream log4jxml = Main.class.getResourceAsStream("/log4j2.xml")) {
+        Files.copy(Objects.requireNonNull(log4jxml), configFile.toPath());
+      }
     }
 
     return logDir;
@@ -248,8 +247,10 @@ public class Main {
 
     boolean isUnoJar = false;
     try {
-      JarFile test = new JarFile(file);
-      Attributes attrs = test.getManifest().getMainAttributes();
+      Attributes attrs;
+      try (JarFile test = new JarFile(file)) {
+        attrs = test.getManifest().getMainAttributes();
+      }
       String attr = attrs.getValue("Archive-Type");
       isUnoJar = attr != null && attr.trim().equalsIgnoreCase("uno-jar");
     } catch (IOException e) {
@@ -321,23 +322,6 @@ public class Main {
 
   }
 
-
-  /**
-   * Set up security policy that allows RMI and JINI code to work. Also seems to be
-   * helpful for running embedded cassandra. TODO: Minimize the permissions granted.
-   */
-  private static void initRMI() {
-    // must do this before any jini code
-    String policyFile = System.getProperty("java.security.policy");
-    if (policyFile == null) {
-      System.out.println("Installing JesterjPolicy");
-      Policy.setPolicy(new JesterjPolicy());
-    } else {
-      System.out.println("Existing Policy File:" + policyFile);
-    }
-    System.setSecurityManager(new SecurityManager());
-  }
-
   /**
    * Initialize the classloader. This method fixes up an issue with OneJar's class loaders. Nothing in or before
    * this method should touch logging, or 3rd party jars that logging that might try to setup log4j.
@@ -346,10 +330,7 @@ public class Main {
    * @throws IllegalAccessException if we are unable to set the system class loader
    */
   private static void initClassloader() throws NoSuchFieldException, IllegalAccessException {
-    // for river
-    System.setProperty("java.rmi.server.RMIClassLoaderSpi", "net.jini.loader.pref.PreferredClassProvider");
-
-    // fix bug in One-Jar with an ugly hack
+   // fix bug in One-Jar with an ugly hack
     ClassLoader unoJarClassLoader = Main.class.getClassLoader();
     String name = unoJarClassLoader.getClass().getName();
     if ("com.needhamsoftware.unojar.JarClassLoader".equals(name)) {
@@ -359,7 +340,6 @@ public class Main {
     }
   }
 
-  @SuppressWarnings("UnstableApiUsage")
   private static Map<String, Object> usage(String[] args) throws IOException {
     URL usage = Resources.getResource("usage.docopts.txt");
     String usageStr = Resources.toString(usage, StandardCharsets.UTF_8);

@@ -20,7 +20,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ForwardingListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
-import net.jini.core.entry.Entry;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,7 +29,6 @@ import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Status;
-import org.jesterj.ingest.model.Step;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -220,11 +218,6 @@ public class DocumentImpl implements Document {
   }
 
   @Override
-  public Entry toEntry(Step next) {
-    return new DocumentEntry(this, next);
-  }
-
-  @Override
   public ArrayListMultimap<String, String> getDelegate() {
     return delegate;
   }
@@ -272,38 +265,6 @@ public class DocumentImpl implements Document {
   public String getFirstValue(String fieldName) {
     List<String> values = get(fieldName);
     return values == null || values.size() == 0 ? null : values.get(0);
-  }
-
-
-  /**
-   * A serializable form of an item that can be placed in a JavaSpace. The nextStepName is the property on which
-   * steps query JavaSpaces to retrieve entries.
-   */
-  public static class DocumentEntry implements Entry {
-
-    public ArrayListMultimap<String, String> contents;
-    public String scannerName;
-    public Status status;
-    public String statusMessage;
-    public RawData data;
-    public String nextStepName;
-    public String operation;
-
-    DocumentEntry(Document document, Step destination) {
-      this.scannerName = document.getSourceScannerName();
-      this.contents = document.getDelegate();
-      this.status = document.getStatus();
-      this.statusMessage = document.getStatusMessage();
-      this.data = new RawData();
-      this.data.data = document.getRawData();
-      this.nextStepName = destination.getName();
-      this.operation = document.getOperation().toString();
-    }
-  }
-
-  // may want to associate encoding or parsing related information in the future...
-  public static class RawData {
-    public byte[] data;
   }
 
   @Override

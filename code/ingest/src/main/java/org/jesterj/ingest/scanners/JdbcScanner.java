@@ -18,7 +18,7 @@ package org.jesterj.ingest.scanners;
 
 import com.copyright.easiertest.SimpleProperty;
 import com.google.common.io.CharStreams;
-import net.jini.space.JavaSpace;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -460,18 +460,6 @@ public class JdbcScanner extends ScannerImpl {
     @Override
     public JdbcScanner.Builder batchSize(int size) {
       super.batchSize(size);
-      return this;
-    }
-
-    @Override
-    public JdbcScanner.Builder outputSpace(JavaSpace outputSpace) {
-      super.outputSpace(outputSpace);
-      return this;
-    }
-
-    @Override
-    public JdbcScanner.Builder inputSpace(JavaSpace inputSpace) {
-      super.inputSpace(inputSpace);
       return this;
     }
 

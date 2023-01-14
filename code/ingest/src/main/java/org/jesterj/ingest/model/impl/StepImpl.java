@@ -16,7 +16,7 @@
 
 package org.jesterj.ingest.model.impl;
 
-import net.jini.space.JavaSpace;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -75,8 +75,6 @@ public class StepImpl implements Step {
   private int batchSize; // no concurrency by default
   private final LinkedHashMap<String, Step> nextSteps = new LinkedHashMap<>();
   private volatile boolean active;
-  private JavaSpace outputSpace;
-  private JavaSpace inputSpace;
   private String stepName;
   private Router router = new RouteByStepName();
   private volatile DocumentProcessor processor = new DefaultWarningProcessor();
@@ -258,31 +256,6 @@ public class StepImpl implements Step {
   }
 
   @Override
-  public void advertise() {
-
-  }
-
-  @Override
-  public void stopAdvertising() {
-
-  }
-
-  @Override
-  public void acceptJiniRequests() {
-
-  }
-
-  @Override
-  public void denyJiniRequests() {
-
-  }
-
-  @Override
-  public boolean readyForJiniRequests() {
-    return false;
-  }
-
-  @Override
   public synchronized void activate() {
     log.info("Starting {} ", getName());
     if (worker == null || !worker.isAlive()) {
@@ -438,7 +411,6 @@ public class StepImpl implements Step {
 
   private NextSteps.StepStatus pushToStep(Document document, Step step, boolean block) {
     if (step != null) {
-      if (this.outputSpace == null) { // placeholder if always true for now
         boolean offer;
         // local processing is our only option, do blocking put.
         log.trace("starting put ( {} into {} )", getName(), step.getName());
@@ -456,25 +428,6 @@ public class StepImpl implements Step {
           offer = step.offer(document);
         }
         return offer ? NextSteps.StepStatus.SENT : NextSteps.StepStatus.RETRY;
-      } else {
-        log.error("This code path (javaspaces) not yet supported");
-        System.err.println("This code path (java spaces) not yet supported");
-        System.exit(99);
-//      if (this.isFinalHelper)) {
-//        // remote processing is our only option.
-//        log.debug("todo: send to JavaSpace");
-//        // todo: put in JavaSpace
-//      } else {
-//        // Try to process this item locally first with a non-blocking add, and
-//        // if the getNext step is bogged down send it out for processing by helpers.
-//        try {
-//          step.add(document);
-//        } catch (IllegalStateException e) {
-//          log.debug("todo: send to JavaSpace");
-//          // todo: put in JavaSpace
-//        }
-//      }
-      }
     }
     throw new RuntimeException("Attempted to route to a null step");
   }
@@ -541,10 +494,6 @@ public class StepImpl implements Step {
   }
 
   @SuppressWarnings("unused")
-  public JavaSpace getInputSpace() {
-    return inputSpace;
-  }
-
   public void executeDeferred() {
     deferred.forEach(Runnable::run);
   }
@@ -611,19 +560,6 @@ public class StepImpl implements Step {
     public Builder batchSize(int size) {
       getObj().batchSize = size;
       getObj().queue = new LinkedBlockingQueue<>(size);
-      return this;
-    }
-
-
-    @SuppressWarnings("UnusedReturnValue")
-    public Builder outputSpace(JavaSpace outputSpace) {
-      getObj().outputSpace = outputSpace;
-      return this;
-    }
-
-    @SuppressWarnings("UnusedReturnValue")
-    public Builder inputSpace(JavaSpace inputSpace) {
-      getObj().inputSpace = inputSpace;
       return this;
     }
 

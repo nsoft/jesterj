@@ -1,8 +1,6 @@
 package org.jesterj.ingest.utils;
 
 import com.needhamsoftware.unojar.JarClassLoader;
-import org.apache.velocity.exception.ResourceNotFoundException;
-import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -17,7 +15,7 @@ import java.util.List;
 public class JesterJLoader extends URLClassLoader {
 
   private final LoaderWrapper parentLoader;
-  private List<LoaderWrapper> extLoaders = Collections.synchronizedList(new ArrayList<>());
+  private final List<LoaderWrapper> extLoaders = Collections.synchronizedList(new ArrayList<>());
   private static final Object notNull = new Object();
   // should be more efficient than complex keys because strings should be interned by the
   // compiler/JIT and therefore cause no garbage.
@@ -56,7 +54,6 @@ public class JesterJLoader extends URLClassLoader {
     return tmp.toArray(new URL[0]);
   }
 
-  @Nullable
   @Override
   public URL getResource(String name) {
     if (resourcesLoaded.get().get(name) == notNull) {
@@ -234,7 +231,7 @@ public class JesterJLoader extends URLClassLoader {
         return (URL) callParentMethod("findResource", new Class[]{String.class}, name);
       } catch (ClassNotFoundException e) {
         // should not be possible
-        throw new ResourceNotFoundException(e.getMessage());
+        throw new RuntimeException("JesterJLoader Could not locate resource: "+e.getMessage());
       }
     }
 

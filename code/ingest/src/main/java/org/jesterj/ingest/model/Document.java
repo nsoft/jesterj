@@ -24,7 +24,6 @@ package org.jesterj.ingest.model;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
-import net.jini.core.entry.Entry;
 
 import java.io.Serializable;
 
@@ -87,8 +86,6 @@ public interface Document extends ListMultimap<String, String>, Serializable {
    * @see #getStatus()
    */
   void setStatusMessage(String message);
-
-  Entry toEntry(Step next);
 
   ArrayListMultimap<String, String> getDelegate();
 

@@ -178,31 +178,6 @@ public class PlanImpl implements Plan {
   }
 
   @Override
-  public void advertise() {
-
-  }
-
-  @Override
-  public void stopAdvertising() {
-
-  }
-
-  @Override
-  public void acceptJiniRequests() {
-
-  }
-
-  @Override
-  public void denyJiniRequests() {
-
-  }
-
-  @Override
-  public boolean readyForJiniRequests() {
-    return false;
-  }
-
-  @Override
   public String getName() {
     return name;
   }

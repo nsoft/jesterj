@@ -99,29 +99,6 @@ public class DocumentImplTest {
   }
 
   @Test
-  public void testToEntry() {
-    ArrayListMultimap<String, String> stupidFinalClass = ArrayListMultimap.create();
-    expect(obj.getDelegate()).andReturn(stupidFinalClass);
-    expect(obj.getSourceScannerName()).andReturn("foo");
-    expect(obj.getStatus()).andReturn(PROCESSING);
-    expect(obj.getStatusMessage()).andReturn("ok");
-    byte[] value = {};
-    expect(obj.getRawData()).andReturn(value);
-    expect(stepMock.getName()).andReturn("bar");
-    expect(obj.getOperation()).andReturn(Document.Operation.UPDATE);
-    replay();
-    DocumentImpl.DocumentEntry e = (DocumentImpl.DocumentEntry) obj.toEntry(stepMock);
-    assertEquals(stupidFinalClass, e.contents);
-    assertEquals("foo", e.scannerName);
-    assertEquals(PROCESSING, e.status);
-    assertEquals("ok", e.statusMessage);
-    assertEquals(value, e.data.data);
-    assertEquals("bar", e.nextStepName);
-    assertEquals(Document.Operation.UPDATE.toString(), e.operation);
-
-  }
-
-  @Test
   public void testBasicMethods() {
     expect(scannerMock.getName()).andReturn("scannerFoo");
     expect(planMock.getDocIdField()).andReturn("id");
