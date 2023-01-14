@@ -33,7 +33,7 @@ import java.util.concurrent.BlockingQueue;
  * throw IllegalStateException, and the calling code MUST check for and handle this condition
  * gracefully. If this is a primary node with no helpers steps should typically use
  * {@link #offer(Object)} or {@link #offer(Object, long, java.util.concurrent.TimeUnit)} instead of
- * add. However if there is an output {@link net.jini.space.JavaSpace} set then the typical
+ * add. However, if there is an output {@link net.jini.space.JavaSpace} set then the typical
  * behavior would be to try an add, and if false is returned, serialize the item to the JavaSpace
  * so that helper nodes may process the overflow. For the last executable step of a helper node,
  * the step must never add or offer to the getNext step, but always place the <code>Item</code> in the
@@ -65,34 +65,46 @@ public interface Step extends Active, JiniServiceProvider, BlockingQueue<Documen
    */
   Plan getPlan();
 
-//  /**
-//   * Determine if this step is the last step in a helper node. Implementations that need to overide the
-//   * default behavior are almost inconceivable.
-//   *
-//   * @return true if this is the last step in a helper node, false otherwise.
-//   */
-//  default boolean isFinalHelper() {
-//    Plan plan = getPlan();
-//    if (plan == null) {
-//      return false; // if we aren't part of a plan yet, we aren't part of a helper node either.
-//    }
-//    Step[] executableSteps = plan.getExecutableSteps();
-//    return plan.isHelping() && executableSteps[executableSteps.length - 1] == this;
-//  }
-
+  /**
+   * After processing is complete, send it on to any subsequent steps if appropriate. This
+   * method may inspect the document status and if the document is not dropped, errored,
+   * etc. and there are multiple possible destination steps it should invoke the router to
+   * determine the appropriate destinations and conduct the submission of the results to the
+   * indicated steps.
+   *
+   * @param doc The document for which processing is complete.
+   */
   void sendToNext(Document doc);
 
-  Step[] getPossibleSideEffects();
+  /**
+   * Identify the downstream steps that must only be executed once per document.
+   *
+   * @return The steps downstream from this one that are neither safe nor idempotent.
+   */
+  Step[] getDownstreamPotentSteps();
+
 
   /**
-   * Is this a step receiving input from more than one prior step
+   * The steps that are reachable from this step.
    *
-   * @return true if predecessors &gt; 1
+   * @return A map of steps keyed by their names.
    */
-
   LinkedHashMap<String, Step> getNextSteps();
 
+  /**
+   * Determine if any upstream steps are still active. A true result implies that
+   * documents may yet be recieved for processing, and it is not safe to shut down
+   * the processing thread for this step.
+   *
+   * @return true if any immediately prior steps are still active
+   */
   boolean isActivePriorSteps();
 
+  /**
+   * Register a step as a predecessor of this step (one that might send documents to
+   * this step).
+   *
+   * @param obj The step to register as a potential upstream source of documents.
+   */
   void addPredecessor(StepImpl obj);
 }

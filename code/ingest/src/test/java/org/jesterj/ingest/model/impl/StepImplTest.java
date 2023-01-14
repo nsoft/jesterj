@@ -77,7 +77,7 @@ public class StepImplTest {
     replay();
     StepImpl.Builder builder = new StepImpl.Builder();
     builder.batchSize(5);
-    StepImpl built = builder.build();
+    builder.build();
   }
 
   /**
@@ -92,7 +92,7 @@ public class StepImplTest {
     replay();
     try {
       testStep = new StepImpl.Builder().withProcessor(new LogAndDrop.Builder().named("foo")).build();
-      Step[] possibleSideEffects = testStep.getPossibleSideEffects();
+      Step[] possibleSideEffects = testStep.getDownstreamPotentSteps();
       assertEquals(0, possibleSideEffects.length);
     } finally {
       testStep.deactivate();
@@ -106,7 +106,7 @@ public class StepImplTest {
       testStep = new StepImpl.Builder().withProcessor(new SendToSolrCloudProcessor.Builder()
           .named("foo")
           .withZookeeper("localhost:9983")).build();
-      Step[] possibleSideEffects = testStep.getPossibleSideEffects();
+      Step[] possibleSideEffects = testStep.getDownstreamPotentSteps();
       assertEquals(1, possibleSideEffects.length);
     } finally {
       testStep.deactivate();
@@ -118,7 +118,7 @@ public class StepImplTest {
     replay();
     Plan plan = getPlan();
     testStep = plan.findStep(SHAKESPEARE);
-    Step[] possibleSideEffects = testStep.getPossibleSideEffects();
+    Step[] possibleSideEffects = testStep.getDownstreamPotentSteps();
     assertEquals(1, possibleSideEffects.length);
   }
 
@@ -131,7 +131,6 @@ public class StepImplTest {
     StepImpl.Builder renameFileszieToInteger = new StepImpl.Builder();
     StepImpl.Builder tikaBuilder = new StepImpl.Builder();
     StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
-    StepImpl.Builder sendToElasticBuilder = new StepImpl.Builder();
 
     File testDocs = new File("data");
 

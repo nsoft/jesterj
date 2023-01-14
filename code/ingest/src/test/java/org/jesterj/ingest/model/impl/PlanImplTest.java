@@ -47,7 +47,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.copyright.easiertest.EasierMocks.prepareMocks;
@@ -511,8 +510,8 @@ public class PlanImplTest {
     }
 
     @Override
-    public Step[] getPossibleSideEffects() {
-      return mock.getPossibleSideEffects();
+    public Step[] getDownstreamPotentSteps() {
+      return mock.getDownstreamPotentSteps();
     }
 
 
@@ -633,14 +632,12 @@ public class PlanImplTest {
       return mock.toArray();
     }
 
-    @SuppressWarnings("SuspiciousToArrayCall")
     @NotNull
     @Override
     public <T> T[] toArray(@NotNull T[] a) {
       return mock.toArray(a);
     }
 
-    @SuppressWarnings("SuspiciousToArrayCall")
     @Override
     public <T> T[] toArray(IntFunction<T[]> generator) {
       return mock.toArray(generator);

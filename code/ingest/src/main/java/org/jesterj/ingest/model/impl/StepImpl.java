@@ -85,8 +85,8 @@ public class StepImpl implements Step {
   private Plan plan;
 
   private final List<Runnable> deferred = new ArrayList<>();
-  private final Object sideEffectListLock = new Object();
-  private volatile Step[] possibleSideEffects;
+  private final Object potentStepListLock = new Object();
+  private volatile Step[] potentSteps;
   private int shutdownTimeout = 1000;
   private final List<Step> priorSteps = new ArrayList<>();
 
@@ -346,22 +346,22 @@ public class StepImpl implements Step {
   }
 
   @Override
-  public Step[] getPossibleSideEffects() {
-    if (this.possibleSideEffects == null) {
-      synchronized (sideEffectListLock) {
-        if (this.possibleSideEffects == null) {
+  public Step[] getDownstreamPotentSteps() {
+    if (this.potentSteps == null) {
+      synchronized (potentStepListLock) {
+        if (this.potentSteps == null) {
           if (nextSteps.isEmpty()) {
             if (processor.hasExternalSideEffects()) {
-              possibleSideEffects = new Step[]{this};
+              potentSteps = new Step[]{this};
             } else {
               // oddball case! but shoudlnt
-              possibleSideEffects = new Step[0];
+              potentSteps = new Step[0];
             }
           } else {
             Step[][] subEffects = new Step[nextSteps.size()][];
             ArrayList<Step> values = new ArrayList<>(nextSteps.values());
             for (int i = 0; i < values.size(); i++) {
-              subEffects[i] = values.get(i).getPossibleSideEffects();
+              subEffects[i] = values.get(i).getDownstreamPotentSteps();
             }
             ArrayList<Step> tmp = new ArrayList<>();
             for (Step[] subEffect : subEffects) {
@@ -370,12 +370,12 @@ public class StepImpl implements Step {
             if (processor.hasExternalSideEffects()) {
               tmp.add(this);
             }
-            possibleSideEffects = tmp.toArray(new Step[0]);
+            potentSteps = tmp.toArray(new Step[0]);
           }
         }
       }
     }
-    return possibleSideEffects;
+    return potentSteps;
   }
 
   @Override
