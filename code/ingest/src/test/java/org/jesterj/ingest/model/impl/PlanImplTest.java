@@ -522,10 +522,7 @@ public class PlanImplTest {
 
     @Override
     public boolean isActivePriorSteps() {
-      System.out.print("iaps:" + this.name + " ");
-      boolean activePriorSteps = mock.isActivePriorSteps();
-      System.out.println(activePriorSteps);
-      return activePriorSteps;
+      return mock.isActivePriorSteps();
     }
 
     @Override
