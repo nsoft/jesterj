@@ -4,7 +4,7 @@ JesterJ
 [![Build Status](https://github.com/nsoft/jesterj/actions/workflows/gradle.yml/badge.svg)](https://github.com/nsoft/jesterj/actions)
 
 A new highly flexible, highly scalable document ingestion system. 
-Often the first version of a system is fairly linear and straight forward, but as time passes features and enhancements often add complexity.
+Often the first version of a system for indexing documents into Solr or other search engine is fairly linear and straight forward, but as time passes features and enhancements often add complexity.
 Other times, the system is complex from the very start, possibly because search is being added to an existing system.
 JesterJ is designed to handle complex indexing scenarios. 
 Consider the following hypothetical indexing workflow:
