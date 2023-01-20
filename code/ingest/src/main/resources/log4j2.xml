@@ -38,6 +38,9 @@
     <logger level="error" name="org.apache.http.wire" additivity="false">
       <appender-ref ref="STDOUT" />
     </logger>
+    <logger level="error" name="io.netty.util.internal" additivity="false">
+      <appender-ref ref="STDOUT" />
+    </logger>
     <logger level="warn" name="org.apache.cassandra" additivity="false">
       <appender-ref ref="STDOUT" />
     </logger>

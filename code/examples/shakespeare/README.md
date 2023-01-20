@@ -8,7 +8,7 @@ Start JesterJ
 1. Clone https://github.com/nsoft/jesterj.git
 1. In /jesterj/code/ingest run `./gradlew  publishToMavenLocal` (to publish 1.0-SNAPSHOT required by this example)
 1. In /jesterj/code/example/shakespeare run `./gradlew build`
-1. In /jesterj/code/example/shakespeare run run `java -jar ../../ingest/build/libs/jesterj-node-1.0-SNAPSHOT.jar build/libs/example-shakespeare-1.0-SNAPSHOT.jar foo bar`
+1. In /jesterj/code/example/shakespeare run run `java -jar ../../ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar build/libs/example-shakespeare-1.0-SNAPSHOT.jar foo bar`
 
 Your search engine(s) should have indexed shakespeare's plays within a minute or so.  
 

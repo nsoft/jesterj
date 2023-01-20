@@ -18,5 +18,7 @@ repositories {
 }
 
 dependencies {
-  implementation ('org.jesterj:jesterj-ingest:1.0-SNAPSHOT')
+  implementation ('org.jesterj:jesterj-ingest:1.0-SNAPSHOT') {
+    exclude group: 'ch.qos.logback'
+  }
 }

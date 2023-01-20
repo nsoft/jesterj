@@ -36,7 +36,7 @@ plugins {
   id 'maven-publish'
   id 'com.github.jk1.dependency-license-report' version '2.0'
   id "com.github.onslip.gradle-one-jar" version "1.0.5"
-  id 'com.needhamsoftware.unojar' version '1.0.1'
+  id 'com.needhamsoftware.unojar' version '1.1.0'
 }
 
 allprojects {
@@ -122,8 +122,9 @@ configurations.all {
 
 //////////////////////////
 
- version = '1.0-SNAPSHOT'
- group = 'org.jesterj'
+version = '1.0-SNAPSHOT'
+group = 'org.jesterj'
+def archiveName = 'jesterj-ingest'
 
 //////////////////////////
 
@@ -147,7 +148,9 @@ dependencies {
   // https://github.com/apache/cassandra/blob/c378874a9fa123891d1d75177d99dba5c4d18f9b/.build/dependency-check-suppressions.xml
   // Note: there are (as of now) no netty import statements, so we're not using any vulnerable code either.
   //noinspection VulnerableLibrariesLocal
-  implementation 'org.apache.cassandra:cassandra-all:4.1.0'
+  implementation ('org.apache.cassandra:cassandra-all:4.1.0') {
+    exclude group:'ch.qos.logback'
+  }
 
   // until https://issues.apache.org/jira/browse/CASSANDRA-17966 easy and likely safe way to make CVE-2022-42004 go away
   implementation 'com.fasterxml.jackson.core:jackson-core:2.13.4'
@@ -233,19 +236,20 @@ jacocoTestReport {
 }
 
 jar {
-  archiveFileName = 'jesterj-ingest-'+project.version+'.jar'
+  archiveFileName = archiveName +'-'+project.version+'.jar'
   into("META-INF/maven/$project.group/$project.name") {
     from { generatePomFileForMavenJavaPublication }
     rename ".*", "pom.xml"
   }
 }
 
-def unoJardest = 'build/libs/jesterj-node-' + project.version + '.jar'
+
 
 unojar {
-  unoJar unoJardest
-  appMainClass 'org.jesterj.ingest.Main'
-  manifestAttrs(
+  archivesBaseName = archiveName
+  archiveClassifier = "node"
+  mainClass = 'org.jesterj.ingest.Main'
+  manifestAttributes = [
       // exports/opens for cassandra
       'Add-Exports': 'java.base/jdk.internal.misc java.base/jdk.internal.ref java.base/sun.nio.ch' +
           ' java.management.rmi/com.sun.jmx.remote.internal.rmi java.rmi/sun.rmi.registry' +
@@ -254,24 +258,15 @@ unojar {
       'Add-Opens' : 'java.base/java.lang.module java.base/jdk.internal.loader java.base/jdk.internal.ref' +
           ' java.base/jdk.internal.reflect java.base/jdk.internal.math java.base/jdk.internal.module ' +
           ' java.base/jdk.internal.util.jar jdk.management/com.sun.management.internal'
-  )
-  appFiles {
-    fileset(dir:"$projectDir/build/classes/java/main/") {
-      include( name: '**/**' )
-    }
-    fileset(dir:"$projectDir/build/resources/main/") {
-      include( name: '**/**' )
-    }
-  }
-  depLibs {
-    configurations.unoJarPack.addToAntBuilder(ant, 'fileset', FileCollection.AntType.FileSet)
-  }
+  ]
 }
 
-packUnoJar.dependsOn build
-packUnoJar.doLast {
-    def licDir = file('licenses').parent
-    ant.jar(update: true, destFile: file(unoJardest)) {
+def nodeFile = file("$buildDir/libs/" + tasks.getByName("packageUnoJar").getArchiveFileName())
+packageUnoJar.dependsOn build
+packageUnoJar.doLast {
+  def licDir = file('licenses').parent
+
+  ant.jar(update: true, destFile: nodeFile) {
       fileset(dir: licDir) {
         include(name: 'licenses/**')
         include(name: 'NOTICE.txt')
@@ -303,7 +298,7 @@ task generateNotices() {
 
 jacocoTestReport.dependsOn test
 
-artifactoryPublish.dependsOn packUnoJar
+artifactoryPublish.dependsOn packageUnoJar
 
 publishing {
   publications {
@@ -312,7 +307,7 @@ publishing {
       artifactId 'jesterj-ingest'
       version project.version
       from components.java
-      artifact source: file(unoJardest), classifier: "node"
+      artifact source: file(nodeFile), classifier: "node"
     }
   }
 }
@@ -517,7 +512,7 @@ javadoc {
   }
 }
 
-generateMetadataFileForMavenJavaPublication.dependsOn(packUnoJar)
+generateMetadataFileForMavenJavaPublication.dependsOn(packageUnoJar)
 
 jar.manifest.attributes getManifestAttributes()
 sourcesJar.manifest.attributes getManifestAttributes()
