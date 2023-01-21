@@ -41,6 +41,27 @@ public class CassandraLog4JManager extends AbstractManager {
       "CREATE KEYSPACE IF NOT EXISTS jj_logging " +
           "WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };";
 
+  public static final String CREATE_FT_KEYSPACE =
+      "CREATE KEYSPACE IF NOT EXISTS jj_ft " +
+          "WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };";
+
+  public static final String CREATE_NEW_FT_TABLE =
+      "CREATE TABLE IF NOT EXISTS jj_ft.jj_potent_step_status (" +
+          "docId varchar, " +
+          "planName varchar, " +
+          "planVersion int, " +
+          "scannerName varchar, " +
+          "potentStepName varchar, " +
+          "origParentId varchar, " +
+          "status varchar, " +
+          "message varchar, " +
+          "created timestamp, " +
+          "updated timestamp, " +
+          "PRIMARY KEY (docId,planName,planVersion,scannerName,potentStepName)" +
+          ");";
+
+  public static final String INDEX_STATUS = "CREATE INDEX IF NOT EXISTS jj_ft_idx_step_status ON jj_ft.jj_potent_step_status (status);";
+
   // Possibly move these to wide rows with time values?
   public static final String CREATE_LOG_TABLE =
       "CREATE TABLE IF NOT EXISTS jj_logging.regular(" +
@@ -65,11 +86,12 @@ public class CassandraLog4JManager extends AbstractManager {
           "error_count int," +
           "PRIMARY KEY (docid, scanner));";
 
+
   public static final String UPGRADE_FT_TABLE_ADD_COL =
       "ALTER TABLE jj_logging.<T> ADD <C> <Y>";
 
-  public static final String FTI_STATUS_INDEX = "CREATE INDEX IF NOT EXISTS fti_statuses ON jj_logging.fault_tolerant( status );";
-  public static final String FTI_SCANNER_INDEX = "CREATE INDEX IF NOT EXISTS fti_scanners ON jj_logging.fault_tolerant( scanner );";
+  public static final String FTI_STATUS_INDEX = "CREATE INDEX IF NOT EXISTS jj_logging_fti_statuses ON jj_logging.fault_tolerant( status );";
+  public static final String FTI_SCANNER_INDEX = "CREATE INDEX IF NOT EXISTS jj_logging_fti_scanners ON jj_logging.fault_tolerant( scanner );";
   private final Future<Object> cassandraReady;
 
   Executor executor = new ThreadPoolExecutor(1, 1, 100, TimeUnit.SECONDS, new SynchronousQueue<>());
@@ -99,6 +121,9 @@ public class CassandraLog4JManager extends AbstractManager {
     session.execute(CREATE_FT_TABLE);
     session.execute(FTI_STATUS_INDEX);
     session.execute(FTI_SCANNER_INDEX);
+    session.execute(CREATE_FT_KEYSPACE);
+    session.execute(CREATE_NEW_FT_TABLE);
+    session.execute(INDEX_STATUS);
     session.setSchemaMetadataEnabled(true);
     session.checkSchemaAgreement();
   }
