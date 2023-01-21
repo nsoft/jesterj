@@ -67,4 +67,15 @@ public interface Plan extends Active, Configurable {
    */
   BufferedImage visualize();
 
+  /**
+   * A (usually serially incremented) version identifier for a plan. Changing the version of the plan indicates that
+   * the processing has changed substantially, and that prior indexing no longer is considered to have produced
+   * the desired output. The practical implication of changing the plan version is that all documents will become
+   * eligible for re-indexing.
+   *
+   * @return a numeric identifier which changes when prior indexing is invalidated and there is a
+   * need for re-indexing. Monotonically increasing positive numbers are recommended but not absolutely required.
+   */
+  long getVersion();
+
 }

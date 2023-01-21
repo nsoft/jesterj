@@ -46,6 +46,7 @@ public class PlanImpl implements Plan {
   private String idField;
   private boolean active = false;
   private String name;
+  private long planVersion;
 
   protected PlanImpl() {
   }
@@ -101,6 +102,11 @@ public class PlanImpl implements Plan {
     }
     Graphviz tmp = Graphviz.fromGraph(g);
     return tmp.render(Format.PNG).toImage();
+  }
+
+  @Override
+  public long getVersion() {
+    return planVersion;
   }
 
   private void linkUp(Map<String, Node> nodes, List<String> knownSteps, StepImpl step) {
@@ -318,6 +324,11 @@ public class PlanImpl implements Plan {
 
     public Builder named(String name) {
       getObj().setName(name);
+      return this;
+    }
+
+    public Builder withVersion(long version) {
+      getObj().planVersion = version;
       return this;
     }
 
