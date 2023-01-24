@@ -20,11 +20,7 @@ import static com.copyright.easiertest.EasierMocks.replay;
 import static com.copyright.easiertest.EasierMocks.reset;
 import static com.copyright.easiertest.EasierMocks.verify;
 import static org.easymock.EasyMock.expect;
-import static org.jesterj.ingest.logging.CassandraLog4JManager.CREATE_FT_TABLE;
-import static org.jesterj.ingest.logging.CassandraLog4JManager.CREATE_LOG_KEYSPACE;
-import static org.jesterj.ingest.logging.CassandraLog4JManager.CREATE_LOG_TABLE;
-import static org.jesterj.ingest.logging.CassandraLog4JManager.FTI_SCANNER_INDEX;
-import static org.jesterj.ingest.logging.CassandraLog4JManager.FTI_STATUS_INDEX;
+import static org.jesterj.ingest.logging.CassandraLog4JManager.*;
 
 public class CassandraLog4JManagerTest {
   @ObjectUnderTest CassandraLog4JManager manager;
@@ -58,6 +54,9 @@ public class CassandraLog4JManagerTest {
     expect(sessionMock.execute(CREATE_FT_TABLE)).andReturn(null);
     expect(sessionMock.execute(FTI_STATUS_INDEX)).andReturn(null);
     expect(sessionMock.execute(FTI_SCANNER_INDEX)).andReturn(null);
+    expect(sessionMock.execute(CREATE_FT_KEYSPACE)).andReturn(null);
+    expect(sessionMock.execute(CREATE_NEW_FT_TABLE)).andReturn(null);
+    expect(sessionMock.execute(INDEX_STATUS)).andReturn(null);
     expect(sessionMock.setSchemaMetadataEnabled(true)).andReturn(csMock);
     expect(sessionMock.checkSchemaAgreement()).andReturn(true);
 
