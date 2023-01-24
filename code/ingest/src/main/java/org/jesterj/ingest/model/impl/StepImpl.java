@@ -295,9 +295,6 @@ public class StepImpl implements Step {
         }
       }
     }
-    if (processor != null) {
-      processor.close();
-    }
   }
 
   /**
@@ -324,7 +321,7 @@ public class StepImpl implements Step {
       synchronized (potentStepListLock) {
         if (this.potentSteps == null) {
           if (nextSteps.isEmpty()) {
-            if (processor.hasExternalSideEffects()) {
+            if (processor.isPotent()) {
               potentSteps = new Step[]{this};
             } else {
               // oddball case! but shoudlnt
@@ -340,7 +337,7 @@ public class StepImpl implements Step {
             for (Step[] subEffect : subEffects) {
               Collections.addAll(tmp, subEffect);
             }
-            if (processor.hasExternalSideEffects()) {
+            if (processor.isPotent()) {
               tmp.add(this);
             }
             potentSteps = tmp.toArray(new Step[0]);

@@ -28,7 +28,6 @@ import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -67,7 +66,7 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
   }
 
   @Override
-  public boolean hasExternalSideEffects() {
+  public boolean isPotent() {
     return true;
   }
 
@@ -185,16 +184,6 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
   @Override
   public String getName() {
     return name;
-  }
-
-  @Override
-  public void close() {
-    try {
-      solrClient.close();
-    } catch (IOException e) {
-      // oh well... we're going away anyway
-      log.debug(e);
-    }
   }
 
   public static class Builder extends BatchProcessor.Builder {

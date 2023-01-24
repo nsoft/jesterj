@@ -105,13 +105,13 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
 
     String schemaFile = "solr/configsets/preanalyze/conf/schema.xml";
     Document document;
-    try (PreAnalyzeFields paf = new PreAnalyzeFields.Builder()
+    PreAnalyzeFields paf = new PreAnalyzeFields.Builder()
             .named("foo")
             .forTypeNamed("text_en")
             .preAnalyzingField("preanalyzed")
             .fromFile(schemaFile)
             .loadingResourcesVia(() -> plan.getClass().getClassLoader())
-            .build()) {
+            .build();
 
       Scanner s = new ScannerImpl() {
         @Override
@@ -137,7 +137,7 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
       document = new DocumentImpl(new byte[0], "1", plan, Document.Operation.NEW, s);
       document.put("preanalyzed", "Quick red fox or 2 + 2 = 4");
       paf.processDocument(document);
-    }
+
     assertEquals(ANALYZED, document.get("preanalyzed").get(0));
 
     String testCol = "testCol";
