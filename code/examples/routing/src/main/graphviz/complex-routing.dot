@@ -1,16 +1,16 @@
 digraph G {
     OldFormatFileScanner [color = "blue" fontcolor = blue]
     NewFormatFileScanner [color = "blue" fontcolor = blue]
-    SplitLineAsChildren [label = "SplitLinesAsChildren\n(RouteByStepName)" style = "filled" fillcolor = "#aaFFaa"]
+    SplitLineAsChildren [label = "SplitLinesAsChildren\n(RouteByStepName)" style = "filled" fillcolor = "#aaFFaa" shape="hexagon"]
     SplitLineAsChildren2 [label = "SplitLinesAsChildren2"]
     ProcessLineItem [label = "ProcessLineItem\n(DuplicateToAllRouter)" style = "filled" fillcolor = "#aaFFaa"]
     ProcessOrder [label = "ProcessOrder\n(DuplicateToAllRouter)" style = "filled" fillcolor = "#aaFFaa"]
-    MoreOrder [label = "ExtractNewJSONLineItem\n(RouteByStepName)" style = "filled" fillcolor = "#aaFFaa"]
-    MessageB [label = "MessageOrderReceived\n(RoundRobinRouter)" style = "filled" fillcolor = "#aaaaff"]
+    MoreOrder [label = "ExtractNewJSONLineItem\n(RouteByStepName)" style = "filled" fillcolor = "#aaFFaa" shape="hexagon"]
+    MessageB [label = "MessageOrderReceived\n(RoundRobinRouter)" style = "filled" fillcolor = "#aaaaff" shape="hexagon"]
     MessageClientA [color = red fontcolor = red]
     MessageClientB [color = red fontcolor = red]
     MessageClientC [color = red fontcolor = red]
-    OrderReadyForSolr [label="OrderReadyForSolr\n(DuplicateToAllRouter)" style = "filled" fillcolor = "#aaFFaa"]
+    OrderReadyForSolr [label="OrderReadyForSolr\l(DuplicateToAllRouter)" style = "filled" fillcolor = "#aaFFaa"]
     LineItemIndex [label="NewLineItemOnlyIndex" color = red fontcolor = red]
     OrderIndex [label="NewBlockJoinOrderIndex" color = red fontcolor = red]
     CombinedIndex [ label="LegacyCombinedIndex" color = red fontcolor = red]
@@ -35,4 +35,6 @@ digraph G {
     MessageB -> MessageClientA
     MessageB -> MessageClientB
     MessageB -> MessageClientC
+    key[shape=none label="\l\l\l\l\lKey\l-----------------------------------------------------------  \lBlue text/border = Scanner \lRed text/border = Potent step\l Elipse = Fully distributive router\lHexagon = Partially distributive router\lGreen fill = Deterministic router\l Blue fill = Nondeterministic router\lWhite fill = No router\l" ]
+
 }
