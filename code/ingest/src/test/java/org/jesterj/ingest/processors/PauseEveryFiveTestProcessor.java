@@ -17,6 +17,10 @@ public class PauseEveryFiveTestProcessor implements DocumentProcessor {
     return name;
   }
 
+  public void setMillis (int millis) {
+    this.millis = millis;
+  }
+
   @Override
   public Document[] processDocument(Document document) {
     count++; // first is #1
@@ -32,7 +36,7 @@ public class PauseEveryFiveTestProcessor implements DocumentProcessor {
         return new Document[0];
       }
     }
-    log.warn("FOO: {} sending {} wiith {}", getName(), document.getId(), Thread.currentThread().getName());
+    log.warn("FOO: {} sending {} with {}", getName(), document.getId(), Thread.currentThread().getName());
     return new Document[]{document};
   }
 
@@ -46,8 +50,8 @@ public class PauseEveryFiveTestProcessor implements DocumentProcessor {
       return this;
     }
 
-    public PauseEveryFiveTestProcessor.Builder pausingFor(int milis) {
-      getObj().millis = milis;
+    public PauseEveryFiveTestProcessor.Builder pausingFor(int millis) {
+      getObj().millis = millis;
       return this;
     }
 

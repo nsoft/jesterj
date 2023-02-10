@@ -24,7 +24,11 @@ import guru.nidi.graphviz.engine.Graphviz;
 import guru.nidi.graphviz.model.Factory;
 import guru.nidi.graphviz.model.Graph;
 import guru.nidi.graphviz.model.Node;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jesterj.ingest.Main;
 import org.jesterj.ingest.config.Transient;
+import org.jesterj.ingest.model.Configurable;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Step;
@@ -41,12 +45,12 @@ import static guru.nidi.graphviz.model.Factory.graph;
  * Date: 10/9/14
  */
 public class PlanImpl implements Plan {
-
+  private static final Logger log = LogManager.getLogger();
   private LinkedHashMap<String, Step> stepsMap;
   private String idField;
   private boolean active = false;
   private String name;
-  private long planVersion;
+  private int planVersion;
 
   protected PlanImpl() {
   }
@@ -105,7 +109,7 @@ public class PlanImpl implements Plan {
   }
 
   @Override
-  public long getVersion() {
+  public int getVersion() {
     return planVersion;
   }
 
@@ -123,7 +127,7 @@ public class PlanImpl implements Plan {
     for (Step subsequentStep : nextSteps.values()) {
       if (!knownSteps.contains(subsequentStep.getName())) {
         // new node, need to recurse
-        linkUp(nodes, knownSteps, (StepImpl) subsequentStep);  // yuck but I don't really want to expose next steps in interface either
+        linkUp(nodes, knownSteps, (StepImpl) subsequentStep);  // yuck, but I don't really want to expose next steps in interface either
       }
       Node nextNode = nodes.get(subsequentStep.getName());
       node = node.link(nextNode);
@@ -135,12 +139,19 @@ public class PlanImpl implements Plan {
 
   @Override
   public synchronized void activate() {
-    getStepsMap().values().forEach(Step::activate);
+    log.info("Activating plan '{}'", getName());
+    Main.registerPlan(this);
     this.setActive(true);
+    getStepsMap().values().parallelStream().forEach(Step::activate);
+    log.info("Activation of plan {} complete", getName());
   }
 
   @Override
   public synchronized void deactivate() {
+    if (!isActive()) {
+      return;
+    }
+    log.info("Deactivating plan '{}'", getName());
     // Need to ensure that we never have a live thread feeding documents to a step that is already stopped.
     // since this will cause potential deadlock if the queue fills up and the step is blocked on a put()
     // while holding it's own monitor... so complications below for thread safety. Below we refer to
@@ -149,6 +160,8 @@ public class PlanImpl implements Plan {
 
     Set<Step> nextLevel = getStepsMap().values().stream().filter(s -> s instanceof Scanner).collect(Collectors.toCollection(LinkedHashSet::new));
     Set<Step> currentLevel;
+    Set<Step> finalNextLevel = nextLevel;
+    log.info("Scanners found: {}", () -> finalNextLevel.stream().map(Configurable::getName).collect(Collectors.toSet()));
     do {
       currentLevel = nextLevel;
       nextLevel = new LinkedHashSet<>();
@@ -162,6 +175,7 @@ public class PlanImpl implements Plan {
       }
     } while (!nextLevel.isEmpty());
     this.setActive(false);
+    Main.deregisterPlan(this);
   }
 
   private void deactivateStep(Step step, Set<Step> nextLevel) {
@@ -169,12 +183,13 @@ public class PlanImpl implements Plan {
       nextLevel.add(step);
       return;
     }
-    for (Step nextStep : step.getNextSteps().values()) {
-      deactivateStep(nextStep, nextLevel);
-    }
     if (step.isActive()) {
       step.deactivate();
     }
+    for (Step nextStep : step.getNextSteps().values()) {
+      deactivateStep(nextStep, nextLevel);
+    }
+
   }
 
   @Transient
@@ -227,7 +242,7 @@ public class PlanImpl implements Plan {
 
     /**
      * A list of stepsMap waiting on successors to build. Any time a successor appears in this
-     * list we have a cycle and we should throw a CyclicGraphException.
+     * list we have a cycle, and we should throw a CyclicGraphException.
      */
     List<StepImpl.Builder> pendingBuilders = new ArrayList<>();
 
@@ -327,7 +342,8 @@ public class PlanImpl implements Plan {
       return this;
     }
 
-    public Builder withVersion(long version) {
+    @SuppressWarnings("unused")
+    public Builder withVersion(int version) {
       getObj().planVersion = version;
       return this;
     }

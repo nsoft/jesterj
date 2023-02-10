@@ -33,6 +33,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -40,6 +41,7 @@ import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
@@ -52,13 +54,13 @@ import java.util.stream.Collectors;
 
 /**
  * Start a running instance. Each instance should have an id and a password (freely chosen
- * by the user starting the process. The ID will be used to display the node in the control
+ * by the user starting the process). The ID will be used to display the node in the control
  * console and the password is meant to provide temporary security until the node is
  * configured properly.
  */
 public class Main {
 
-  // WARNING: do not add a logger init to this class! See below for classloading highjinks that
+  // WARNING: do not add a logger init to this class! See below for classloading high-jinks that
   // force us to wait to initialize logging
   private static Logger log;
 
@@ -67,6 +69,8 @@ public class Main {
   public static String JJ_DIR;
   @SuppressWarnings("InstantiatingAThreadWithDefaultRunMethod")
   private static final Thread DUMMY_HOOK = new Thread();
+
+  private static final Map<String, WeakReference<Plan>> plansByName = new ConcurrentHashMap<>();
 
   static {
     // set up a config dir in user's home dir
@@ -151,7 +155,7 @@ public class Main {
                   Thread.sleep(5000);
                 } catch (InterruptedException e) {
 
-                  // Yeah, I know this isn't going to do anything right now.. Placeholder to remind me to implement a real
+                  // Yeah, I know this isn't going to do anything right now. Placeholder to remind me to implement a real
                   // graceful shutdown... also keeps IDE from complaining stop() isn't used.
 
                   e.printStackTrace();
@@ -190,33 +194,56 @@ public class Main {
     }
   }
 
-  @NotNull
-  private static String setLogDir(String logdir) throws IOException {
-    // set up log output dir
-    String logDir = System.getProperty("jj.log.dir");
-    if (logDir == null) {
-      System.setProperty("jj.log.dir", logdir + "/logs");
+  public static void registerPlan(Plan plan) {
+    if (plansByName.containsKey(plan.getName())) {
+      throw new IllegalArgumentException("Plan already registered");
     }
-    logDir = System.getProperty("jj.log.dir");
+    plansByName.put(plan.getName(),new WeakReference<>(plan));
+  }
+
+  public static void deregisterPlan(Plan plan) {
+    plansByName.remove(plan.getName());
+  }
+
+  public static Optional<Plan> locatePlan(String name) {
+    WeakReference<Plan> planWeakReference = plansByName.get(name);
+    if (planWeakReference == null) {
+      return Optional.empty();
+    }
+    Plan plan = planWeakReference.get();
+    if (plan == null) {
+      return Optional.empty();
+    }
+    return Optional.of(plan);
+  }
+
+  @NotNull
+  private static String setLogDir(String logDir) throws IOException {
+    // set up log output dir
+    String logDirFromProp = System.getProperty("jj.log.dir");
+    if (logDirFromProp == null) {
+      System.setProperty("jj.log.dir", logDir + "/logs");
+    }
+    logDirFromProp = System.getProperty("jj.log.dir");
 
     // Check that we can write to the log dir
-    File logDirFile = new File(logDir);
+    File logDirFile = new File(logDirFromProp);
 
     if (!logDirFile.mkdirs() && !(logDirFile.canWrite())) {
-      System.out.println("Cannot write to " + logDir + " \n" +
+      System.out.println("Cannot write to " + logDirFromProp + " \n" +
           "Please fix the filesystem permissions or provide a writable location with -Djj.log.dir property on the command line.");
       System.exit(99);
     }
-    String logConfig = logDir + "/log4j2.xml";
+    String logConfig = logDirFromProp + "/log4j2.xml";
     System.setProperty("log4j.configurationFile", logConfig);
     File configFile = new File(logConfig);
     if (!configFile.exists()) {
-      try (InputStream log4jxml = Main.class.getResourceAsStream("/log4j2.xml")) {
-        Files.copy(Objects.requireNonNull(log4jxml), configFile.toPath());
+      try (InputStream log4jXml = Main.class.getResourceAsStream("/log4j2.xml")) {
+        Files.copy(Objects.requireNonNull(log4jXml), configFile.toPath());
       }
     }
 
-    return logDir;
+    return logDirFromProp;
   }
 
   private static void startCassandra(Map<String, Object> parsedArgs) {
@@ -324,7 +351,7 @@ public class Main {
 
   /**
    * Initialize the classloader. This method fixes up an issue with OneJar's class loaders. Nothing in or before
-   * this method should touch logging, or 3rd party jars that logging that might try to setup log4j.
+   * this method should touch logging, or 3rd party jars that logging that might try to set up log4j.
    *
    * @throws NoSuchFieldException   if the system class loader field has changed in this version of java and is not "scl"
    * @throws IllegalAccessException if we are unable to set the system class loader
@@ -341,6 +368,7 @@ public class Main {
   }
 
   private static Map<String, Object> usage(String[] args) throws IOException {
+    @SuppressWarnings("SpellCheckingInspection")
     URL usage = Resources.getResource("usage.docopts.txt");
     String usageStr = Resources.toString(usage, StandardCharsets.UTF_8);
     Map<String, Object> result = new Docopt(usageStr).parse(args);

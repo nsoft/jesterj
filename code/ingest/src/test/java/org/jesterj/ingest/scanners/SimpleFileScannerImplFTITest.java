@@ -22,52 +22,50 @@ import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
+import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
 import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.processors.ErrorFourthTestProcessor;
 import org.jesterj.ingest.processors.PauseEveryFiveTestProcessor;
-import org.jetbrains.annotations.NotNull;
-import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 
 //@Ignore
 public class SimpleFileScannerImplFTITest extends ScannerImplTest {
 
-  private static final String SHAKESPEAR = "Shakespear_scanner";
+  private static final String SHAKESPEARE = "Shakespeare_scanner";
   private static final Logger log = LogManager.getLogger();
   public static final int PAUSE_MILLIS = 2000;
+  private AtomicInteger planCounter = new AtomicInteger(0);
+  private AtomicInteger stepCounter = new AtomicInteger(0);
 
   @Before
   public void setUp() {
+    planCounter = new AtomicInteger(0);
+    stepCounter = new AtomicInteger(0);
   }
 
-  @After
-  public void tearDown() {
-    System.out.println("Tearing down-xxxxxx");
-  }
-
-  // this has been segregated to it's own test because something about starting cassandra after
+  // this has been segregated to its own test because something about starting cassandra after
   // using logging without it hoses the event contexts in logging. For now, same process stop/start
   // and use without cassandra configured is not a valid use case, so punt...
   @Test
 //  @Ignore(value = "seems to experience cross talk with and interfere with other tests, passes solo locally, " +
 //      "expect cassandra is not playing nice here")
   public void testScanWithMemory() throws InterruptedException {
-    //noinspection UnstableApiUsage
+
+    @SuppressWarnings({"deprecation", "UnstableApiUsage"})
     File tempDir = Files.createTempDir();
-    HashMap<String, Document> scannedDocs = new HashMap<>();
+    HashMap<String, Document> scannedDocs = new LinkedHashMap<>();
     Cassandra.start(tempDir, "127.0.0.1");
 
     String[] errorId = new String[1];
@@ -76,17 +74,16 @@ public class SimpleFileScannerImplFTITest extends ScannerImplTest {
     PauseEveryFiveTestProcessor.Builder pauseEvery5 =
         new PauseEveryFiveTestProcessor.Builder()
             .pausingFor(PAUSE_MILLIS);
-    PauseEveryFiveTestProcessor.Builder pauseEvery5_2 =
-        new PauseEveryFiveTestProcessor.Builder()
-            .pausingFor(PAUSE_MILLIS);
-    NamedBuilder<? extends DocumentProcessor> error4thof5 =
-        new ErrorFourthTestProcessor.Builder().named("error4").withErrorReporter(errorId);
+
+    NamedBuilder<? extends DocumentProcessor> error4thOf5 =
+        new ErrorFourthTestProcessor.Builder()
+            .named("error4")
+            .withErrorReporter(errorId)
+            .erroringFromStart(false);
 
     pauseEvery5.named("pause_plan1");
-    Plan plan1 = getPlan( pauseEvery5,getScannedDocRecorder(scannedDocs));
+    Plan plan1 = getPlan( pauseEvery5,error4thOf5, scannedDocRecorder);
     pauseEvery5.named("pause_plan2");
-    Plan plan2 = getPlan(pauseEvery5_2,error4thof5, getScannedDocRecorder(scannedDocs));
-    Plan planFinish = getPlan(scannedDocRecorder);
 
     try {
       plan1.activate();
@@ -102,6 +99,7 @@ public class SimpleFileScannerImplFTITest extends ScannerImplTest {
       Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(5, scannedDocs.size());
 
+      System.out.println("REACTIVATE 1");
       plan1.activate();
       // plan should first queue all processing docs (from prior scan) and then proceed with new
       // scan, but that scan should never start because only the first 5 docs queued up will be
@@ -114,13 +112,17 @@ public class SimpleFileScannerImplFTITest extends ScannerImplTest {
       Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(10, scannedDocs.size()); // test plan really deactivated
 
-      plan2.activate();
+      System.out.println("NOW ERRORING 2");
+      startErrors(plan1, "test1");
+      plan1.activate();
       Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(14, scannedDocs.size()); // test that 4 NEW docs were seen (a 5th will have errored but not been counted)
-      plan2.deactivate();
+      plan1.deactivate();
 
+      stopErrors(plan1, "test1");
       String eid = errorId[0];
       assertNotNull(eid);
+      System.out.println("EID======>" + eid);
 
       Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(14, scannedDocs.size()); // test plan really deactivated
@@ -129,13 +131,17 @@ public class SimpleFileScannerImplFTITest extends ScannerImplTest {
       Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(19, scannedDocs.size()); // test that 5 NEW docs were scanned
       plan1.deactivate();
-      assertTrue(scannedDocs.containsKey(eid)); // AND the error doc was one of them
 
       Thread.sleep(3*PAUSE_MILLIS/4);
 
-      planFinish.activate();
+      shortPauses(plan1,"test0");
+      plan1.activate();
       Thread.sleep(3*PAUSE_MILLIS/4);
-      planFinish.deactivate();
+      plan1.deactivate();
+      System.out.println("DEACTIVATED AFTER " + scannedDocs.size() + " Docs have been scanned");
+      System.out.println(String.valueOf(scannedDocs.keySet()).replaceAll(", ", "\n"));
+      assertTrue(scannedDocs.containsKey(eid)); // AND the error doc does get indexed
+
       assertEquals(44, scannedDocs.size());
       scannedDocs.clear();
       // the documents will have been scanned, but since they are unchanged
@@ -144,14 +150,39 @@ public class SimpleFileScannerImplFTITest extends ScannerImplTest {
 
       Thread.sleep(3*PAUSE_MILLIS/4);
 
-      planFinish.activate();
+      plan1.activate();
       Thread.sleep(3*PAUSE_MILLIS/4);
-      planFinish.deactivate();
+      plan1.deactivate();
       Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(0, scannedDocs.size());
     } finally {
+      log.info("\n---------------\nTEST IS OVER\n---------------\n");
+      plan1.deactivate();
+      //Thread.sleep(600000);
       Cassandra.stop();
     }
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private static void startErrors(Plan plan1, String errorStep) {
+    Step error4 = plan1.findStep(errorStep);
+    StepImpl error41 = (StepImpl) error4;
+    ErrorFourthTestProcessor processor = (ErrorFourthTestProcessor) error41.getProcessor();
+    processor.setShouldError(true);
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private static void stopErrors(Plan plan1, String errorStep) {
+    Step error4 = plan1.findStep(errorStep);
+    ((ErrorFourthTestProcessor)((StepImpl)error4).getProcessor()).setShouldError(false);
+  }
+
+
+  @SuppressWarnings("SameParameterValue")
+  private static void shortPauses(Plan plan1, String pauseStep) {
+    //noinspection SpellCheckingInspection
+    Step pauser = plan1.findStep(pauseStep);
+    ((PauseEveryFiveTestProcessor)((StepImpl)pauser).getProcessor()).setMillis(5);
   }
 
   @SafeVarargs
@@ -160,17 +191,17 @@ public class SimpleFileScannerImplFTITest extends ScannerImplTest {
     SimpleFileScanner.Builder scannerBuilder = new SimpleFileScanner.Builder();
 
     File tragedies = new File("src/test/resources/test-data");
-    scannerBuilder.named("test_scanner_"+getClass().getName())
+    scannerBuilder.named("test_scanner_"+getClass().getName() + stepCounter.incrementAndGet())
         .withRoot(tragedies)
-        .named(SHAKESPEAR)
+        .named(SHAKESPEARE)
         .rememberScannedIds(true)
         .scanFreqMS(PAUSE_MILLIS/4);
 
     planBuilder
-        .named("testScan")
+        .named("testScan" + planCounter.incrementAndGet())
         .addStep(scannerBuilder)
         .withIdField("id");
-    String prior = SHAKESPEAR;
+    String prior = SHAKESPEARE;
     int count=0;
     for (NamedBuilder<? extends DocumentProcessor> processor : processors) {
       StepImpl.Builder testStepBuilder = new StepImpl.Builder();

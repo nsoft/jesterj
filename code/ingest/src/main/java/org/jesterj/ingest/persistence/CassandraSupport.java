@@ -31,6 +31,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.SplittableRandom;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,10 +40,12 @@ import java.util.concurrent.Future;
 
 /**
  * A class to globalize the cluster and session objects, while providing query caches on a per-instance basis.
- * These objects are light weight and can be
+ * These objects are lightweight and can be
  */
 public class CassandraSupport {
 
+  public static final SplittableRandom rootRand = new SplittableRandom();
+  public static final ThreadLocal<SplittableRandom> antiCollision = ThreadLocal.withInitial(rootRand::split);
   private static final Map<String, Future<PreparedStatement>> preparedQueries = new ConcurrentHashMap<>();
   public static NonClosableSession NON_CLOSABLE_SESSION;
 
@@ -53,17 +56,21 @@ public class CassandraSupport {
    *
    * @param name      A name with which to retrieve the prepared statement instance
    * @param statement A string to be prepared as a CQL statement.
+   * @return a future that will complete after cassandra has completed its boot cycle and the statement has been prepared.
    */
-  public void addStatement(String name, String statement) {
+  public Future<PreparedStatement> addStatement(String name, String statement) {
     synchronized (preparedQueries) {
       if (!preparedQueries.containsKey(name)) {
-        preparedQueries.put(name, Cassandra.whenBooted(() -> getSession().prepare(statement)));
+        Future<PreparedStatement> result = Cassandra.whenBooted(() -> getSession().prepare(statement));
+        preparedQueries.put(name, result);
+        return result;
       }
     }
+    return null;
   }
 
   /**
-   * Returns a cassandra session wrapt to protect it from being closed.
+   * Returns a cassandra session wrapped to protect it from being closed.
    *
    * @return a <code>NonClosableSession</code> object.
    */
@@ -72,12 +79,16 @@ public class CassandraSupport {
     {
       NON_CLOSABLE_SESSION = new NonClosableSession();
     }
+    if (NON_CLOSABLE_SESSION == null){
+      System.out.println("WARNING: returning null session!!");
+    }
     return NON_CLOSABLE_SESSION;
   }
 
   /**
-   * Retreive a prepared statement added via {@link #addStatement(String, String)}. This method will block until
-   * cassandra has finished booting, a session has been created and the statement has been prepared.
+   * Retrieve a prepared statement added via {@link #addStatement(String, String)}. This method will block until
+   * cassandra has finished booting, a session has been created and the statement has been prepared. This method
+   * may return null if no statement with that name has been prepared previously.
    *
    * @param qName the name of the statement to retrieve
    * @return the prepared statement ready for use.
@@ -86,6 +97,28 @@ public class CassandraSupport {
     try {
       Future<PreparedStatement> preparedStatementFuture = preparedQueries.get(qName);
       return preparedStatementFuture.get();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Retrieve a prepared statement added via {@link #addStatement(String, String)}. This method will block until
+   * cassandra has finished booting, a session has been created and the statement has been prepared. If the statement q
+   * was not previously prepared, this method will first prepare it and then return the prepared statement.
+   *
+   * @param qName the name of the statement to retrieve
+   * @return the prepared statement ready for use.
+   */
+  public PreparedStatement getPreparedQuery(String qName, String q) {
+    try {
+      Future<PreparedStatement> preparedStatementFuture = preparedQueries.get(qName);
+      if (preparedStatementFuture != null) {
+        return preparedStatementFuture.get();
+      } else {
+        addStatement(qName,q);
+        return preparedQueries.get(qName).get();
+      }
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException(e);
     }

@@ -43,18 +43,15 @@ import static com.copyright.easiertest.EasierMocks.replay;
 import static com.copyright.easiertest.EasierMocks.reset;
 import static com.copyright.easiertest.EasierMocks.verify;
 import static org.easymock.EasyMock.expect;
-import static org.jesterj.ingest.model.impl.ScannerImpl.FIND_BATCHED_FOR_SCANNER_Q;
-import static org.jesterj.ingest.model.impl.ScannerImpl.FIND_ERROR_FOR_SCANNER_Q;
-import static org.jesterj.ingest.model.impl.ScannerImpl.FIND_PROCESSING_FOR_SCANNER_Q;
-import static org.jesterj.ingest.model.impl.ScannerImpl.RESET_DOCS_U;
-import static org.jesterj.ingest.model.impl.ScannerImpl.UPDATE_HASH_U;
-import static org.junit.Assert.assertTrue;
+import static org.jesterj.ingest.model.Status.*;
+
 
 /*
  * Created with IntelliJ IDEA.
  * User: gus
  * Date: 9/26/16
  */
+@SuppressWarnings("SpellCheckingInspection")
 public class ScannerImplTest {
 
   @ObjectUnderTest ScannerImpl scanner;
@@ -92,7 +89,7 @@ public class ScannerImplTest {
     expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
-    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
+    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_DOC_HASH_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
     expect(statementMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
@@ -116,7 +113,7 @@ public class ScannerImplTest {
     expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
-    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
+    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_DOC_HASH_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
     expect(statementMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
@@ -138,7 +135,7 @@ public class ScannerImplTest {
     scanner.docFound(docMock);
   }
 
-  // the case where the doc was found and the status was "proscessing" but
+  // the case where the doc was found and the status was "processing" but
   // hashing is not turned on.
   @Test
   public void testDocFoundProcessingStatus() {
@@ -148,7 +145,7 @@ public class ScannerImplTest {
     expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
-    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
+    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_DOC_HASH_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
     expect(statementMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
@@ -178,7 +175,7 @@ public class ScannerImplTest {
     expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
-    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
+    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_DOC_HASH_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
     expect(statementMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
@@ -223,7 +220,7 @@ public class ScannerImplTest {
     expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
-    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
+    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_DOC_HASH_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
     expect(statementMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
@@ -256,7 +253,7 @@ public class ScannerImplTest {
     expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
-    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
+    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_DOC_HASH_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
     expect(statementMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
@@ -288,7 +285,7 @@ public class ScannerImplTest {
     expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
-    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
+    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_DOC_HASH_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
     expect(statementMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
@@ -322,7 +319,7 @@ public class ScannerImplTest {
     expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
-    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
+    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_DOC_HASH_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
     expect(statementMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
@@ -344,7 +341,7 @@ public class ScannerImplTest {
     expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
-    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_Q)).andReturn(statementMock);
+    expect(supportMock.getPreparedQuery(ScannerImpl.FTI_CHECK_DOC_HASH_Q)).andReturn(statementMock);
     expect(supportMock.getSession()).andReturn(sessionMock);
     expect(statementMock.bind("42", "Dent, Aurthur Dent")).andReturn(bsMock);
     expect(sessionMock.execute(bsMock)).andReturn(rsMock);
@@ -362,7 +359,6 @@ public class ScannerImplTest {
     expect(scanner.isRemembering()).andReturn(true);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
     expect(supportMock.getSession()).andReturn(sessionMock);
-    expect(supportMock.getPreparedQuery(UPDATE_HASH_U)).andReturn(statementMock);
     expect(docMock.getHash()).andReturn("DEADBEEF");
     expect(docMock.getId()).andReturn("42").anyTimes();
     expect(docMock.getSourceScannerName()).andReturn("Arthur Dent");
@@ -374,27 +370,7 @@ public class ScannerImplTest {
     scanner.sendToNext(docMock);
   }
 
-  @Test
-  public void testAddToDirtyList() {
-    expect(scanner.getCassandra()).andReturn(supportMock);
-    expect(supportMock.getPreparedQuery("storedQueryName")).andReturn(statementMock);
-    expect(scanner.getName()).andReturn("scannerName");
-    expect(statementMock.bind("scannerName")).andReturn(bsMock);
-    expect(bsMock.setTimeout(Duration.ofSeconds(600))).andReturn(bsMock);
-    expect(sessionMock.execute(bsMock)).andReturn(rsMock);
-    List<Row> rows = new ArrayList<>();
-    rows.add(rowMock);
-    expect(rsMock.all()).andReturn(rows);
-    expect(rowMock.getString(0)).andReturn("idValue");
-    expect(rowMock.getString(1)).andReturn("scannerNameValue");
-    expect(scanner.createKey("idValue", "scannerNameValue")).andReturn(mockKey);
-    expect(rsMock.getExecutionInfo()).andReturn(infoMock);
-    expect(infoMock.getErrors()).andReturn(new ArrayList<>());
-    replay();
-    List<ScannerImpl.DocKey> strandedDocs = new ArrayList<>();
-    scanner.addToDirtyList(sessionMock, strandedDocs,"storedQueryName");
-    assertTrue(strandedDocs.contains(mockKey));
-  }
+
 
   @Test
   public void testActivateRemembering() {
@@ -403,11 +379,8 @@ public class ScannerImplTest {
     expect(supportMock.getSession()).andReturn(sessionMock);
     List<ScannerImpl.DocKey> docKeys = new ArrayList<>();
     expect(scanner.createList()).andReturn(docKeys);
-    scanner.addToDirtyList(sessionMock, docKeys, FIND_PROCESSING_FOR_SCANNER_Q);
-    scanner.addToDirtyList(sessionMock, docKeys, FIND_ERROR_FOR_SCANNER_Q);
-    scanner.addToDirtyList(sessionMock, docKeys, FIND_BATCHED_FOR_SCANNER_Q);
+
     docKeys.add(mockKey); // would happen during an adToDirtyList as side effect
-    expect(supportMock.getPreparedQuery(RESET_DOCS_U)).andReturn(statementMock);
     expect(scanner.createCassandraBatch()).andReturn(batchMock);
     expect(mockKey.getDocid()).andReturn("foo");
     expect(mockKey.getScanner()).andReturn("bar");
@@ -443,6 +416,8 @@ public class ScannerImplTest {
     scanner.docFound(docMock);
 
     replay();
-    scanner.processDocsByStatus(supportMock, "somequery");
+    List<String> sentAlready = new ArrayList<>();
+    FTIQueryContext src = new FTIQueryContext(sentAlready);
+    scanner.processPendingDocs(src, List.of(PROCESSING, BATCHED, RESTART, DIRTY));
   }
 }

@@ -13,16 +13,21 @@ public class ErrorFourthTestProcessor implements DocumentProcessor {
   private String name;
   @SuppressWarnings("unused")
   private String[] lastErrorId;
+  private boolean shouldError = true;
 
   @Override
   public String getName() {
     return name;
   }
 
+  public void setShouldError(boolean shouldError) {
+    this.shouldError = shouldError;
+  }
+
   @Override
   public Document[] processDocument(Document document) {
     count++;
-    if (count % 5 == 4 ) {
+    if (count % 5 == 4 && shouldError) {
       document.setStatus(Status.ERROR,"Unit Test 4th doc drop");
       log.info("Erroring {}",document.getId());
       lastErrorId[0] = document.getId();
@@ -47,6 +52,11 @@ public class ErrorFourthTestProcessor implements DocumentProcessor {
         throw new IllegalArgumentException("only one error can be held, please pass array of length 1");
       }
       getObj().lastErrorId = reporter;
+      return this;
+    }
+
+    public ErrorFourthTestProcessor.Builder erroringFromStart(boolean doErrors) {
+      getObj().shouldError = doErrors;
       return this;
     }
 

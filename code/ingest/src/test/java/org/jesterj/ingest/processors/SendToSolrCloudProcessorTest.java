@@ -35,16 +35,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static com.copyright.easiertest.EasierMocks.prepareMocks;
 import static com.copyright.easiertest.EasierMocks.replay;
 import static com.copyright.easiertest.EasierMocks.reset;
 import static com.copyright.easiertest.EasierMocks.verify;
+import static com.copyright.easiertest.EasierMocks.*;
 import static junit.framework.TestCase.assertTrue;
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.assertEquals;
@@ -55,6 +51,7 @@ import static org.junit.Assert.assertFalse;
  * User: gus
  * Date: 9/23/16
  */
+@SuppressWarnings("DataFlowIssue")
 public class SendToSolrCloudProcessorTest {
   @ObjectUnderTest
   SendToSolrCloudProcessor proc;
@@ -70,6 +67,7 @@ public class SendToSolrCloudProcessorTest {
   @Mock private UpdateResponse updateResponseMock;
   @Mock private UpdateResponse deleteResponseMock;
   @Mock private NamedList<Object> namedListMock;
+  @Mock private DocumentLoggingContext docContextMock;
 
   public SendToSolrCloudProcessorTest() {
     prepareMocks(this);
@@ -91,7 +89,9 @@ public class SendToSolrCloudProcessorTest {
     documents.add(docMock);
     expect(batchMock.keySet()).andReturn(documents);
     RuntimeException e = new RuntimeException("TEST EXCEPTION");
-    proc.putIdInThreadContext(docMock);
+    expect(proc.createDocContext(docMock)).andReturn(docContextMock);
+    docContextMock.run(isA(Runnable.class));
+    docContextMock.close();
     proc.perDocFailLogging(e, docMock);
     replay();
     proc.perDocumentFailure(batchMock, e);
@@ -127,10 +127,16 @@ public class SendToSolrCloudProcessorTest {
   }
 
   private void expectLogging() {
-    proc.putIdInThreadContext(docMock);
-    proc.putIdInThreadContext(docMock2);
-    proc.putIdInThreadContext(docMock3);
-    // this logging is functional for FTI so we need to verify it, but only the status for eeach doc
+    expect(proc.createDocContext(docMock)).andReturn(docContextMock);
+    docContextMock.run(isA(Runnable.class));
+    docContextMock.close();
+    expect(proc.createDocContext(docMock2)).andReturn(docContextMock);
+    docContextMock.run(isA(Runnable.class));
+    docContextMock.close();
+    expect(proc.createDocContext(docMock3)).andReturn(docContextMock);
+    docContextMock.run(isA(Runnable.class));
+    docContextMock.close();
+    // this logging is functional for FTI, so we need to verify it, but only the status for each doc
     // message is not very important.
     expect(proc.log()).andReturn(logMock).anyTimes();
     logMock.info(eq(Status.INDEXED.getMarker()), anyString(), eq("41") );

@@ -16,14 +16,9 @@
 
 package org.jesterj.ingest.model;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 9/28/14
- */
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 
@@ -87,6 +82,7 @@ public interface Document extends ListMultimap<String, String>, Serializable {
    */
   void setStatusMessage(String message);
 
+  @SuppressWarnings("unused")
   ArrayListMultimap<String, String> getDelegate();
 
   /**
@@ -103,13 +99,30 @@ public interface Document extends ListMultimap<String, String>, Serializable {
    */
   String getHash();
 
-  String getIdField();
+    @NotNull
+    default String getHashAlg() {
+      return "MD5";
+    }
+
+    String getIdField();
 
   Operation getOperation();
 
   String getSourceScannerName();
 
   String getFirstValue(String fieldName);
+
+  String getParentId();
+
+  String getOrignalParentId();
+
+  boolean isStatusChanged();
+
+  void reportDocStatus(Status status, String message, Object... messageParams);
+
+    void setForceReprocess(boolean b);
+
+  boolean isForceReprocess();
 
   enum Operation implements Serializable {
     NEW,

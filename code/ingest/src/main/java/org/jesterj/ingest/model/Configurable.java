@@ -18,14 +18,9 @@ package org.jesterj.ingest.model;
 
 import java.util.regex.Pattern;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 3/24/16
- */
 public interface Configurable {
 
-  Pattern VALID_NAME = Pattern.compile("^[A-Za-z][\\w\\.]*$");
+  Pattern VALID_NAME = Pattern.compile("^[A-Za-z][\\w.]*$");
 
   /**
    * A name for this object to distinguish it from other objects. This value is generally supplied

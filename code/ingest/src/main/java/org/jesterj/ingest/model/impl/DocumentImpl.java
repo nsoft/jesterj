@@ -29,6 +29,7 @@ import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Status;
+import org.jesterj.ingest.processors.DocumentLoggingContext;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -52,6 +53,7 @@ import java.util.Set;
  */
 public class DocumentImpl implements Document {
 
+  public static final String CHILD_SEP = "⇛";
   // document id field.
   private final String idField;
 
@@ -63,19 +65,45 @@ public class DocumentImpl implements Document {
   private String statusMessage = "";
   private final Operation operation;
   private final String sourceScannerName;
+  private final String parentId;
+  private final String originalParentId;
+  private volatile boolean statusChanged = true;
+  private String docHash;
+  private boolean forceReprocess;
+
 
   public DocumentImpl(byte[] rawData, String id, Plan plan, Operation operation, Scanner source) {
+    this(rawData,id,plan.getDocIdField(), operation,source.getName(),null,id);
+  }
+
+  DocumentImpl(byte[] rawData, String id, String idField, Operation operation, String source,String parentId, String originalParentId) {
     this.rawData = rawData;
     this.operation = operation;
-    this.sourceScannerName = source.getName();
-    this.idField = plan.getDocIdField();
+    this.sourceScannerName = source;
+    this.idField = idField;
+    this.parentId = parentId;
+    this.originalParentId = originalParentId;
     this.delegate.put(idField, id);
-
     if (this.rawData != null) {
       this.delegate.put(DOC_RAW_SIZE, String.valueOf(this.rawData.length));
     }
   }
 
+  /**
+   * Make a child document. DeterministChild ID generation is critical for handling future
+   *
+   * @param rawData Any raw data for the child document
+   * @param operation The operation implied for this child
+   * @param childId A unique and deterministically generated identifier for the child
+   * @return A properly configured child document, with an ID composed of the parentID and
+   * the child id separated by a delimiter of '⇛' ('U+21DB')
+   */
+  @SuppressWarnings("unused")
+  Document makeChild(byte[] rawData,  Operation operation, int childId) {
+    String id = getId() + CHILD_SEP + childId;
+    return new DocumentImpl(rawData, id, this.idField, operation, this.sourceScannerName,
+        this.getId(),this.originalParentId);
+  }
 
   @Override
   public Multiset<String> keys() {
@@ -196,15 +224,9 @@ public class DocumentImpl implements Document {
   }
 
   @Override
-  public void setStatus(Status status) {
+  public  void setStatus(Status status) {
+    this.statusChanged = true;
     this.status = status;
-    try {
-      log.info(status.getMarker(), statusMessage);
-    } catch (AppenderLoggingException e) {
-      if (Main.isNotShuttingDown()) {
-        log.error("Could not contact our internal Cassandra!!!" + e);
-      }
-    }
   }
 
   @Override
@@ -229,13 +251,17 @@ public class DocumentImpl implements Document {
 
   @Override
   public String getHash() {
+    if (docHash != null) {
+      return docHash;
+    }
     try {
-      MessageDigest md = MessageDigest.getInstance("MD5");
+      MessageDigest md = MessageDigest.getInstance(getHashAlg());
       md.update(getDelegateString().getBytes(StandardCharsets.UTF_8));
       if (getRawData() != null) {
         md.update(getRawData());
       }
-      return new String(Hex.encodeHex(md.digest(), false));
+      docHash = new String(Hex.encodeHex(md.digest(), false));
+      return docHash;
     } catch (NoSuchAlgorithmException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -268,6 +294,16 @@ public class DocumentImpl implements Document {
   }
 
   @Override
+  public String getParentId() {
+    return parentId;
+  }
+
+  @Override
+  public String getOrignalParentId() {
+    return originalParentId;
+  }
+
+  @Override
   public String toString() {
     return "DocumentImpl{" +
         "id=" + getId() +
@@ -278,5 +314,33 @@ public class DocumentImpl implements Document {
         ", sourceScannerName='" + sourceScannerName + '\'' +
         ", idField='" + idField + '\'' +
         '}';
+  }
+
+
+  @Override
+  public boolean isStatusChanged() {
+    return statusChanged;
+  }
+
+  public void reportDocStatus(Status status, String message, Object... messageParams) {
+    setStatus(status, message);
+    statusChanged = false;
+    try(DocumentLoggingContext dc = new DocumentLoggingContext(this)) {
+      dc.run(() -> log.info(status.getMarker(), message, messageParams));
+    } catch (AppenderLoggingException e) {
+      if (Main.isNotShuttingDown()) {
+        log.error("Could not contact our internal Cassandra!!!", e);
+      }
+    }
+  }
+
+  @Override
+  public void setForceReprocess(boolean b) {
+    this.forceReprocess = b;
+  }
+
+  @Override
+  public boolean isForceReprocess() {
+    return forceReprocess;
   }
 }

@@ -53,6 +53,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   private static final Logger log = LogManager.getLogger();
   private final AtomicInteger opCountTrace = new AtomicInteger(0);
 
+  private static final Object SCAN_LOCK = new Object();
   private File rootDir;
   private transient volatile boolean scanning;
   private final MemoryUsage heapMemoryUsage;
@@ -73,7 +74,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
 
     return new ScanOp(() -> {
       log.trace("Scan Op:{}" , opCountTrace::incrementAndGet);
-      synchronized (SimpleFileScanner.this) {
+      synchronized (SimpleFileScanner.SCAN_LOCK) {
         System.out.println("Acquired lock on " + SimpleFileScanner.this);
         setScanning(true); // ensure initial walk completes before new scans are started.
         try {
@@ -110,7 +111,9 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
 
 
   protected void setScanning(boolean scanning) {
-    this.scanning = scanning;
+    synchronized (SCAN_LOCK) {
+      this.scanning = scanning;
+    }
   }
 
   private class RootWalker extends SimpleFileVisitor<Path> {
@@ -188,7 +191,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
       Thread.sleep(10);
       if (System.currentTimeMillis() - memWaitStart < memWaitTimeout) {
         log.error("Unable to free up memory to load file within {} seconds", memWaitStart / 1000);
-        log.error("Possible sources of FileScanner memory avaiability issue: " +
+        log.error("Possible sources of FileScanner memory availability issue: " +
             "1) File is very large, " +
             "2) processing of prior files is slow or stalled, " +
             "3) Memory settings are too low");

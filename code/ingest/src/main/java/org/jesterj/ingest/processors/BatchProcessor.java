@@ -19,8 +19,6 @@ package org.jesterj.ingest.processors;
 import org.apache.cassandra.utils.ConcurrentBiMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.ThreadContext;
-import org.jesterj.ingest.logging.JesterJAppender;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
@@ -37,7 +35,7 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
   private final ScheduledExecutorService sender = Executors.newScheduledThreadPool(1);
   private int batchSize = 100;
   private int sendPartialBatchAfterMs = 5000;
-  private ScheduledFuture scheduledSend;
+  private ScheduledFuture<?> scheduledSend;
 
   private final Object batchLock = new Object();
   private final Object sendLock = new Object();
@@ -70,7 +68,7 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
     }
     scheduledSend = sender.schedule(() -> sendBatch(takeBatch()), sendPartialBatchAfterMs, TimeUnit.MILLISECONDS);
 
-    log.info(Status.BATCHED.getMarker(), "{} queued in postition {} for sending to solr. " +
+    log.info(Status.BATCHED.getMarker(), "{} queued in position {} for sending to solr. " +
         "Will be sent within {} milliseconds.", document.getId(), size, sendPartialBatchAfterMs);
 
     return new Document[0];
@@ -87,7 +85,7 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
 
   private void sendBatch(ConcurrentBiMap<Document, T> oldBatch) {
     // there's a small window where the same BiMap could be grabbed by a timer and a full batch causing a double
-    // send. Thus we have a lock to ensure that the oldBatch.clear() in the finally is called
+    // send. Thus, we have a lock to ensure that the oldBatch.clear() in the finally is called
     // before the second thread tries to send the same batch. We tolerate this because it means batches can fill up
     // while sending is in progress.
     synchronized (sendLock) {
@@ -105,27 +103,23 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
           perDocumentFailure(oldBatch, e);
         }
       } finally {
-        ThreadContext.remove(JesterJAppender.JJ_INGEST_DOCID);
-        ThreadContext.remove(JesterJAppender.JJ_INGEST_SOURCE_SCANNER);
         oldBatch.clear();
       }
     }
   }
 
   protected void perDocumentFailure(ConcurrentBiMap<Document, ?> oldBatch, Exception e) {
-    // something's wrong with the network etc all documents must be errored out:
+    // something's wrong with the network etc. all documents must be errored out:
     for (Document doc : oldBatch.keySet()) {
-      putIdInThreadContext(doc);
-      perDocFailLogging(e, doc);
+      createDocContext(doc).run(() -> perDocFailLogging(e, doc));
     }
   }
 
-  protected abstract void perDocFailLogging(Exception e, Document doc);
-
-  void putIdInThreadContext(Document doc) {
-    ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, doc.getId());
-    ThreadContext.put(JesterJAppender.JJ_INGEST_SOURCE_SCANNER, doc.getSourceScannerName());
+  DocumentLoggingContext createDocContext(Document doc) {
+    return new DocumentLoggingContext(doc);
   }
+
+  protected abstract void perDocFailLogging(Exception e, Document doc);
 
   /**
    * If the bulk request fails it might be just one document that's causing a problem, try each document individually
@@ -143,18 +137,16 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
 
   protected abstract T convertDoc(Document document);
 
-  protected int getBatchSize() {
-    return batchSize;
-  }
 
-  public static abstract class Builder extends NamedBuilder<BatchProcessor> {
+  @SuppressWarnings("unused")
+  public static abstract class Builder<T> extends NamedBuilder<BatchProcessor<T>> {
 
-    public Builder sendingBatchesOf(int batchSize) {
+    public Builder<T> sendingBatchesOf(int batchSize) {
       getObj().batchSize = batchSize;
       return this;
     }
 
-    public Builder sendingPartialBatchesAfterMs(int ms) {
+    public Builder<T> sendingPartialBatchesAfterMs(int ms) {
       getObj().sendPartialBatchAfterMs = ms;
       return this;
     }

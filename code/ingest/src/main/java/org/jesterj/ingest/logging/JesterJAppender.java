@@ -18,10 +18,8 @@ package org.jesterj.ingest.logging;
 
 
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.NoNodeAvailableException;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.datastax.oss.driver.api.core.cql.ResultSet;
-import com.datastax.oss.driver.api.core.cql.Row;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.Layout;
@@ -32,23 +30,28 @@ import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginElement;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
 import org.apache.logging.log4j.core.layout.PatternLayout;
-import org.jesterj.ingest.model.Status;
+import org.jesterj.ingest.Main;
+import org.jesterj.ingest.model.Plan;
+import org.jesterj.ingest.model.Scanner;
+import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.persistence.CassandraSupport;
+import org.jesterj.ingest.processors.DocumentLoggingContext;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
-import java.util.Queue;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
+
+import static org.jesterj.ingest.processors.DocumentLoggingContext.ContextNames.JJ_SCANNER_NAME;
 
 @SuppressWarnings("deprecation")
 @Plugin(name = "JesterJAppender", category = "Core", elementType = "appender")
 public class JesterJAppender extends AbstractAppender {
+
+  public static final int FTI_TTL = 60 * 60 * 24 * 90;
 
   private static final String INSERT_REG =
       "INSERT INTO jj_logging.regular " +
@@ -56,30 +59,28 @@ public class JesterJAppender extends AbstractAppender {
           "VALUES(?,?,?,?,?,?)";
 
   private static final String INSERT_FTI =
-      "INSERT INTO jj_logging.fault_tolerant " +
-          "(docid, scanner, logger, tstamp, level, thread, status, message) " +
-          "VALUES(?,?,?,?,?,?,?,?)";
-  private static final String INSERT_FTI_ERROR =
-      "INSERT INTO jj_logging.fault_tolerant " +
-          "(docid, scanner, logger, tstamp, level, thread, status, message, error_count) " +
-          "VALUES(?,?,?,?,?,?,?,?,?)";
-  private static final String QUERY_FTI_ERROR_COUNT =
-      "select error_count from jj_logging.fault_tolerant where docid =?";
+      "INSERT INTO %s.jj_potent_step_status " +
+          "(docid, docHash, parentId, " +
+          "origParentId, potentStepName, " +
+          "status, message, antiCollision, created, " +
+          "createdNanos) " +
+          // Funny formatting here, so we can keep track of the number of
+          // question marks matching the number of columns
+          "VALUES(" +
+          "?,?,?," +
+          "?,?," +
+          "?,?,?,?," +
+          "?) USING TTL ?";
 
-  public static final String FTI_ERROR_COUNT_Q = "FTI_ERROR_COUNT_Q";
   public static final String REG_INSERT_U = "REG_INSERT_Q";
   public static final String FTI_INSERT_U = "FTI_INSERT_Q";
-  public static final String FTI_INSERT_ERROR_U = "FTI_INSERT_ERROR_Q";
 
   private static final CassandraSupport cassandra = new CassandraSupport();
-
-  public static final String JJ_INGEST_DOCID = "jj_ingest.docid";
-  public static final String JJ_INGEST_SOURCE_SCANNER = "JJ_INGEST_SOURCE_SCANNER";
 
   private static CassandraLog4JManager manager;
 
   // we need to delay startup of cassandra until after logger initialization, because when cassandra code
-  // tries to log messages we get a deadlock. Therefore the manager does not create cassandra until after the first
+  // tries to log messages we get a deadlock. Therefore, the manager does not create cassandra until after the first
   // logging event, and then queues the events until cassandra is ready to accept them. This variable is then
   // empties and the queue items should eventually be garbage collected.
   private static final Queue<LogEvent> startupQueue = new ConcurrentLinkedQueue<>();
@@ -121,10 +122,7 @@ public class JesterJAppender extends AbstractAppender {
     if (layout == null) {
       layout = PatternLayout.createDefaultLayout();
     }
-    cassandra.addStatement(FTI_ERROR_COUNT_Q, QUERY_FTI_ERROR_COUNT);
-    cassandra.addStatement(FTI_INSERT_U, INSERT_FTI);
     cassandra.addStatement(REG_INSERT_U, INSERT_REG);
-    cassandra.addStatement(FTI_INSERT_ERROR_U, INSERT_FTI_ERROR);
     return new JesterJAppender(name, layout, filter, manager, ignoreExceptions);
   }
 
@@ -164,6 +162,7 @@ public class JesterJAppender extends AbstractAppender {
 
   private void writeEvent(LogEvent e) {
     Marker m = e.getMarker();
+    //noinspection SpellCheckingInspection
     new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss,'Z'").format(e.getTimeMillis());
     // everything wrapped in String.valueOf to avoid any issues with null.
     String logger = String.valueOf(e.getLoggerName());
@@ -181,7 +180,7 @@ public class JesterJAppender extends AbstractAppender {
       // events, we'll begin to worry about the 1 in a billion chance of collision during that
       // ingest... https://en.wikipedia.org/wiki/Universally_unique_identifier#Collisions
       // The biggest risk is from some sort of seed overlap, so specify a secure seed
-      // generation mechanism. Second biggest risk is a flaw in the PRNG, but that's java's
+      // generation mechanism. Second-biggest risk is a flaw in the PRNG, but that's java's
       // affair to manage.
 
       // at some time in the future, the strategy here might become configurable, but
@@ -218,37 +217,65 @@ public class JesterJAppender extends AbstractAppender {
 
       // everything wrapped in String.valueOf to avoid any issues with null.
       String status = String.valueOf(e.getMarker().getName());
-      String docId = String.valueOf(e.getContextData().toMap().get(JJ_INGEST_DOCID));
-      String scanner = String.valueOf(e.getContextData().toMap().get(JJ_INGEST_SOURCE_SCANNER));
-      if (Status.valueOf(status) == Status.ERROR) {
-        int errorCount = getErrorCount(s, docId);
-        PreparedStatement update = cassandra.getPreparedQuery(FTI_INSERT_ERROR_U);
-        s.execute(update.bind(docId, scanner, logger, timeStamp, level, thread, status, message, errorCount));
-      } else {
-        PreparedStatement update = cassandra.getPreparedQuery(FTI_INSERT_U);
-        s.execute(update.bind(docId, scanner, logger, timeStamp, level, thread, status, message));
+      Map<String, String> contextData = e.getContextData().toMap();
+      String potentSteps = contextData.get(Step.JJ_DOWNSTREAM_POTENT_STEPS);
+      String[] downstreamSteps = potentSteps.split(",");
+      String planName = contextData.get(Step.JJ_PLAN_NAME);
+      String scannerName= contextData.get(String.valueOf(JJ_SCANNER_NAME));
+
+      for (String downstreamStep : downstreamSteps) {
+        Plan plan = Main.locatePlan(planName).orElseThrow(); // will be caught by logging infra
+        Scanner step = (Scanner) plan.findStep(scannerName);
+        String keySpace = step.keySpace();
+        String sq = String.format(INSERT_FTI,keySpace);
+        PreparedStatement update = cassandra.getPreparedQuery(FTI_INSERT_U, sq);
+        List<Object> params = new ArrayList<>(16);
+
+        // Document context
+        DocumentLoggingContext.ContextNames[] names = DocumentLoggingContext.ContextNames.values();
+        for (DocumentLoggingContext.ContextNames name : names) {
+          if (name == JJ_SCANNER_NAME) continue;
+          params.add(contextData.get(String.valueOf(name)));
+        }
+        // Step context
+        params.add(downstreamStep);
+
+        // actual logging
+        params.add(status);
+        params.add(message);
+
+        // TimeSeries data in cassandra is plagued by a lack of resolution. If a document is scanned and then
+        // the very first step drops it after a check that is quick and easily JIT optimized, we have a possible
+        // race between the "processing" event and the "dropped" event. This int does not ensure order, but does
+        // make it extremely unlikely that the attempt to insert one event accidentally updates the other because
+        // the keys match. A ThreadLocal SplittableRandom() is used for good multithreaded performance.
+        params.add(CassandraSupport.antiCollision.get().nextInt());
+        params.add(Instant.now());
+
+        // NOTE: we add a nano concept as a tie-break for ordering but this is a best-effort
+        // and will not guarantee anything about order across JVMs or in JVMs with crappy time resolution
+        // Windows time issues in particular (if we can restore support for it) would likely render this value
+        // useless. Until someone thinks of something better, we will consider that 'acceptable' risk.
+        params.add((int)(System.nanoTime() % 1_000_000));
+
+        // TTL: This event may disappear from cassandra after this number of milliseconds, 90 days by default
+        params.add(FTI_TTL); // TODO: configurable TTL
+
+        try {
+          s.execute(update.bind(params.toArray()));
+        } catch (NoNodeAvailableException ex) {
+          //noinspection StatementWithEmptyBody
+          if (!Cassandra.isStopping()) {
+            throw ex;
+          } else {
+            // ignore
+            // this is expected and not a problem, we are shutting down. Don't scare the users.
+          }
+        }
+
       }
     }
 
-  }
-
-  private int getErrorCount(CqlSession s, String docId) {
-    int errorCount = 1;
-    // error case more expensive, but it **should** be the less common case.
-    PreparedStatement pq = cassandra.getPreparedQuery(FTI_ERROR_COUNT_Q);
-    BoundStatement bs = pq.bind(docId);
-    bs = bs.setTimeout(Duration.ofSeconds(600));
-    ResultSet rs = s.execute(bs);
-    Cassandra.printErrors(rs);
-    List<Row> allRows = rs.all();
-    if (allRows.size() > 1 ) {
-      // can't log because logging from logging is well ... dangerous :)
-      System.err.println("VERY BAD: more than one record for the same docId??");
-    }
-    if (allRows.size() == 1) {
-      errorCount += allRows.get(0).getInt(0);
-    }
-    return errorCount;
   }
 
 }

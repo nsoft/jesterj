@@ -16,6 +16,7 @@
 
 package org.jesterj.ingest.scanners;
 
+import org.jesterj.ingest.Main;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
@@ -34,7 +35,7 @@ import static org.junit.Assert.assertEquals;
 
 public class SimpleFileScannerImplTest {
 
-  private static final String SHAKESPEAR = "Shakespear_scanner";
+  private static final String SHAKESPEARE = "Shakespeare_scanner";
 
 
   @Before
@@ -60,7 +61,7 @@ public class SimpleFileScannerImplTest {
     StepImpl.Builder testStepBuilder = new StepImpl.Builder();
 
     File tragedies = new File("src/test/resources/test-data");
-    scannerBuilder.named("test_scanner").withRoot(tragedies).named(SHAKESPEAR).scanFreqMS(1000);
+    scannerBuilder.named("test_scanner").withRoot(tragedies).named(SHAKESPEARE).scanFreqMS(1000);
 
     HashMap<String, Document> scannedDocs = new HashMap<>();
 
@@ -94,11 +95,12 @@ public class SimpleFileScannerImplTest {
     planBuilder
         .named("testScan")
         .addStep(scannerBuilder)
-        .addStep(testStepBuilder, SHAKESPEAR)
+        .addStep(testStepBuilder, SHAKESPEARE)
         .withIdField("id");
     Plan plan = planBuilder.build();
 
     try {
+      Main.registerPlan(plan); // hack ugly fix
       plan.activate();
 
       Thread.sleep(2000);
@@ -110,6 +112,7 @@ public class SimpleFileScannerImplTest {
       assertEquals(44, scannedDocs.size());
     } finally {
       plan.deactivate();
+      Main.deregisterPlan(plan);
     }
   }
 

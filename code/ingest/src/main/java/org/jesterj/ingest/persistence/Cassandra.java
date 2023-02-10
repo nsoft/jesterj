@@ -66,6 +66,7 @@ public class Cassandra {
 
   private static Object log;
   private volatile static boolean booting = true;
+  private volatile static boolean stopping = false;
 
   /**
    * Indicates whether cassandra has finished booting. Does NOT indicate if
@@ -87,7 +88,7 @@ public class Cassandra {
   public static void start(File cassandraDir, String listenAddress) {
 
     System.out.println("Booting internal cassandra");
-    boolean firstboot = false;
+    boolean firstBoot = false;
     try {
       File triggers = new File(cassandraDir, "triggers");
       System.setProperty("cassandra.triggers_dir", triggers.getCanonicalPath());
@@ -100,7 +101,7 @@ public class Cassandra {
       System.out.println("Using cassandra config file at: " + confURI);
 
       if (!yaml.exists()) {
-        firstboot = true;
+        firstBoot = true;
         CassandraConfig cfg = new CassandraConfig(cassandraDir.getCanonicalPath());
         if (listenAddress == null) {
           cfg.guessIp();
@@ -142,7 +143,7 @@ public class Cassandra {
     }
     cassandra = new JJCassandraDaemon();
     try {
-      // keep cassandra from clobering system.out and sytem.err
+      // keep cassandra from clobbering system.out and system.err
       System.setProperty("cassandra-foreground", "true");
       cassandra.activate();
     } catch (Exception e) {
@@ -152,7 +153,7 @@ public class Cassandra {
     // Issue #59
     // Cassandra waits 10 seconds before creating the super-user, see CassandraRoleManager.scheduleSetupTask()
     // https://github.com/apache/cassandra/blob/cassandra-3.11.0/src/java/org/apache/cassandra/auth/CassandraRoleManager.java#L403
-    if (firstboot) {
+    if (firstBoot) {
       try {
         // wait 11 seconds...
         System.out.println("First time startup... waiting for Cassandra to create it's default roles");
@@ -180,6 +181,7 @@ public class Cassandra {
   }
 
   public static void stop() {
+    stopping = true;
     booting = true;
     log = null;
     cassandra.stop();
@@ -231,5 +233,9 @@ public class Cassandra {
         }
       }
     }
+  }
+
+  public static boolean isStopping() {
+    return stopping;
   }
 }

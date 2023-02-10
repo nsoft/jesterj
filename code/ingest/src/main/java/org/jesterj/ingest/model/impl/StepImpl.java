@@ -20,36 +20,20 @@ package org.jesterj.ingest.model.impl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
-import org.apache.logging.log4j.core.appender.AppenderLoggingException;
-import org.jesterj.ingest.Main;
 import org.jesterj.ingest.config.Transient;
-import org.jesterj.ingest.logging.JesterJAppender;
-import org.jesterj.ingest.model.ConfiguredBuildable;
-import org.jesterj.ingest.model.Document;
-import org.jesterj.ingest.model.DocumentProcessor;
-import org.jesterj.ingest.model.NextSteps;
-import org.jesterj.ingest.model.Plan;
-import org.jesterj.ingest.model.Router;
-import org.jesterj.ingest.model.Status;
-import org.jesterj.ingest.model.Step;
+import org.jesterj.ingest.model.*;
 import org.jesterj.ingest.processors.DefaultWarningProcessor;
 import org.jesterj.ingest.routers.RouteByStepName;
 import org.jesterj.ingest.routers.RouterBase;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Spliterator;
+import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /*
@@ -62,7 +46,7 @@ import java.util.stream.Stream;
  * The class that is used to run {@link DocumentProcessor}s. This class takes care of the handling of the document
  * ensures it is properly received and passed on. This class is not normally overridden, to implement custom
  * processing logic write a class that implements <code>DocumentProcessor</code> and then build a stepImpl that uses
- * an instance of your processor. Also note that one does not normally call build on a StepImpl or any of it's
+ * an instance of your processor. Also note that one does not normally call build on a StepImpl or any of its
  * subclasses. The builder for this class is provided to a {@link org.jesterj.ingest.model.impl.PlanImpl.Builder} so
  * that the plan can validate the ordering of the steps and assemble the entire plan as an immutable DAG.
  */
@@ -150,10 +134,8 @@ public class StepImpl implements Step {
   public boolean offer(Document document) {
     if (active) {
       return queue.offer(document);
-    } else {
-      reportDocStatus(Status.ERROR, document, "Destination step was shutting down ({})", getName());
-      return false;
     }
+    return false;
   }
 
   public Document poll() {
@@ -177,10 +159,9 @@ public class StepImpl implements Step {
    * @throws InterruptedException if interrupted while waiting
    */
   public void put(Document document) throws InterruptedException {
+    log.trace("{} receiving {}", getName(), document.getId());
     if (active) {
       queue.put(document);
-    } else {
-      reportDocStatus(Status.ERROR, document, "Destination step was shutting down ({})", getName());
     }
   }
 
@@ -269,10 +250,12 @@ public class StepImpl implements Step {
         log.info("started {} ({})", worker.getName(), worker.getId());
       }
     }
+    log.info("Started step {} ", getName());
   }
 
   @Override
   public synchronized void deactivate() {
+    log.info("Deactivating step {}", getName());
     this.active = false;
     this.queue.clear();
     // make this method idempotent so that it can be called any number of times without NPE, and can be
@@ -324,7 +307,7 @@ public class StepImpl implements Step {
             if (processor.isPotent()) {
               potentSteps = new Step[]{this};
             } else {
-              // oddball case! but shoudlnt
+              // oddball case! but shouldn't
               potentSteps = new Step[0];
             }
           } else {
@@ -364,46 +347,52 @@ public class StepImpl implements Step {
   }
 
   private void pushToNextIfOk(Document document) {
-    log.trace("starting push to next if ok {} for {}", getName(), document.getId());
-    if (document.getStatus() == Status.PROCESSING) {
-      log.trace("{} is ok, will push to next step(s)", getName());
-      reportDocStatus(Status.PROCESSING, document, "{} finished processing in {}", getName(), document.getId());
-      NextSteps next = getNextSteps(document);
-      if (next == null) {
-        if (getNextSteps().size() == 0) {
-          reportDocStatus(Status.INDEXED, document, "Terminal Step {} OK", getName());
-        } else {
-          reportDocStatus(Status.DROPPED, document, "No qualifying next step found by {} in {}", router, getName());
-        }
-        return;
-      }
-
-      // if we get here there are steps down stream of this one, do distribution.
-      List<Map.Entry<Step, NextSteps.StepStatus>> remaining = next.remaining();
-      if (remaining.size() == 1) {
-        // simple case, do not make/use clones
-        pushToStep(document,remaining.get(0).getKey(),true);
-      } else {
-        while (remaining.size() > 0) {
-          for (Map.Entry<Step, NextSteps.StepStatus> step : next.remaining()) {
-            Step destinationStep = step.getKey();
-            if (step.getValue().exception != null) {
-              next.update(destinationStep, NextSteps.StepStatus.FAIL); // update this first to ensure loop terminates
-              reportException(document, step.getValue().exception, "Failed to clone document when sending to multiple steps");
-            } else {
-              NextSteps.StepStatus stepStatus = pushToStep(step.getValue().doc, destinationStep, false);
-              next.update(destinationStep, stepStatus);
-            }
+    try {
+      log.trace("starting push to next if ok {} for {}", getName(), document.getId());
+      if (document.getStatus() == Status.PROCESSING) {
+        log.trace("{} finished processing in {}", getName(), document.getId());
+        NextSteps next = getNextSteps(document);
+        if (next == null) {
+          if (getNextSteps().size() == 0) {
+            document.reportDocStatus(Status.INDEXED, "Terminal Step {} OK", getName());
+          } else {
+            document.reportDocStatus(Status.DROPPED, "No qualifying next step found by {} in {}", router, getName());
           }
-          remaining = next.remaining();
+          return;
         }
+
+        // if we get here there are steps down stream of this one, do distribution.
+        List<Map.Entry<Step, NextSteps.StepStatus>> remaining = next.remaining();
+        if (remaining.size() == 1) {
+          // simple case, do not make/use clones
+          pushToStep(document, remaining.get(0).getKey(), true);
+        } else {
+          // This loop allows us to push to any steps that are ready, and come back to the ones that are blocked.
+          while (remaining.size() > 0) {
+            for (Map.Entry<Step, NextSteps.StepStatus> step : next.remaining()) {
+              Step destinationStep = step.getKey();
+              if (step.getValue().exception != null) {
+                next.update(destinationStep, NextSteps.StepStatus.FAIL); // update this first to ensure loop terminates
+                reportException(document, step.getValue().exception, "Failed to clone document when sending to multiple steps");
+              } else {
+                NextSteps.StepStatus stepStatus = pushToStep(step.getValue().doc, destinationStep, false);
+                next.update(destinationStep, stepStatus);
+              }
+            }
+            remaining = next.remaining();
+          }
+        }
+      } else {
+        log.trace("Document not proceeding to next step {}", document.getId());
+        document.reportDocStatus(document.getStatus(),
+            "Document processing for {} terminated ({}) after {}", document.getId(), document.getStatus(), getName());
       }
-    } else {
-      log.trace("Dropping {}", document.getId());
-      reportDocStatus(document.getStatus(), document,
-          "Document processing for {} terminated ({}) after {}", document.getId(), document.getStatus(), getName());
+      log.trace("completing push to next if ok {} for {}", getName(), document.getId());
+    } catch (Exception e) {
+      // otherwise so very annoying to try to figure out which step is causing problems.
+      log.error("Exception caught reporting doc status from step {}",getName());
+      throw e;
     }
-    log.trace("completing push to next if ok {} for {}", getName(), document.getId());
   }
 
   private NextSteps.StepStatus pushToStep(Document document, Step step, boolean block) {
@@ -416,6 +405,9 @@ public class StepImpl implements Step {
             step.put(document);
             log.trace("completed put ( {} into {} )", getName(), step.getName());
           } catch (InterruptedException e) {
+            // This means the system is stopping and does not indicate an error with the document
+            return NextSteps.StepStatus.FAIL;
+          } catch (Exception e) {
             String message = "Exception while offering to " + step.getName();
             reportException(document, e, message);
             return NextSteps.StepStatus.FAIL;
@@ -429,23 +421,9 @@ public class StepImpl implements Step {
     throw new RuntimeException("Attempted to route to a null step");
   }
 
-  private void reportDocStatus(Status status, Document document, String message, Object... messageParams) {
-    try {
-      ThreadContext.put(JesterJAppender.JJ_INGEST_DOCID, document.getId());
-      ThreadContext.put(JesterJAppender.JJ_INGEST_SOURCE_SCANNER, document.getSourceScannerName());
-      document.setStatus(status);
-      log.info(status.getMarker(), message, messageParams);
-    } catch (AppenderLoggingException e) {
-      if (Main.isNotShuttingDown()) {
-        log.error("Could not contact our internal Cassandra!!!", e);
-      }
-    } finally {
-      ThreadContext.clearAll();
-    }
-  }
-
   @Override
   public void run() {
+    addStepContext();
     try {
       while (this.active) {
         try {
@@ -464,8 +442,24 @@ public class StepImpl implements Step {
       System.out.println("Thread for " + getName() + " died. This should not happen and is always a bug in JesterJ " +
           "unless you killed the process with Ctrl-C or similar. This node is Shutting down. If the process was not " +
           "killed, and you got this message during normal running, please open a bug report at http://www.jesterj.org");
+      System.out.flush();
       System.exit(2);
     }
+  }
+
+  void addStepContext() {
+    ThreadContext.put(JJ_PLAN_NAME, getPlan().getName());
+    ThreadContext.put(JJ_PLAN_VERSION, String.valueOf(getPlan().getVersion()));
+    String dsPotentSteps = Arrays.stream(getDownstreamPotentSteps())
+        .map(Configurable::getName)
+        .collect(Collectors.joining(","));
+    ThreadContext.put(Step.JJ_DOWNSTREAM_POTENT_STEPS,
+        dsPotentSteps);
+  }
+  void removeStepContext() {
+    ThreadContext.remove(JJ_PLAN_NAME);
+    ThreadContext.remove(JJ_PLAN_VERSION);
+    ThreadContext.remove(Step.JJ_DOWNSTREAM_POTENT_STEPS);
   }
 
   @Override
@@ -482,7 +476,7 @@ public class StepImpl implements Step {
     StringWriter buff = new StringWriter();
     e.printStackTrace(new PrintWriter(buff));
     String errorMsg = message + " " + e.getMessage() + "\n" + buff;
-    reportDocStatus(Status.ERROR, doc, errorMsg, params);
+    doc.reportDocStatus(Status.ERROR, errorMsg, params);
     if (e instanceof InterruptedException) {
       log.debug("Step interrupted!", e);
     } else {
@@ -498,6 +492,10 @@ public class StepImpl implements Step {
   @Override
   public void addDeferred(Runnable builderAction) {
     deferred.add(builderAction);
+  }
+
+  public DocumentProcessor getProcessor() {
+    return this.processor;
   }
 
 
@@ -577,7 +575,7 @@ public class StepImpl implements Step {
     }
 
     public Builder withProcessor(ConfiguredBuildable<? extends DocumentProcessor> processor) {
-      StepImpl currObj = getObj(); // make sure that this cant' change after build() called.
+      StepImpl currObj = getObj(); // make sure that this can't change after build() called.
       getObj().addDeferred(() -> currObj.processor = processor.build());
       return this;
     }
@@ -602,7 +600,7 @@ public class StepImpl implements Step {
       object.executeDeferred();
       int batchSize = object.batchSize;
       object.queue = new LinkedBlockingQueue<>(batchSize > 0 ? batchSize : 50);
-      obj = new StepImpl(); // subclasses such as scanners will mask this with thier own obj field which is ok.
+      obj = new StepImpl(); // subclasses such as scanners will mask this with their own obj field which is ok.
       return object;
     }
 

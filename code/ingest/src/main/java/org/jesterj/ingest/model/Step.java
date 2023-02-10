@@ -16,24 +16,22 @@
 
 package org.jesterj.ingest.model;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 9/28/14
- */
-
 import org.jesterj.ingest.model.impl.StepImpl;
 
 import java.util.LinkedHashMap;
 import java.util.concurrent.BlockingQueue;
 
 /**
- * A <code>Step</code> is a {@link BlockingQueue} with a capacity equal to it's concurrency level.
+ * A <code>Step</code> is a {@link BlockingQueue} with a capacity equal to its concurrency level.
  * When the step is full, attempts to add an {@link Document} will
  * throw IllegalStateException, and the calling code MUST check for and handle this condition
  * gracefully.
  */
 public interface Step extends Active, BlockingQueue<Document>, Runnable, DeferredBuilding, Configurable {
+
+  String JJ_DOWNSTREAM_POTENT_STEPS = "JJ_DOWNSTREAM_POTENT_STEPS";
+  String JJ_PLAN_VERSION = "JJ_PLAN_VERSION";
+  String JJ_PLAN_NAME = "JJ_PLAN_NAME";
 
   /**
    * Set the number of items to process concurrently.
@@ -87,7 +85,7 @@ public interface Step extends Active, BlockingQueue<Document>, Runnable, Deferre
 
   /**
    * Determine if any upstream steps are still active. A true result implies that
-   * documents may yet be recieved for processing, and it is not safe to shut down
+   * documents may yet be received for processing, and it is not safe to shut down
    * the processing thread for this step.
    *
    * @return true if any immediately prior steps are still active

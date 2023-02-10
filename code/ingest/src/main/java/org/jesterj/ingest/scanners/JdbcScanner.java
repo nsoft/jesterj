@@ -92,7 +92,7 @@ public class JdbcScanner extends ScannerImpl {
 
   @Override
   public synchronized void activate() {
-    ready = true;
+    setReady(true);
     super.activate();
   }
 
@@ -130,7 +130,7 @@ public class JdbcScanner extends ScannerImpl {
           }
           try (Statement statement = createStatement(connection);
                ResultSet rs = statement.executeQuery(sqlStatement)) {
-            processDirtyAndRestartStatuses(getCassandra());
+            processDirty();
             log.info("{} successfully queried database {}", getName(), jdbcUrl);
 
             String[] columnNames = getColumnNames(rs);
@@ -178,7 +178,7 @@ public class JdbcScanner extends ScannerImpl {
     } else {
       try {
         connection.prepareStatement(connectionTestQuery).executeQuery();
-      } catch (SQLException throwables) {
+      } catch (SQLException throwable) {
         return false;
       }
     }
@@ -343,7 +343,7 @@ public class JdbcScanner extends ScannerImpl {
     int slash = id.lastIndexOf("/") + 1;
     int hash = id.indexOf('#');
     int endOfParentDocId = hash < 0 ? id.length() : hash;
-    // theoretically could be some other unique indexed column but usually it's the PK
+    // theoretically could be some other unique indexed column, but usually it's the PK
     String pkValue = id.substring(slash, endOfParentDocId);
     try (PreparedStatement preparedStatement = getConnection().prepareStatement(sql)) {
       preparedStatement.setString(1, pkValue);
@@ -437,6 +437,7 @@ public class JdbcScanner extends ScannerImpl {
       return this;
     }
 
+    @SuppressWarnings("unused")
     public Builder testingConnectionWith(String query) {
       getObj().connectionTestQuery = query;
       return this;

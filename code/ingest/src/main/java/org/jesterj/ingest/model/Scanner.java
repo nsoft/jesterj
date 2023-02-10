@@ -80,6 +80,7 @@ public interface Scanner extends Step {
      *
      * @return the scan interval. Defaults to 30 minutes
      */
+    @SuppressWarnings("unused")
     long getInterval();
 
     /**
@@ -98,7 +99,30 @@ public interface Scanner extends Step {
      */
     Optional<Document> fetchById(String id);
 
+  /**
+   * Indicates if this scanner will re-feed documents it has already seen. This behavior can
+   * be modified by the value for {@link Scanner#isHashing()}.
+   *
+   * @return true if previously indexed documents will be skipped, false if every document will be
+   * freshly indexed on every scan.
+   */
     boolean isRemembering();
 
-    boolean isHashing();
+  /**
+   * Indicates if this scanner will consider a hash of the document contents and compare it with a
+   * previously recorded value when asking if it has already seen a document. The value of this
+   * property has no effect if isRemembering is false.  Turning this off can speed up processing
+   * of individual docs significantly, if indexing a repository or data source that disallows
+   * updating existing documents.
+   *
+   * @return True if a hash value should be calculated and compared to the previously stored value.
+   */
+  boolean isHashing();
+
+  /**
+   * Calculates the keyspace for this scanner's FTI records.
+   *
+   * @return a keyspace name encoding the scanner name, plan name and plan version.
+   */
+  String keySpace();
 }

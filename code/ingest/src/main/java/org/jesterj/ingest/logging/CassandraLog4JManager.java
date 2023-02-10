@@ -17,50 +17,19 @@
 package org.jesterj.ingest.logging;
 
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.metadata.Metadata;
-import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
-import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
-import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractManager;
 import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.persistence.CassandraSupport;
 
-import java.util.Optional;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class CassandraLog4JManager extends AbstractManager {
 
   public static final String CREATE_LOG_KEYSPACE =
       "CREATE KEYSPACE IF NOT EXISTS jj_logging " +
           "WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };";
-
-  public static final String CREATE_FT_KEYSPACE =
-      "CREATE KEYSPACE IF NOT EXISTS jj_ft " +
-          "WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };";
-
-  public static final String CREATE_NEW_FT_TABLE =
-      "CREATE TABLE IF NOT EXISTS jj_ft.jj_potent_step_status (" +
-          "docId varchar, " +
-          "planName varchar, " +
-          "planVersion int, " +
-          "scannerName varchar, " +
-          "potentStepName varchar, " +
-          "origParentId varchar, " +
-          "status varchar, " +
-          "message varchar, " +
-          "created timestamp, " +
-          "updated timestamp, " +
-          "PRIMARY KEY (docId,planName,planVersion,scannerName,potentStepName)" +
-          ");";
-
-  public static final String INDEX_STATUS = "CREATE INDEX IF NOT EXISTS jj_ft_idx_step_status ON jj_ft.jj_potent_step_status (status);";
 
   // Possibly move these to wide rows with time values?
   public static final String CREATE_LOG_TABLE =
@@ -72,26 +41,7 @@ public class CassandraLog4JManager extends AbstractManager {
           "thread text, " +
           "message text" +
           ");";
-  public static final String CREATE_FT_TABLE =
-      "CREATE TABLE IF NOT EXISTS jj_logging.fault_tolerant(" +
-          "docid text , " +
-          "logger text, " +
-          "tstamp timestamp, " +
-          "level text, " +
-          "thread text," +
-          "scanner text, " +
-          "status text, " +
-          "message text," +
-          "md5hash text," +
-          "error_count int," +
-          "PRIMARY KEY (docid, scanner));";
 
-
-  public static final String UPGRADE_FT_TABLE_ADD_COL =
-      "ALTER TABLE jj_logging.<T> ADD <C> <Y>";
-
-  public static final String FTI_STATUS_INDEX = "CREATE INDEX IF NOT EXISTS jj_logging_fti_statuses ON jj_logging.fault_tolerant( status );";
-  public static final String FTI_SCANNER_INDEX = "CREATE INDEX IF NOT EXISTS jj_logging_fti_scanners ON jj_logging.fault_tolerant( scanner );";
   private final Future<Object> cassandraReady;
 
   Executor executor = new ThreadPoolExecutor(1, 1, 100, TimeUnit.SECONDS, new SynchronousQueue<>());
@@ -118,38 +68,8 @@ public class CassandraLog4JManager extends AbstractManager {
     session.setSchemaMetadataEnabled(false);
     session.execute(CREATE_LOG_KEYSPACE);
     session.execute(CREATE_LOG_TABLE);
-    session.execute(CREATE_FT_TABLE);
-    session.execute(FTI_STATUS_INDEX);
-    session.execute(FTI_SCANNER_INDEX);
-    session.execute(CREATE_FT_KEYSPACE);
-    session.execute(CREATE_NEW_FT_TABLE);
-    session.execute(INDEX_STATUS);
-    session.setSchemaMetadataEnabled(true);
     session.checkSchemaAgreement();
   }
-
-  @SuppressWarnings("SameParameterValue")
-  void upgradeAddColIfMissing(CqlSession session, String tableName, String colName, String type) {
-    Metadata metadata = session.getMetadata();
-    Optional<KeyspaceMetadata> jj_logging = metadata.getKeyspace("jj_logging");
-    jj_logging.ifPresent((keySpace) -> {
-      Optional<TableMetadata> fault_tolerant = keySpace.getTable(tableName);
-      fault_tolerant.ifPresent((table) -> {
-        Optional<ColumnMetadata> error_count = table.getColumn(colName);
-        if (error_count.isEmpty()) {
-          System.out.println("Upgrading existing table to add error_count column.");
-          String replace = UPGRADE_FT_TABLE_ADD_COL
-              .replace("<T>", tableName)
-              .replace("<C>", colName)
-              .replace("<Y>", type);
-          logger().info(replace);
-          session.execute(replace);
-          session.checkSchemaAgreement();
-        }
-      });
-    });
-  }
-
 
   public boolean isReady() {
     return cassandraReady.isDone();
@@ -174,7 +94,6 @@ public class CassandraLog4JManager extends AbstractManager {
         try {
           CqlSession session = getCassandra().getSession();
           ensureBasicSchema(session);
-          upgradeAddColIfMissing(session, "fault_tolerant", "error_count", "int");
           tryAgain = false;
         } catch (Exception e) {
           tryCount++;

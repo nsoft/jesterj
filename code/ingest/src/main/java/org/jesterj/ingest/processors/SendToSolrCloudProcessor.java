@@ -74,32 +74,27 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
   protected void individualFallbackOperation(ConcurrentBiMap<Document, SolrInputDocument> oldBatch, Exception e) {
     // TODO: send in bisected batches to avoid massive traffic down due to one doc when batches are large
     for (Document document : oldBatch.keySet()) {
-      putIdInThreadContext(document);
-      try {
-        SolrInputDocument doc = oldBatch.get(document);
-        if (doc instanceof Delete) {
-          getSolrClient().deleteById(oldBatch.inverse().get(doc).getId());
-          log().info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());
-        } else {
-          getSolrClient().add(doc);
-          log().info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
+      //noinspection resource
+      new DocumentLoggingContext(document).run(() -> {
+        try {
+          SolrInputDocument doc = oldBatch.get(document);
+          if (doc instanceof Delete) {
+            getSolrClient().deleteById(oldBatch.inverse().get(doc).getId());
+            log().info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());
+          } else {
+            getSolrClient().add(doc);
+            log().info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
+          }
+        } catch (IOException | SolrServerException e1) {
+          log().info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", document.getId(), e1.getMessage());
+          log().error("Error sending to with solr!", e1);
         }
-      } catch (IOException | SolrServerException e1) {
-        log().info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", document.getId(), e1.getMessage());
-        log().error("Error sending to with solr!", e1);
-      }
+      });
     }
   }
 
   @Override
   protected void batchOperation(ConcurrentBiMap<Document, SolrInputDocument> oldBatch) throws SolrServerException, IOException {
-    List<String> deletes = oldBatch.keySet().stream()
-        .filter(doc -> doc.getOperation() == Document.Operation.DELETE)
-        .map(Document::getId)
-        .collect(Collectors.toList());
-    if (deletes.size() > 0) {
-      getSolrClient().deleteById(deletes);
-    }
     List<SolrInputDocument> adds = oldBatch.keySet().stream()
         .filter(doc -> doc.getOperation() != Document.Operation.DELETE)
         .map(oldBatch::get)
@@ -111,20 +106,29 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
       } else {
         UpdateRequest req = new UpdateRequest();
         req.add(adds);
-        // always true right now, but pattern for addtional global params...
+        // always true right now, but pattern for additional global params...
         for (String s : params.keySet()) {
           req.setParam(s, params.get(s));
         }
         getSolrClient().request(req);
       }
     }
+    List<String> deletes = oldBatch.keySet().stream()
+        .filter(doc -> doc.getOperation() == Document.Operation.DELETE)
+        .map(Document::getId)
+        .collect(Collectors.toList());
+    if (deletes.size() > 0) {
+      getSolrClient().deleteById(deletes);
+    }
     for (Document document : oldBatch.keySet()) {
-      putIdInThreadContext(document);
-      if (document.getOperation() == Document.Operation.DELETE) {
-        log().info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());
-      } else {
-        log().info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
-      }
+      //noinspection resource
+      new DocumentLoggingContext(document).run(() -> {
+        if (document.getOperation() == Document.Operation.DELETE) {
+          log().info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());
+        } else {
+          log().info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
+        }
+      });
     }
   }
 
@@ -166,6 +170,7 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
     return params;
   }
 
+  @SuppressWarnings("unused")
   void setParams(Map<String, String> updateChain) {
     this.params = updateChain;
   }
@@ -186,21 +191,11 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
     return name;
   }
 
-  public static class Builder extends BatchProcessor.Builder {
+  public static class Builder extends BatchProcessor.Builder<SolrInputDocument> {
 
     SendToSolrCloudProcessor obj = new SendToSolrCloudProcessor();
     List<String> zkList = new ArrayList<>();
     String chroot;
-
-    public Builder sendingBatchesOf(int batchSize) {
-      super.sendingBatchesOf(batchSize);
-      return this;
-    }
-
-    public Builder sendingPartialBatchesAfterMs(int ms) {
-      super.sendingPartialBatchesAfterMs(ms);
-      return this;
-    }
 
     public Builder placingTextContentIn(String field) {
       getObj().textContentField = field;
@@ -212,6 +207,7 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
       return this;
     }
 
+    @SuppressWarnings("unused")
     public Builder withRequestParameters(Map<String,String> params) {
       getObj().params = params;
       return this;

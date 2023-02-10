@@ -20,15 +20,10 @@ import org.jesterj.ingest.config.Transient;
 
 import java.awt.image.BufferedImage;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 9/28/14
- */
 public interface Plan extends Active, Configurable {
 
   /**
-   * Return every {@link Step} in the plan regardless of whether or not it will be executing when the plan is activated
+   * Return every {@link Step} in the plan regardless of whether it will be executing when the plan is activated
    *
    * @return All steps
    */
@@ -76,6 +71,6 @@ public interface Plan extends Active, Configurable {
    * @return a numeric identifier which changes when prior indexing is invalidated and there is a
    * need for re-indexing. Monotonically increasing positive numbers are recommended but not absolutely required.
    */
-  long getVersion();
+  int getVersion();
 
 }
