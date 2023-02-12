@@ -214,40 +214,6 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     super.deactivate();
   }
 
-  static class DocKey {
-    private String docid;
-    private String scanner;
-
-    public DocKey(String docid, String scanner) {
-      this.setDocid(docid);
-      this.setScanner(scanner);
-    }
-
-    @Override
-    public String toString() {
-      return "DocKey{" +
-          "docid='" + getDocid() + '\'' +
-          ", scanner='" + getScanner() + '\'' +
-          '}';
-    }
-
-    public String getDocid() {
-      return docid;
-    }
-
-    public void setDocid(String docid) {
-      this.docid = docid;
-    }
-
-    public String getScanner() {
-      return scanner;
-    }
-
-    public void setScanner(String scanner) {
-      this.scanner = scanner;
-    }
-  }
-
   public void run() {
     nanoInterval = interval * 1000000;
     Future<?> scanner = null;

@@ -57,7 +57,6 @@ public class ScannerImplTest {
   @Mock private Row rowMock;
   @Mock private CassandraSupport supportMock;
   @Mock private PreparedStatement statementMock;
-  @Mock private ScannerImpl.DocKey mockKey;
   @Mock private BatchStatement batchMock;
   @Mock private Iterator<Row> iterMock;
   @Mock private ExecutionInfo infoMock;
