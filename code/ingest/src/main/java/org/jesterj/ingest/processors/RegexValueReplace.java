@@ -25,11 +25,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 9/11/16
- */
 public class RegexValueReplace implements DocumentProcessor {
 
   private String name;
@@ -37,11 +32,7 @@ public class RegexValueReplace implements DocumentProcessor {
   private Pattern regex;
   private String replace;
 
-
-  @Override
-  public String getName() {
-    return name;
-  }
+  private boolean discardUnmatched = false;
 
   @Override
   public Document[] processDocument(Document document) {
@@ -49,13 +40,24 @@ public class RegexValueReplace implements DocumentProcessor {
     List<String> newValues = new ArrayList<>();
     for (String value : values) {
       Matcher m = getRegex().matcher(value);
-      newValues.add(m.replaceAll(getReplace()));
+      if (isDiscardUnmatched()) {
+        if (m.matches()) {
+          newValues.add(m.replaceAll(getReplace()));
+        }
+      } else {
+        newValues.add(m.replaceAll(getReplace()));
+      }
     }
     document.replaceValues(getField(), newValues);
     return new Document[]{document};
   }
 
-  public void setName(String name) {
+  @Override
+  public String getName() {
+    return name;
+  }
+
+  protected void setName(String name) {
     this.name = name;
   }
 
@@ -63,7 +65,7 @@ public class RegexValueReplace implements DocumentProcessor {
     return field;
   }
 
-  public void setField(String field) {
+  protected void setField(String field) {
     this.field = field;
   }
 
@@ -71,7 +73,7 @@ public class RegexValueReplace implements DocumentProcessor {
     return regex;
   }
 
-  public void setRegex(Pattern regex) {
+  protected void setRegex(Pattern regex) {
     this.regex = regex;
   }
 
@@ -79,8 +81,16 @@ public class RegexValueReplace implements DocumentProcessor {
     return replace;
   }
 
-  public void setReplace(String replace) {
+  protected void setReplace(String replace) {
     this.replace = replace;
+  }
+
+  public boolean isDiscardUnmatched() {
+    return discardUnmatched;
+  }
+
+  public void setDiscardUnmatched(boolean discardUnmatched) {
+    this.discardUnmatched = discardUnmatched;
   }
 
   public static class Builder extends NamedBuilder<RegexValueReplace> {
@@ -110,6 +120,11 @@ public class RegexValueReplace implements DocumentProcessor {
 
     public RegexValueReplace.Builder andReplacement(String replace) {
       getObj().setReplace(replace);
+      return this;
+    }
+
+    public RegexValueReplace.Builder discardingUnmatched() {
+      getObj().discardUnmatched = true;
       return this;
     }
 

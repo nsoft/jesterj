@@ -136,8 +136,8 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
       // as processing...
       Thread.sleep(3*PAUSE_MILLIS/4);
       // the pause ever 5 should have let 5 through and then paused for 30 sec
-      assertEquals(5, scannedDocs.size());
       plan1.deactivate();
+      assertEquals(5, scannedDocs.size());
 
       // plan has been deactivated, leaving 5 as indexed and the rest as processing
 

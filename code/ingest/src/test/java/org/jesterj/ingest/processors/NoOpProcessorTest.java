@@ -33,36 +33,54 @@ import static com.copyright.easiertest.EasierMocks.prepareMocks;
 import static com.copyright.easiertest.EasierMocks.replay;
 import static com.copyright.easiertest.EasierMocks.reset;
 import static com.copyright.easiertest.EasierMocks.verify;
+import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.isA;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
-public class DefaultWarningProcessorTest {
-  @ObjectUnderTest private DefaultWarningProcessor obj;
+public class NoOpProcessorTest {
+  @ObjectUnderTest private NoOpProcessor obj;
   @Mock private Logger mock;
   @Mock private Document mockDocument;
   private Logger original;
 
-  public DefaultWarningProcessorTest() {
+  public NoOpProcessorTest() {
     prepareMocks(this);
   }
 
   @Before
   public void setUp() {
-    original = DefaultWarningProcessor.log;
-    DefaultWarningProcessor.log = mock;
+    original = NoOpProcessor.log;
+    NoOpProcessor.log = mock;
     reset();
   }
 
   @After
   public void tearDown() {
     verify();
-    DefaultWarningProcessor.log = original;
+    NoOpProcessor.log = original;
   }
 
   @Test
   public void testObj() {
+    expect(obj.isWarn()).andReturn(true);
     mock.warn(isA(String.class));
     replay();
     obj.processDocument(mockDocument);
   }
 
+  @Test
+  public void testNoWarn() {
+    expect(obj.isWarn()).andReturn(false);
+    replay();
+    obj.processDocument(mockDocument);
+  }
+
+  @Test
+  public void testBuilder() {
+    NoOpProcessor.Builder builder = new NoOpProcessor.Builder();
+    NoOpProcessor proc = builder.named("foo").turnOffWarning().build();
+    assertEquals("foo",proc.getName());
+    assertFalse(proc.isWarn());
+  }
 }

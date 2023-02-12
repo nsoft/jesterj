@@ -24,11 +24,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.List;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 9/24/16
- */
 public class UrlEncodeFieldProcessor implements DocumentProcessor {
 
   private String name;

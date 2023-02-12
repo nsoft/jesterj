@@ -21,6 +21,7 @@ import guru.nidi.graphviz.attribute.Color;
 import guru.nidi.graphviz.attribute.Style;
 import guru.nidi.graphviz.engine.Format;
 import guru.nidi.graphviz.engine.Graphviz;
+import guru.nidi.graphviz.engine.Renderer;
 import guru.nidi.graphviz.model.Factory;
 import guru.nidi.graphviz.model.Graph;
 import guru.nidi.graphviz.model.Node;
@@ -33,7 +34,6 @@ import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Step;
 
-import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -87,7 +87,7 @@ public class PlanImpl implements Plan {
   }
 
   @Override
-  public BufferedImage visualize() {
+  public Renderer visualize(Format format) {
     Map<String, Node> nodes = new LinkedHashMap<>();
     List<Step> scanners = new ArrayList<>();
     for (Step step : getSteps()) {
@@ -105,7 +105,7 @@ public class PlanImpl implements Plan {
       g = g.with(node);
     }
     Graphviz tmp = Graphviz.fromGraph(g);
-    return tmp.render(Format.PNG).toImage();
+    return tmp.render(format);
   }
 
   @Override

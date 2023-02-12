@@ -25,11 +25,7 @@ import org.jesterj.ingest.model.impl.NamedBuilder;
 import java.util.ArrayList;
 import java.util.List;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 8/11/16
- */
+
 public class SplitFieldProcessor implements DocumentProcessor {
   private String name;
   private String delimiter;

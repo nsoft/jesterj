@@ -22,7 +22,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.jesterj.ingest.config.Transient;
 import org.jesterj.ingest.model.*;
-import org.jesterj.ingest.processors.DefaultWarningProcessor;
+import org.jesterj.ingest.processors.NoOpProcessor;
 import org.jesterj.ingest.routers.RouteByStepName;
 import org.jesterj.ingest.routers.RouterBase;
 
@@ -61,7 +61,7 @@ public class StepImpl implements Step {
   private volatile boolean active;
   private String stepName;
   private Router router = new RouteByStepName();
-  private volatile DocumentProcessor processor = new DefaultWarningProcessor();
+  private volatile DocumentProcessor processor = new NoOpProcessor();
   private volatile Thread worker;
   private final Object WORKER_LOCK = new Object();
   private Plan plan;
@@ -69,7 +69,7 @@ public class StepImpl implements Step {
   private final List<Runnable> deferred = new ArrayList<>();
   private final Object potentStepListLock = new Object();
   private volatile Step[] potentSteps;
-  private int shutdownTimeout = 1000;
+  private int shutdownTimeout = 100;
   private final List<Step> priorSteps = new ArrayList<>();
 
   StepImpl() {
@@ -433,9 +433,11 @@ public class StepImpl implements Step {
       while (this.active) {
         try {
           log.trace("active: {}", getName());
-          Document document = queue.take();
-          log.trace("{} took {} from queue", getName(), document.getId());
-          documentConsumer.accept(document);
+          Document document = queue.poll(10,TimeUnit.MILLISECONDS);
+          if (document != null) {
+            log.trace("{} took {} from queue", getName(), document.getId());
+            documentConsumer.accept(document);
+          }
         } catch (InterruptedException e) {
           this.deactivate();
           break;

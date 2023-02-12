@@ -24,25 +24,31 @@ import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 3/18/16
+/**
+ * This is the default processor if none is otherwise configured. One can configure it intentionally for unit tests
+ * or to create a step that routes documents without changing them.
  */
-public class DefaultWarningProcessor implements DocumentProcessor {
+public class NoOpProcessor implements DocumentProcessor {
   private static final AtomicInteger count = new AtomicInteger(0);
   // leaving this non-final because logging is a critical aspect of the unit test for this
   // most other cases we ignore testing the logging.
-  static Logger log = LogManager.getLogger();
+  static volatile Logger log = LogManager.getLogger();
 
   // todo this isn't going to work out... need to think harder here non-unique name possible with deserialization
   private String name = "default_processor" + count.getAndIncrement();
 
+  private boolean warn = true;
+
 
   @Override
   public Document[] processDocument(Document document) {
-    log.warn("Default processor in use, this is usually not the intention");
+    if (isWarn()) { // note: class initializers won't have run when easiermocks invokes this, so must use method call.
+      log.warn("Default processor in use, this is usually not the intention");
+    }
     return new Document[]{document};
+  }
+  public boolean isWarn() {
+    return warn;
   }
 
   @Override
@@ -50,11 +56,11 @@ public class DefaultWarningProcessor implements DocumentProcessor {
     return name;
   }
 
-  public static class Builder extends NamedBuilder<DefaultWarningProcessor> {
+  public static class Builder extends NamedBuilder<NoOpProcessor> {
 
-    DefaultWarningProcessor obj = new DefaultWarningProcessor();
+    NoOpProcessor obj = new NoOpProcessor();
 
-    protected DefaultWarningProcessor getObj() {
+    protected NoOpProcessor getObj() {
       return obj;
     }
 
@@ -63,14 +69,19 @@ public class DefaultWarningProcessor implements DocumentProcessor {
       return this;
     }
 
+    public Builder turnOffWarning() {
+      getObj().warn = false;
+      return this;
+    }
 
-    private void setObj(DefaultWarningProcessor obj) {
+
+    private void setObj(NoOpProcessor obj) {
       this.obj = obj;
     }
 
-    public DefaultWarningProcessor build() {
-      DefaultWarningProcessor object = getObj();
-      setObj(new DefaultWarningProcessor());
+    public NoOpProcessor build() {
+      NoOpProcessor object = getObj();
+      setObj(new NoOpProcessor());
       return object;
     }
 

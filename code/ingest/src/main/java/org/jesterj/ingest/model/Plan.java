@@ -16,9 +16,9 @@
 
 package org.jesterj.ingest.model;
 
+import guru.nidi.graphviz.engine.Format;
+import guru.nidi.graphviz.engine.Renderer;
 import org.jesterj.ingest.config.Transient;
-
-import java.awt.image.BufferedImage;
 
 public interface Plan extends Active, Configurable {
 
@@ -58,9 +58,10 @@ public interface Plan extends Active, Configurable {
   /**
    * Produce an image visualization of this plan
    *
+   * @param format the format that should be rendered
    * @return An image visualizing the plan as a directed graph.
    */
-  BufferedImage visualize();
+  Renderer visualize(Format format);
 
   /**
    * A (usually serially incremented) version identifier for a plan. Changing the version of the plan indicates that

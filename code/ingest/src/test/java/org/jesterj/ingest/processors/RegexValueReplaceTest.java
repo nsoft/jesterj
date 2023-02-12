@@ -35,6 +35,7 @@ import static com.copyright.easiertest.EasierMocks.reset;
 import static com.copyright.easiertest.EasierMocks.verify;
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 /*
  * Created with IntelliJ IDEA.
@@ -65,6 +66,8 @@ public class RegexValueReplaceTest {
     expect(processor.getField()).andReturn("foo").anyTimes();
     expect(processor.getRegex()).andReturn(Pattern.compile("(.*)\\s+bar$"));
     expect(processor.getReplace()).andReturn("$1BAR");
+    expect(processor.isDiscardUnmatched()).andReturn(false).anyTimes();
+
     List<String> singleValue = new ArrayList<>();
     singleValue.add("FOO bar");
     expect(document.get("foo")).andReturn(singleValue);
@@ -81,6 +84,8 @@ public class RegexValueReplaceTest {
     expect(processor.getField()).andReturn("foo").anyTimes();
     expect(processor.getRegex()).andReturn(Pattern.compile("(.*)\\s+bar$")).anyTimes();
     expect(processor.getReplace()).andReturn("$1BAR").anyTimes();
+    expect(processor.isDiscardUnmatched()).andReturn(false).anyTimes();
+
     List<String> multivalued = new ArrayList<>();
     multivalued.add("FOO bar"); // match 1
     multivalued.add("FEW bar"); // match 2
@@ -96,5 +101,28 @@ public class RegexValueReplaceTest {
     assertEquals(iterator.next(), "FOOBAR");
     assertEquals(iterator.next(), "FEWBAR");
     assertEquals(iterator.next(), "FEE baz");
+  }
+
+  @Test
+  public void testDiscardUnmatched() {
+    expect(processor.getField()).andReturn("foo").anyTimes();
+    expect(processor.getRegex()).andReturn(Pattern.compile("(.*)\\s+bar$")).anyTimes();
+    expect(processor.getReplace()).andReturn("$1BAR").anyTimes();
+    expect(processor.isDiscardUnmatched()).andReturn(true).anyTimes();
+    List<String> multivalued = new ArrayList<>();
+    multivalued.add("FOO bar"); // match 1
+    multivalued.add("FEW bar"); // match 2
+    multivalued.add("FEE baz"); // unmatched unmodified
+    expect(document.get("foo")).andReturn(multivalued);
+    Capture<Iterable<? extends String>> c = newCapture();
+    //noinspection ConstantConditions
+    expect(document.replaceValues(eq("foo"), capture(c))).andReturn(multivalued);
+    replay();
+    processor.processDocument(document);
+    Iterable<? extends String> newValues = c.getValue();
+    Iterator<? extends String> iterator = newValues.iterator();
+    assertEquals(iterator.next(), "FOOBAR");
+    assertEquals(iterator.next(), "FEWBAR");
+    assertFalse(iterator.hasNext());
   }
 }

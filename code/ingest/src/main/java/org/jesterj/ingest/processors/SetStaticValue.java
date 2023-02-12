@@ -26,9 +26,19 @@ public class SetStaticValue implements DocumentProcessor {
   private String valueToInsert;
   private String fieldToInsert;
 
+  private boolean editExisting = true;
+
+  private boolean addValueToExisting = true;
+
   @Override
   public Document[] processDocument(Document document) {
-    document.put(fieldToInsert, valueToInsert);
+    if (!isEditExisting() && !document.get(getFieldToInsert()).isEmpty()) {
+        return new Document[]{document};
+    }
+    if (!isAddValueToExisting()) {
+      document.removeAll(getFieldToInsert());
+    }
+    document.put(getFieldToInsert(), getValueToInsert());
     return new Document[]{document};
   }
 
@@ -39,6 +49,18 @@ public class SetStaticValue implements DocumentProcessor {
 
   public String getFieldToInsert() {
     return fieldToInsert;
+  }
+
+  public boolean isEditExisting() {
+    return editExisting;
+  }
+
+  public boolean isAddValueToExisting() {
+    return addValueToExisting;
+  }
+
+  public String getValueToInsert() {
+    return valueToInsert;
   }
 
   public static class Builder extends NamedBuilder<SetStaticValue> {
@@ -60,9 +82,19 @@ public class SetStaticValue implements DocumentProcessor {
       getObj().fieldToInsert = fieldName;
       return this;
     }
-    
+
     public SetStaticValue.Builder withValue(String value) {
       getObj().valueToInsert = value;
+      return this;
+    }
+
+    public SetStaticValue.Builder skipIfHasValue() {
+      getObj().editExisting = false;
+      return this;
+    }
+
+    public SetStaticValue.Builder replaceExistingValue() {
+      getObj().addValueToExisting = false;
       return this;
     }
 

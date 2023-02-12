@@ -32,7 +32,7 @@ public class ErrorFourthTestProcessor implements DocumentProcessor {
       log.info("Erroring {}",document.getId());
       lastErrorId[0] = document.getId();
     }
-    log.info(this.getClass().getSimpleName() + " saw " + document.getId());
+    log.info(getName() + " saw " + document.getId());
     return new Document[]{document};
   }
 

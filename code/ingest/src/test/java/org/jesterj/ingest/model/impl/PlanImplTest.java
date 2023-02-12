@@ -22,6 +22,7 @@ import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.session.Session;
+import guru.nidi.graphviz.engine.Format;
 import org.apache.logging.log4j.Level;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.NextSteps;
@@ -129,7 +130,7 @@ public class PlanImplTest {
         .withIdField("id");
     Plan plan = planBuilder.build();
 
-    assertNotNull(plan.visualize()); // todo test this more explicitly
+    assertNotNull(plan.visualize(Format.PNG)); // todo test this more explicitly
     assertFalse(plan.isActive());
 
     assertNull(plan.findStep(null));

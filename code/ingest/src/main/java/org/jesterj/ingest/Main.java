@@ -18,6 +18,7 @@ package org.jesterj.ingest;
 
 import com.google.common.io.Resources;
 import com.needhamsoftware.unojar.JarClassLoader;
+import guru.nidi.graphviz.engine.Format;
 import io.github.classgraph.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -122,7 +123,7 @@ public class Main {
                 // block only.
                 Plan p = loadJavaConfig(javaConfig);
                 System.out.println("Generating visualization for " + p.getName() + " into " + outfile);
-                BufferedImage img = p.visualize();
+                BufferedImage img = p.visualize(Format.PNG).toImage();
                 ImageIO.write(img, "PNG", new File(outfile));
                 System.exit(0);
               }

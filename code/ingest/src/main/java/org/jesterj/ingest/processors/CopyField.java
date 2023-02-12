@@ -17,6 +17,8 @@
 package org.jesterj.ingest.processors;
 
 import com.copyright.easiertest.SimpleProperty;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.impl.NamedBuilder;
@@ -29,6 +31,7 @@ import java.util.List;
  * Date: 3/21/16
  */
 public class CopyField implements DocumentProcessor {
+  static Logger log = LogManager.getLogger();
   private String from;
   private String into;
   private boolean retainOriginal = true;
@@ -41,6 +44,7 @@ public class CopyField implements DocumentProcessor {
     if (!isRetainOriginal()) {
       document.removeAll(getFrom());
     }
+    log.trace("After Copy Result at destination is {}",()->(document.get(getInto())));
     return new Document[]{document};
   }
 

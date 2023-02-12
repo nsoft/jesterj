@@ -10,7 +10,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static com.copyright.easiertest.EasierMocks.prepareMocks;
 import static com.copyright.easiertest.EasierMocks.replay;
@@ -50,7 +52,9 @@ public class RouteByStepNameTest {
     stepList.put("bar",stepMock2);
     expect(router.getStep()).andReturn(stepMock);
     expect(stepMock.getNextSteps()).andReturn(stepList);
+    expect(router.getKeyFieldName()).andReturn(RouteByStepName.JESTERJ_NEXT_STEP_NAME);
     expect(docMock1.getFirstValue(RouteByStepName.JESTERJ_NEXT_STEP_NAME)).andReturn("foo");
+    expect(router.getValueToStepNameMap()).andReturn(new HashMap<>());
     replay();
     NextSteps steps = router.route(docMock1);
     assertEquals(1, steps.size());
@@ -64,7 +68,41 @@ public class RouteByStepNameTest {
     stepList.put("bar",stepMock2);
     expect(router.getStep()).andReturn(stepMock);
     expect(stepMock.getNextSteps()).andReturn(stepList);
+    expect(router.getKeyFieldName()).andReturn(RouteByStepName.JESTERJ_NEXT_STEP_NAME);
     expect(docMock2.getFirstValue(RouteByStepName.JESTERJ_NEXT_STEP_NAME)).andReturn("bar");
+    expect(router.getValueToStepNameMap()).andReturn(new HashMap<>());
+    replay();
+    NextSteps steps = router.route(docMock2);
+    assertEquals(1, steps.size());
+    assertTrue(steps.list().contains(stepMock2));
+  }
+
+  @Test
+  public void testRouteToBarrUsingAlternateField() {
+    LinkedHashMap<String,Step> stepList = new LinkedHashMap<>();
+    stepList.put("foo",stepMock1);
+    stepList.put("bar",stepMock2);
+    expect(router.getStep()).andReturn(stepMock);
+    expect(stepMock.getNextSteps()).andReturn(stepList);
+    expect(router.getKeyFieldName()).andReturn("foobar");
+    expect(docMock2.getFirstValue("foobar")).andReturn("bar");
+    expect(router.getValueToStepNameMap()).andReturn(new HashMap<>());
+    replay();
+    NextSteps steps = router.route(docMock2);
+    assertEquals(1, steps.size());
+    assertTrue(steps.list().contains(stepMock2));
+  }
+
+  @Test
+  public void testRouteToBarrUsingAlternateFieldAndMappingValue() {
+    LinkedHashMap<String,Step> stepList = new LinkedHashMap<>();
+    stepList.put("foo",stepMock1);
+    stepList.put("bar",stepMock2);
+    expect(router.getStep()).andReturn(stepMock);
+    expect(stepMock.getNextSteps()).andReturn(stepList);
+    expect(router.getKeyFieldName()).andReturn("foobar");
+    expect(docMock2.getFirstValue("foobar")).andReturn("step named bar");
+    expect(router.getValueToStepNameMap()).andReturn(Map.of("step named bar", "bar"));
     replay();
     NextSteps steps = router.route(docMock2);
     assertEquals(1, steps.size());
