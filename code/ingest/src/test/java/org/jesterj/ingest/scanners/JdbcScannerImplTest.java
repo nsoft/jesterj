@@ -16,18 +16,17 @@
 
 package org.jesterj.ingest.scanners;
 
-import com.copyright.easiertest.Mock;
-import com.copyright.easiertest.ObjectUnderTest;
+import com.google.common.io.Files;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
-import org.junit.After;
-import org.junit.Before;
+import org.jesterj.ingest.persistence.Cassandra;
 import org.junit.Test;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -36,9 +35,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 
 import static com.copyright.easiertest.EasierMocks.prepareMocks;
-import static com.copyright.easiertest.EasierMocks.replay;
-import static com.copyright.easiertest.EasierMocks.reset;
-import static com.copyright.easiertest.EasierMocks.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -51,32 +47,13 @@ public class JdbcScannerImplTest extends ScannerImplTest {
 
   private static final String SQL_1 = "SELECT * FROM employee";
 
-  @ObjectUnderTest
-  private JdbcScanner obj;
-
-  @Mock
-  private Document mockDocument;
-
   public JdbcScannerImplTest() {
     prepareMocks(this);
   }
 
-  @Before
-  public void setUp() {
-    reset();
-  }
-
-  @After
-  public void tearDown() {
-    verify();
-  }
-
   @Test
   public void testBuild() {
-    replay();
-
     JdbcScanner.Builder builder = build (true);
-
     JdbcScanner built = (JdbcScanner) builder.build();
 
     assertEquals("JDBC_Scanner", built.getName());
@@ -90,7 +67,6 @@ public class JdbcScannerImplTest extends ScannerImplTest {
     assertEquals(3600, built.getQueryTimeout());
     assertEquals("ID",built.getDatabasePkColumnName());
     assertEquals(SQL_1, built.getSqlStatement());
-
   }
 
   private JdbcScanner.Builder build(boolean contentCol) {
@@ -109,7 +85,6 @@ public class JdbcScannerImplTest extends ScannerImplTest {
         .representingTable("employee")
         .withQueryTimeout(3600)
         .withSqlStatement(SQL_1);
-
     if (contentCol) {
       builder        .withContentColumn("title"); // simplistic "content column"
     }
@@ -119,6 +94,9 @@ public class JdbcScannerImplTest extends ScannerImplTest {
   @SuppressWarnings("SqlResolve")
   @Test
   public void testScan() throws InterruptedException, SQLException {
+    @SuppressWarnings({"deprecation", "UnstableApiUsage"})
+    File tempDir = Files.createTempDir();
+    Cassandra.start(tempDir, "127.0.0.1");
 
     Connection c = DriverManager.getConnection("jdbc:hsqldb:mem:employees", "SA", "");
     PreparedStatement createTable = c.prepareStatement(
@@ -137,9 +115,6 @@ public class JdbcScannerImplTest extends ScannerImplTest {
     Plan plan = new PlanImpl.Builder().named("testScan").withIdField("ID")
         .addStep(scanStep)
         .addStep(capture,"JDBC_Scanner").build();
-    JdbcScanner scanner = (JdbcScanner) plan.findStep("JDBC_Scanner");
-
-    replay();
     plan.activate();
     Thread.sleep(5000);
     plan.deactivate();

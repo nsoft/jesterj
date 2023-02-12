@@ -229,7 +229,7 @@ public class Cassandra {
           }
         }
         if (log != null) {
-          ((Logger) log).error(message);
+          ((Logger) log).error(message, error.getValue());
         }
       }
     }

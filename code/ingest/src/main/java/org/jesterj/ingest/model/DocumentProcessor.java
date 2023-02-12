@@ -32,7 +32,10 @@ public interface DocumentProcessor extends Configurable {
    * typically slow to access. Processors should feel free to set the status of a document and add a status message via
    * {@link Document#setStatus(Status)} and {@link Document#setStatusMessage(String)}. The document processor has no
    * need to add the document to the next step in the plan as this will be handled by the infrastructure in
-   * {@link StepImpl} based on the status of the document.
+   * {@link StepImpl} based on the status of the document so long as the document is emitted via the return
+   * value of this method. If the document enters via the parameters and is not emitted for any reason the processor
+   * MUST set an appropriate status before the end of this method, though it is preferable to just set the status
+   * and emit it.
    *
    * @param document the item to process
    * @return The documents that result from the processing in this step. Documents with status of
@@ -60,6 +63,7 @@ public interface DocumentProcessor extends Configurable {
    *
    * @return true if the repeated execution of this processor with the same inputs results in a constant external state
    */
+  @SuppressWarnings("unused")
   default boolean isIdempotent() { return false; }
 
   /**

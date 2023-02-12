@@ -120,7 +120,13 @@ public interface Document extends ListMultimap<String, String>, Serializable {
 
   void reportDocStatus(Status status, String message, Object... messageParams);
 
-    void setForceReprocess(boolean b);
+  /**
+   * Ensures that this document will be fed into the plan regardless of memory or hashing settings. Has no
+   * effect after the document exits the scanner.
+   *
+   * @param b true if the document should ignore hashing and memory settings.
+   */
+  void setForceReprocess(boolean b);
 
   boolean isForceReprocess();
 

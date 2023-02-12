@@ -283,8 +283,10 @@ public class PlanImplTest {
   public void testActivate() {
     LinkedHashMap<String, Step> stringStepLinkedHashMap = new LinkedHashMap<>();
     stringStepLinkedHashMap.put("foo", stepMock);
+    expect(plan.getName()).andReturn("My_Plan");
     expect(plan.getStepsMap()).andReturn(stringStepLinkedHashMap);
     stepMock.activate();
+    plan.register();
     plan.setActive(true);
     replay();
     plan.activate();
@@ -304,6 +306,9 @@ public class PlanImplTest {
     nextFromScanner.put("foo", stepMock);
     expect(scannerMock.getNextSteps()).andReturn(nextFromScanner);
     expect(stepMock.getNextSteps()).andReturn(new LinkedHashMap<>());
+    expect(plan.isActive()).andReturn(true);
+    expect(plan.getName()).andReturn("My_Plan").anyTimes();
+    expect(scannerMock.getName()).andReturn("My_Scanner").anyTimes();
     stepMock.deactivate();
     plan.setActive(false);
     replay();
@@ -400,6 +405,9 @@ public class PlanImplTest {
     stepMockE.deactivate();
     stepMockF.deactivate();
 
+    expect(plan.isActive()).andReturn(true);
+    expect(plan.getName()).andReturn("My_Plan").anyTimes();
+    expect(scannerMock.getName()).andReturn("My_Scanner").anyTimes();
     plan.setActive(false);
     replay();
     plan.deactivate();

@@ -139,11 +139,16 @@ public class PlanImpl implements Plan {
 
   @Override
   public synchronized void activate() {
-    log.info("Activating plan '{}'", getName());
-    Main.registerPlan(this);
+    String planName = getName();
+    log.info("Activating plan '{}'", planName);
+    register();
     this.setActive(true);
     getStepsMap().values().parallelStream().forEach(Step::activate);
-    log.info("Activation of plan {} complete", getName());
+    log.info("Activation of plan {} complete", planName);
+  }
+
+  void register() {
+    Main.registerPlan(this);
   }
 
   @Override

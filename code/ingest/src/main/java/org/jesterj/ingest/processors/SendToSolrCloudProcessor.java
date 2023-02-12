@@ -74,8 +74,7 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
   protected void individualFallbackOperation(ConcurrentBiMap<Document, SolrInputDocument> oldBatch, Exception e) {
     // TODO: send in bisected batches to avoid massive traffic down due to one doc when batches are large
     for (Document document : oldBatch.keySet()) {
-      //noinspection resource
-      new DocumentLoggingContext(document).run(() -> {
+      createDocContext(document).run(() -> {
         try {
           SolrInputDocument doc = oldBatch.get(document);
           if (doc instanceof Delete) {
@@ -121,14 +120,15 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
       getSolrClient().deleteById(deletes);
     }
     for (Document document : oldBatch.keySet()) {
-      //noinspection resource
-      new DocumentLoggingContext(document).run(() -> {
+      DocumentLoggingContext docContext = createDocContext(document);
+      Runnable runnable = () -> {
         if (document.getOperation() == Document.Operation.DELETE) {
           log().info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());
         } else {
           log().info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
         }
-      });
+      };
+      docContext.run(runnable);
     }
   }
 

@@ -107,7 +107,8 @@ public class CassandraSupport {
    * cassandra has finished booting, a session has been created and the statement has been prepared. If the statement q
    * was not previously prepared, this method will first prepare it and then return the prepared statement.
    *
-   * @param qName the name of the statement to retrieve
+   * @param qName the name of the statement to retrieve or prepare if not already prepared
+   * @param q the query to prepare (if not already prepared).
    * @return the prepared statement ready for use.
    */
   public PreparedStatement getPreparedQuery(String qName, String q) {

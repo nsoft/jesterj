@@ -91,8 +91,6 @@ public class SendToSolrCloudProcessorTest {
     RuntimeException e = new RuntimeException("TEST EXCEPTION");
     expect(proc.createDocContext(docMock)).andReturn(docContextMock);
     docContextMock.run(isA(Runnable.class));
-    docContextMock.close();
-    proc.perDocFailLogging(e, docMock);
     replay();
     proc.perDocumentFailure(batchMock, e);
   }
@@ -117,7 +115,7 @@ public class SendToSolrCloudProcessorTest {
     Capture<List<String>> delCap = newCapture();
     expect(solrClientMock.add(capture(addCap))).andReturn(updateResponseMock);
     expect(solrClientMock.deleteById(capture(delCap))).andReturn(deleteResponseMock);
-    expectLogging();
+    expectRunContexts();
     replay();
     proc.batchOperation(biMap);
     assertEquals("42", delCap.getValue().get(0));
@@ -126,22 +124,13 @@ public class SendToSolrCloudProcessorTest {
     assertTrue(addCap.getValue().contains(inputDocMock3));
   }
 
-  private void expectLogging() {
+  private void expectRunContexts() {
     expect(proc.createDocContext(docMock)).andReturn(docContextMock);
     docContextMock.run(isA(Runnable.class));
-    docContextMock.close();
     expect(proc.createDocContext(docMock2)).andReturn(docContextMock);
     docContextMock.run(isA(Runnable.class));
-    docContextMock.close();
     expect(proc.createDocContext(docMock3)).andReturn(docContextMock);
     docContextMock.run(isA(Runnable.class));
-    docContextMock.close();
-    // this logging is functional for FTI, so we need to verify it, but only the status for each doc
-    // message is not very important.
-    expect(proc.log()).andReturn(logMock).anyTimes();
-    logMock.info(eq(Status.INDEXED.getMarker()), anyString(), eq("41") );
-    logMock.info(eq(Status.INDEXED.getMarker()), anyString(), eq("42") );
-    logMock.info(eq(Status.INDEXED.getMarker()), anyString(), eq("43") );
   }
 
   @Test
@@ -159,7 +148,7 @@ public class SendToSolrCloudProcessorTest {
     expect(solrClientMock.request(capture(addCap), eq(null))).andReturn(namedListMock);
     expect(solrClientMock.deleteById(capture(delCap))).andReturn(deleteResponseMock);
 
-    expectLogging();
+    expectRunContexts();
     replay();
     proc.batchOperation(biMap);
 

@@ -23,12 +23,15 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.jesterj.ingest.model.Document;
+import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.exception.ConfigurationException;
 import org.jesterj.ingest.model.exception.PersistenceException;
 import org.jesterj.ingest.model.impl.DocumentImpl;
 import org.jesterj.ingest.model.impl.ScannerImpl;
+import org.jesterj.ingest.model.impl.StepImpl;
 import org.jesterj.ingest.routers.RouterBase;
 import org.jesterj.ingest.utils.SqlUtils;
 import org.jetbrains.annotations.NotNull;
@@ -60,6 +63,8 @@ import java.util.Optional;
 public class JdbcScanner extends ScannerImpl {
 
   private static final Logger log = LogManager.getLogger();
+
+  private  final Object SCAN_LOCK = new Object();
 
   private String jdbcDriver;
   private String jdbcUrl;
@@ -117,9 +122,8 @@ public class JdbcScanner extends ScannerImpl {
   @Override
   public ScanOp getScanOperation() {
     return new ScanOp(() -> {
-      synchronized (this) {
+      synchronized (SCAN_LOCK) {
         setReady(false); // ensure initial walk completes before new scans are started.
-
         // Remainder of operation is implemented here instead of relying on DefaultOp to avoid spamming the DB with
         // queries for individual rows.
         int count = 0;
@@ -130,7 +134,6 @@ public class JdbcScanner extends ScannerImpl {
           }
           try (Statement statement = createStatement(connection);
                ResultSet rs = statement.executeQuery(sqlStatement)) {
-            processDirty();
             log.info("{} successfully queried database {}", getName(), jdbcUrl);
 
             String[] columnNames = getColumnNames(rs);
@@ -151,6 +154,7 @@ public class JdbcScanner extends ScannerImpl {
           } catch (PersistenceException | SQLException ex) {
             log.error(getName() + " JDBC scanner error, rows processed=" + count, ex);
           }
+          processDirty();
         } catch (Exception e) {
           log.error("JDBC operation for {} failed.", getName());
           log.error(e);
@@ -221,13 +225,19 @@ public class JdbcScanner extends ScannerImpl {
       // Skip over the content column; if any is specified, we've already processed it as raw bytes.
       // similarly skip over the ID field as well.
       String columnName = columnNames[i - 1];
-      if (!columnName.equals(contentColumn) && !columnName.equals(doc.getIdField())) {
+      if (!columnName.equalsIgnoreCase(contentColumn) && !columnName.equalsIgnoreCase(doc.getIdField())) {
         Object value = rs.getObject(i);
         String strValue;
         if (value != null) {
           // Take care of java.sql.Date, java.sql.Time, and java.sql.Timestamp
           if (value instanceof Date) {
             strValue = convertDateToString(value);
+          } else if (value instanceof Clob){
+            try {
+              strValue = IOUtils.toString(((Clob)value).getCharacterStream());
+            } catch (IOException e) {
+              throw new RuntimeException("Error reading clob for " + columnName,e);
+            }
           } else {
             strValue = value.toString();
           }
@@ -385,75 +395,99 @@ public class JdbcScanner extends ScannerImpl {
     private JdbcScanner obj;
 
     public Builder() {
-      if (whoAmI() == this.getClass()) {
         obj = new JdbcScanner();
-      }
     }
 
-    private Class<?> whoAmI() {
-      return new Object() {
-      }.getClass().getEnclosingMethod().getDeclaringClass();
+    // Overriding superclass methods for convenience. This is not strictly required, but if not done
+    // then super class methods need to be invoked after methods defined in this class because of the
+    // return type mismatch.
+    @Override
+    public JdbcScanner.Builder detectChangesViaHashing(boolean hash) {
+      super.detectChangesViaHashing(hash);
+      return this;
     }
 
-    // TODO DG - validate method
+    @Override
+    public JdbcScanner.Builder rememberScannedIds(boolean remember) {
+      super.rememberScannedIds(remember);
+      return this;
+    }
 
-    public Builder withJdbcDriver(String jdbcDriver) {
+    @Override
+    public JdbcScanner.Builder retryErroredDocsUpTo(int retries) {
+       super.retryErroredDocsUpTo(retries);
+       return this;
+    }
+
+    @Override
+    public StepImpl.Builder withShutdownWait(int millis) {
+       super.withShutdownWait(millis);
+       return this;
+    }
+
+    @Override
+    public StepImpl.Builder withProcessor(ConfiguredBuildable<? extends DocumentProcessor> processor) {
+       super.withProcessor(processor);
+       return this;
+    }
+
+    public JdbcScanner.Builder withJdbcDriver(String jdbcDriver) {
       getObj().jdbcDriver = jdbcDriver;
       return this;
     }
 
-    public Builder withJdbcUrl(String jdbcUrl) {
+    public JdbcScanner.Builder withJdbcUrl(String jdbcUrl) {
       getObj().jdbcUrl = jdbcUrl;
       return this;
     }
 
-    public Builder withJdbcUser(String jdbcUser) {
+    public JdbcScanner.Builder withJdbcUser(String jdbcUser) {
       getObj().jdbcUser = jdbcUser;
       return this;
     }
 
-    public Builder withJdbcPassword(String jdbcPassword) {
+    public JdbcScanner.Builder withJdbcPassword(String jdbcPassword) {
       getObj().jdbcPassword = jdbcPassword;
       return this;
     }
 
-    public Builder withSqlStatement(String sqlStatement) {
+    public JdbcScanner.Builder withSqlStatement(String sqlStatement) {
       getObj().sqlStatement = sqlStatement;
       return this;
     }
 
-    public Builder representingTable(String table) {
+    public JdbcScanner.Builder representingTable(String table) {
       getObj().table = table;
       return this;
     }
 
-    public Builder withContentColumn(String contentColumn) {
+    public JdbcScanner.Builder withContentColumn(String contentColumn) {
       getObj().contentColumn = contentColumn;
       return this;
     }
 
-    public Builder withPKColumn(String pkCol) {
+    public JdbcScanner.Builder withPKColumn(String pkCol) {
       getObj().pkColumn = pkCol;
       return this;
     }
 
     @SuppressWarnings("unused")
-    public Builder testingConnectionWith(String query) {
+    public JdbcScanner.Builder testingConnectionWith(String query) {
       getObj().connectionTestQuery = query;
       return this;
     }
 
-    public Builder withFetchSize(int fetchSize) {
+    public JdbcScanner.Builder withFetchSize(int fetchSize) {
       getObj().fetchSize = fetchSize;
       return this;
     }
 
-    public Builder withAutoCommit(boolean autoCommit) {
+    public JdbcScanner.Builder withAutoCommit(boolean autoCommit) {
       getObj().autoCommit = autoCommit;
       return this;
     }
 
-    public Builder withQueryTimeout(int queryTimeout) {
+    public JdbcScanner.Builder withQueryTimeout(int queryTimeout) {
       getObj().queryTimeout = queryTimeout;
       return this;
     }

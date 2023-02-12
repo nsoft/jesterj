@@ -41,6 +41,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
@@ -68,6 +69,7 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
     PreparedStatement createTable = c.prepareStatement(
         "CREATE TABLE play (id varchar(16),name varchar(64),play_text clob)");
     createTable.execute();
+    @SuppressWarnings("SqlResolve")
     PreparedStatement insert = c.prepareStatement("INSERT INTO play VALUES (?,?,?)");
 
     File tragedies = new File("src/test/resources/test-data");
@@ -112,9 +114,9 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
 //      "expect cassandra is not playing nice here")
   public void testScanWithMemory() throws InterruptedException, SQLException, IOException {
     loadShakespeareToHSQL();
-    //noinspection UnstableApiUsage
+    //noinspection UnstableApiUsage,deprecation
     File tempDir = Files.createTempDir();
-    HashMap<String, Document> scannedDocs = new HashMap<>();
+    HashMap<String, Document> scannedDocs = new LinkedHashMap<>();
     Cassandra.start(tempDir, "127.0.0.1");
 
     String[] errorId = new String[1];
@@ -123,15 +125,10 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
     PauseEveryFiveTestProcessor.Builder pause30Every5 = new PauseEveryFiveTestProcessor.Builder()
         .named("pause5")
         .pausingFor(PAUSE_MILLIS);
-    PauseEveryFiveTestProcessor.Builder pause30Every5p2 = new PauseEveryFiveTestProcessor.Builder()
-        .named("pause5p2")
-        .pausingFor(PAUSE_MILLIS);
     NamedBuilder<? extends DocumentProcessor> error4thof5 =
-        new ErrorFourthTestProcessor.Builder().named("error4").withErrorReporter(errorId);
+        new ErrorFourthTestProcessor.Builder().named("error4").withErrorReporter(errorId).erroringFromStart(false);
 
-    Plan plan1 = getPlan("plan1", pause30Every5,scannedDocRecorder);
-    Plan plan2 = getPlan("plan2", pause30Every5p2,error4thof5, scannedDocRecorder);
-    Plan planFinish = getPlan("finish", scannedDocRecorder);
+    Plan plan1 = getPlan("plan1", pause30Every5,error4thof5,scannedDocRecorder);
 
     try {
       plan1.activate();
@@ -153,16 +150,17 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
       // processed before pausing another 30 seconds. Since the map is keyed by ID an increase in
       // the size of the map shows that the previous documents were not processed.
       Thread.sleep(3*PAUSE_MILLIS/4);
-      assertEquals(10, scannedDocs.size()); // test that 5 NEW docs were scanned
       plan1.deactivate();
+      assertEquals(String.valueOf(scannedDocs.keySet()).replaceAll(", ","\n"), 10,scannedDocs.size()); // test that 5 NEW docs were scanned
 
       Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(10, scannedDocs.size()); // test plan really deactivated
-
-      plan2.activate();
+      startErrors(plan1,"test1");
+      plan1.activate();
       Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(14, scannedDocs.size()); // test that 4 NEW docs were seen (a 5th will have errored but not been counted)
-      plan2.deactivate();
+      plan1.deactivate();
+      stopErrors(plan1,"test1");
 
       String eid = errorId[0];
       assertNotNull(eid);
@@ -174,13 +172,13 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
       Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(19, scannedDocs.size()); // test that 5 NEW docs were scanned
       plan1.deactivate();
-      assertTrue("key:" + eid + " docs:" + scannedDocs ,scannedDocs.containsKey(eid)); // AND the error doc was one of them
 
       Thread.sleep(3*PAUSE_MILLIS/4);
-
-      planFinish.activate();
+      shortPauses(plan1,"test0");
+      plan1.activate();
       Thread.sleep(3*PAUSE_MILLIS/4);
-      planFinish.deactivate();
+      plan1.deactivate();
+      assertTrue("key:" + eid + " docs:\n" + String.valueOf(scannedDocs).replaceAll("'},", "'}\n") ,scannedDocs.containsKey(eid)); // AND the error doc was one of them
       assertEquals(44, scannedDocs.size());
       scannedDocs.clear();
       // the documents will have been scanned, but since they are unchanged
@@ -189,16 +187,18 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
 
       Thread.sleep(3*PAUSE_MILLIS/4);
 
-      planFinish.activate();
+      plan1.activate();
       Thread.sleep(3*PAUSE_MILLIS/4);
-      planFinish.deactivate();
+      plan1.deactivate();
       Thread.sleep(3*PAUSE_MILLIS/4);
       assertEquals(0, scannedDocs.size());
     } finally {
+      // Thread.sleep(600000); // useful if you want to query cassandra with cqlsh when debugging
       Cassandra.stop();
     }
   }
 
+  @SuppressWarnings("SameParameterValue")
   @SafeVarargs
   private Plan getPlan(String planName, NamedBuilder<? extends DocumentProcessor>... processors) {
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
@@ -217,6 +217,8 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
         .withQueryTimeout(3600)
         .withSqlStatement(SQL_1)
         .rememberScannedIds(true)
+        .detectChangesViaHashing(true)
+        .withContentColumn("play_text")
         .scanFreqMS(PAUSE_MILLIS/4);
 
     planBuilder

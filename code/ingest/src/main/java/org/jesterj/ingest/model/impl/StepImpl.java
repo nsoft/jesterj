@@ -350,8 +350,9 @@ public class StepImpl implements Step {
     try {
       log.trace("starting push to next if ok {} for {}", getName(), document.getId());
       if (document.getStatus() == Status.PROCESSING) {
-        log.trace("{} finished processing in {}", getName(), document.getId());
+        log.trace("{} finished processing {}", getName(), document.getId());
         NextSteps next = getNextSteps(document);
+        log.trace("Found {} next steps",next == null ? "(null)":next.size());
         if (next == null) {
           if (getNextSteps().size() == 0) {
             document.reportDocStatus(Status.INDEXED, "Terminal Step {} OK", getName());
@@ -361,6 +362,10 @@ public class StepImpl implements Step {
           return;
         }
 
+        // for the case where we foundDoc recieved a "dirty" document and set the status to processing
+        if (document.isStatusChanged()) {
+          document.reportDocStatus(document.getStatus(),document.getStatusMessage());
+        }
         // if we get here there are steps down stream of this one, do distribution.
         List<Map.Entry<Step, NextSteps.StepStatus>> remaining = next.remaining();
         if (remaining.size() == 1) {
@@ -515,13 +520,10 @@ public class StepImpl implements Step {
           Thread.dumpStack();
           System.exit(9999);
         }
-        log.trace("accepting {}, sending to {} in {}", document.getId(),
-            (StepImpl.this.processor == null) ? "null" : StepImpl.this.processor.getName(),
-            StepImpl.this.getName());
+        String p1 = (StepImpl.this.processor == null) ? "null" : StepImpl.this.processor.getName();
+        log.trace("accepting {}, sending to {} in {}", document.getId(), p1, StepImpl.this.getName());
         Document[] documents = StepImpl.this.processor.processDocument(document);
-        log.trace("finished {}, was sent to {} in {}", document.getId(),
-            (StepImpl.this.processor == null) ? "null" : StepImpl.this.processor.getName(),
-            StepImpl.this.getName());
+        log.trace("finished {}, was sent to {} in {}", document.getId(), p1, StepImpl.this.getName());
         for (Document documentResult : documents) {
           pushToNextIfOk(documentResult);
         }

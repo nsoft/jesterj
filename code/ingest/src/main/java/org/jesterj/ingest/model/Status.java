@@ -24,33 +24,31 @@ import org.apache.logging.log4j.Marker;
 
 import java.io.Serializable;
 
-import static org.jesterj.ingest.logging.Markers.SET_DEAD;
-import static org.jesterj.ingest.logging.Markers.SET_DIRTY;
-import static org.jesterj.ingest.logging.Markers.SET_DROPPED;
-import static org.jesterj.ingest.logging.Markers.SET_ERROR;
-import static org.jesterj.ingest.logging.Markers.SET_INDEXED;
-import static org.jesterj.ingest.logging.Markers.SET_PROCESSING;
-import static org.jesterj.ingest.logging.Markers.SET_READY;
-import static org.jesterj.ingest.logging.Markers.SET_RESTART;
-import static org.jesterj.ingest.logging.Markers.SET_SEARCHABLE;
+import static org.jesterj.ingest.logging.Markers.*;
 
 /**
  * The conceptual states available for indexed resources.
  */
 public enum Status implements Serializable {
+
   /**
-   * Resource requires re-indexing. Scanners will look for this state when deciding whether to create
-   * an document for processing.
+   * Resource must be re-indexed. Scanners will always reprocess documents that have this status set. This status
+   * would typically be set by an external application or administrator interacting with cassandra directly, to
+   * handle special cases such as a document that was declared dead due repeated errors after a misconfiguration
+   * of JesterJ or the plan. Once the misconfiguration is fixed, and affected documents have been identified it is
+   * best to write a FORCE event to the appropriate table in the keyspace for that scanner in that version of the plan
+   * JesterJ never writes force events itself, they only come from external sources.
    */
-  DIRTY {
+  FORCE {
     @Override
     public Marker getMarker() {
-      return SET_DIRTY;
+      return SET_FORCE;
     }
   },
 
   /**
-   * Resource is being restarted after a shutdown or crash.
+   * Resource needs reprocessing, Semantically similar to Force but indicates a decision made in the Plan, or by
+   * JesterJ itself.
    */
   RESTART {
     @Override
@@ -60,7 +58,20 @@ public enum Status implements Serializable {
   },
 
   /**
-   * A scanner has picked up resource, and document is in-flight and processing should continue.
+   * Resource may require re-indexing. Scanners will look for this state and then decide whether to create
+   * a document for processing based on memory and hashing settings.
+   */
+  DIRTY {
+    @Override
+    public Marker getMarker() {
+      return SET_DIRTY;
+    }
+  },
+
+
+  /**
+   * A scanner has picked up resource, and deemed it worthy of processing document is in-flight. Further processing
+   * should continue until another status is set.
    */
   PROCESSING {
     @Override

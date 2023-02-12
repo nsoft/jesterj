@@ -75,15 +75,17 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     return new ScanOp(() -> {
       log.trace("Scan Op:{}" , opCountTrace::incrementAndGet);
       synchronized (SimpleFileScanner.SCAN_LOCK) {
-        System.out.println("Acquired lock on " + SimpleFileScanner.this);
+        log.trace("Acquired lock on " + SimpleFileScanner.this);
         setScanning(true); // ensure initial walk completes before new scans are started.
         try {
           log.trace("About to walk");
           Files.walkFileTree(rootDir.toPath(), new RootWalker());
+          log.trace("FileWalk complete");
         } catch (IOException e) {
           log.error("failed to walk filesystem!", e);
           throw new RuntimeException(e);
         } finally {
+          processDirty();
           setScanning(false);
         }
       }

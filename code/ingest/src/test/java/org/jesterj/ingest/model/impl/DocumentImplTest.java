@@ -84,6 +84,7 @@ public class DocumentImplTest {
 
   @Test
   public void testHash() {
+    expect(obj.getHashAlg()).andReturn("MD5");
     expect(obj.getDelegateString()).andReturn("CAFE");
     expect(obj.getRawData()).andReturn("BABE".getBytes(StandardCharsets.UTF_8)).anyTimes();
     replay();
@@ -92,6 +93,7 @@ public class DocumentImplTest {
 
   @Test
   public void testHashRawDataNull() {
+    expect(obj.getHashAlg()).andReturn("MD5");
     expect(obj.getDelegateString()).andReturn("CAFE");
     expect(obj.getRawData()).andReturn(null).anyTimes();
     replay();

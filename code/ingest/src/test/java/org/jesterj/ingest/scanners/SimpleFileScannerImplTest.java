@@ -16,7 +16,7 @@
 
 package org.jesterj.ingest.scanners;
 
-import org.jesterj.ingest.Main;
+import com.google.common.io.Files;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
@@ -24,6 +24,7 @@ import org.jesterj.ingest.model.impl.NamedBuilder;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.ScannerImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
+import org.jesterj.ingest.persistence.Cassandra;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,6 +56,10 @@ public class SimpleFileScannerImplTest {
 
   @Test
   public void testScan() throws InterruptedException {
+    @SuppressWarnings({"deprecation", "UnstableApiUsage"})
+    File tempDir = Files.createTempDir();
+    Cassandra.start(tempDir, "127.0.0.1");
+
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
     SimpleFileScanner.Builder scannerBuilder = new SimpleFileScanner.Builder();
     scannerBuilder.scanFreqMS(1000);
@@ -100,7 +105,6 @@ public class SimpleFileScannerImplTest {
     Plan plan = planBuilder.build();
 
     try {
-      Main.registerPlan(plan); // hack ugly fix
       plan.activate();
 
       Thread.sleep(2000);
@@ -112,7 +116,6 @@ public class SimpleFileScannerImplTest {
       assertEquals(44, scannedDocs.size());
     } finally {
       plan.deactivate();
-      Main.deregisterPlan(plan);
     }
   }
 

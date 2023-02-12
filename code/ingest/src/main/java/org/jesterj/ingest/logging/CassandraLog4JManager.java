@@ -69,6 +69,7 @@ public class CassandraLog4JManager extends AbstractManager {
     session.execute(CREATE_LOG_KEYSPACE);
     session.execute(CREATE_LOG_TABLE);
     session.checkSchemaAgreement();
+    session.setSchemaMetadataEnabled(true);
   }
 
   public boolean isReady() {

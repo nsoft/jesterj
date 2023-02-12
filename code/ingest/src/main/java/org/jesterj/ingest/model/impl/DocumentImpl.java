@@ -41,6 +41,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A container for the file data and associated metadata. MetaData for which the key and the value
@@ -54,6 +56,7 @@ import java.util.Set;
 public class DocumentImpl implements Document {
 
   public static final String CHILD_SEP = "⇛";
+  public static final Pattern DEFAULT_TO_STRING = Pattern.compile("([A-Za-z_.0-9]+=\\[[^=]*[0-9_a-z.]+\\.[0-9_A-Za-z.]+@[0-9A-F]+)]}?,");
   // document id field.
   private final String idField;
 
@@ -256,7 +259,17 @@ public class DocumentImpl implements Document {
     }
     try {
       MessageDigest md = MessageDigest.getInstance(getHashAlg());
-      md.update(getDelegateString().getBytes(StandardCharsets.UTF_8));
+      String delegateString = getDelegateString();
+      // warn the user if they are making a simple error with potentially subtle consequences.
+      Matcher m = DEFAULT_TO_STRING.matcher(delegateString);
+      if (m.matches()) {
+        log.warn("Detected possible default Object.toString() when calculating hash code for {}! " +
+            "If allowed, this will lead to non-reproducable hash codes due to the inclusion of java memory " +
+            "addresses that are non-deterministic. The normal fix is to implement toString() for the object, or" +
+            "serialize the object in a deterministic fashion before adding it to the document when scanning."+
+            "Offending match={}", getId(), m.group(1));
+      }
+      md.update(delegateString.getBytes(StandardCharsets.UTF_8));
       if (getRawData() != null) {
         md.update(getRawData());
       }
@@ -330,6 +343,8 @@ public class DocumentImpl implements Document {
     } catch (AppenderLoggingException e) {
       if (Main.isNotShuttingDown()) {
         log.error("Could not contact our internal Cassandra!!!", e);
+      } else {
+        log.info("Shutdown prevented update {} ==> {}", getId(), status);
       }
     }
   }
