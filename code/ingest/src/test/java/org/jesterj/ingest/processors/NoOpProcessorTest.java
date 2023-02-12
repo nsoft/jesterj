@@ -82,5 +82,6 @@ public class NoOpProcessorTest {
     NoOpProcessor proc = builder.named("foo").turnOffWarning().build();
     assertEquals("foo",proc.getName());
     assertFalse(proc.isWarn());
+    replay();
   }
 }
