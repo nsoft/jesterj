@@ -43,14 +43,14 @@ public class ScannerImplTest {
     ((PauseEveryFiveTestProcessor)((StepImpl)pauser).getProcessor()).setMillis(millis);
   }
 
-  protected static void blockCounters(Plan plan) {
+  protected static void blockCounters(Plan plan, boolean block) {
     for (Step step : plan.getSteps()) {
       StepImpl si = (StepImpl) step;
       if (si.getProcessor() instanceof DocumentCounter) {
-        ((DocumentCounter)si.getProcessor()).setBlock(true);
+        ((DocumentCounter)si.getProcessor()).setBlock(block);
       }
       if (si.getProcessor() instanceof DocumentFieldMatchCounter) {
-        ((DocumentFieldMatchCounter)si.getProcessor()).setBlock(true);
+        ((DocumentFieldMatchCounter)si.getProcessor()).setBlock(block);
       }
     }
   }
