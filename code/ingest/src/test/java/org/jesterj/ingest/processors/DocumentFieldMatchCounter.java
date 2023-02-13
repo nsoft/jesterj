@@ -24,6 +24,8 @@ public class DocumentFieldMatchCounter implements DocumentProcessor {
 
   private String fieldName;
 
+  private boolean block;
+
   public DocumentFieldMatchCounter() {
 
   }
@@ -34,6 +36,13 @@ public class DocumentFieldMatchCounter implements DocumentProcessor {
 
   @Override
   public Document[] processDocument(Document document) {
+    while(block) {
+      try {
+        Thread.sleep(10);
+      } catch (InterruptedException e) {
+        // ignore, would be shutting down.
+      }
+    }
     Map<String, DocCounted> valueMap = getScannedDocs().computeIfAbsent(document.getFirstValue(fieldName), (fValue) -> new HashMap<>());
     valueMap.computeIfAbsent(document.getId(), (id) -> new DocCounted(document)).timesSeen.incrementAndGet();
     log.info("Recording {}", document.getId());
@@ -52,6 +61,10 @@ public class DocumentFieldMatchCounter implements DocumentProcessor {
 
   public Map<String, Map<String, DocCounted>> getScannedDocs() {
     return scannedDocs;
+  }
+
+  public void setBlock(boolean block) {
+    this.block = block;
   }
 
   public static class Builder extends NamedBuilder<DocumentFieldMatchCounter> {

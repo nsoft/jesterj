@@ -20,6 +20,7 @@ public class DocumentCounter implements DocumentProcessor {
 
   private final Map<String, DocCounted> scannedDocs = new HashMap<>();
   private String name;
+  private boolean block;
 
   public DocumentCounter() {
 
@@ -31,6 +32,13 @@ public class DocumentCounter implements DocumentProcessor {
 
   @Override
   public Document[] processDocument(Document document) {
+    while(block) {
+      try {
+        Thread.sleep(10);
+      } catch (InterruptedException e) {
+        // ignore, would be shutting down.
+      }
+    }
     getScannedDocs().computeIfAbsent(document.getId(), (id) -> new DocCounted(document)).timesSeen.incrementAndGet();
 
     log.info("Recording {}", document.getId());
@@ -49,6 +57,10 @@ public class DocumentCounter implements DocumentProcessor {
 
   public Map<String,DocCounted> getScannedDocs() {
     return scannedDocs;
+  }
+
+  public void setBlock(boolean block) {
+    this.block = block;
   }
 
   public static class Builder extends NamedBuilder<DocumentCounter> {

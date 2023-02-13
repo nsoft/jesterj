@@ -6,6 +6,7 @@ import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.model.impl.StepImpl;
 import org.jesterj.ingest.processors.DocumentCounter;
+import org.jesterj.ingest.processors.DocumentFieldMatchCounter;
 import org.jesterj.ingest.processors.ErrorFourthTestProcessor;
 import org.jesterj.ingest.processors.PauseEveryFiveTestProcessor;
 
@@ -40,6 +41,18 @@ public class ScannerImplTest {
     //noinspection SpellCheckingInspection
     Step pauser = plan1.findStep(pauseStep);
     ((PauseEveryFiveTestProcessor)((StepImpl)pauser).getProcessor()).setMillis(millis);
+  }
+
+  protected static void blockCounters(Plan plan) {
+    for (Step step : plan.getSteps()) {
+      StepImpl si = (StepImpl) step;
+      if (si.getProcessor() instanceof DocumentCounter) {
+        ((DocumentCounter)si.getProcessor()).setBlock(true);
+      }
+      if (si.getProcessor() instanceof DocumentFieldMatchCounter) {
+        ((DocumentFieldMatchCounter)si.getProcessor()).setBlock(true);
+      }
+    }
   }
 
   static int getDocCount(Plan plan, String stepName) {

@@ -36,7 +36,7 @@ public class NonLinearFTITest extends ScannerImplTest {
 
   @SuppressWarnings("unused")
   private static final Logger log = LogManager.getLogger();
-  public static final int PAUSE_MILLIS = 15000;
+  public static final int PAUSE_MILLIS = 3000;
   public static final String PAUSE_STEP_DB = "pauseStepDb";
   public static final String PAUSE_STEP_FILE = "pauseStepFile";
   public static final String PAUSE_STEP_COMEDY = "pauseStepComedy";
@@ -78,6 +78,7 @@ public class NonLinearFTITest extends ScannerImplTest {
       // now scanner should find all docs, attempt to index them, all marked
       // as processing...
       Thread.sleep(PAUSE_MILLIS / 3 + 2 * PAUSE_MILLIS);
+      blockCounters(plan);
       // the pause ever 5 should have let 5 through and then paused for 30 sec
       plan.deactivate();
       assertEquals(30, getScannedDocs(plan, COUNT_STEP_OTHER).size() +
