@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@SuppressWarnings("unused")
 public class RoundRobinRouter extends RouterBase {
   AtomicInteger nextTarget = new AtomicInteger(0);
 
@@ -37,6 +38,7 @@ public class RoundRobinRouter extends RouterBase {
     for (int i = stepIndex ; i > 0; i--) {
        selected = iter.next();
     }
+    updateExcludedDestinations(doc,selected);
     return new NextSteps(doc, selected);
   }
 

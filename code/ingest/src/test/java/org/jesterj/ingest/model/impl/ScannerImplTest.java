@@ -27,6 +27,7 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import org.jesterj.ingest.model.Plan;
+import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.persistence.CassandraSupport;
 import org.jesterj.ingest.model.Document;
 import org.junit.After;
@@ -62,6 +63,7 @@ public class ScannerImplTest {
   @Mock private ExecutionInfo infoMock;
   @Mock private ExecutionInfo execInfo;
   @Mock private Plan planMock;
+  @Mock private Step stepMock;
 
   public ScannerImplTest() {
     prepareMocks(this);
@@ -291,11 +293,11 @@ public class ScannerImplTest {
   @Test
   public void testProcessPendingDocsByStatus() {
     scanner.ensurePersistence();
-    expect(scanner.keySpace()).andReturn("keyspace");
+    expect(scanner.keySpace("potentStepName")).andReturn("jj_DEADBEEF");
     expect(scanner.getCassandra()).andReturn(supportMock);
 
-    String findStrandedDocs = String.format(FIND_STRANDED_STATUS, "keyspace");
-    expect(supportMock.getPreparedQuery(FIND_STRANDED_DOCS,findStrandedDocs)).andReturn(statementMock).times(4);
+    String findStrandedDocs = String.format(FIND_STRANDED_STATUS, "jj_DEADBEEF");
+    expect(supportMock.getPreparedQuery(FIND_STRANDED_DOCS+"_jj_DEADBEEF",findStrandedDocs)).andReturn(statementMock).times(4);
 
     expect(statementMock.bind("PROCESSING")).andReturn(bsMock);
     expect(statementMock.bind("BATCHED")).andReturn(bsMock);
@@ -317,10 +319,13 @@ public class ScannerImplTest {
     expect(rowMock.getString(0)).andReturn("foobarId").times(4); // slightly lazy could return 4 diff ids, but this is complicated enough
     expect(scanner.fetchById("foobarId")).andReturn(Optional.of(docMock)).times(4);
     expect(scanner.isActive()).andReturn(true).anyTimes();
-    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId")).andReturn("PROCESSING");
-    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId")).andReturn("BATCHED");
-    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId")).andReturn("RESTART");
-    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId")).andReturn("FORCE");
+    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId","potentStepName")).andReturn("PROCESSING");
+    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId","potentStepName")).andReturn("BATCHED");
+    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId","potentStepName")).andReturn("RESTART");
+    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId","potentStepName")).andReturn("FORCE");
+    Step[] steps = new Step[]{stepMock};
+    expect(scanner.getDownstreamPotentSteps()).andReturn(steps);
+    expect(stepMock.getName()).andReturn("potentStepName");
 
     docMock.setForceReprocess(true);
     expectLastCall().times(3);

@@ -17,7 +17,6 @@
 package org.jesterj.ingest.scanners;
 
 import com.google.common.io.Files;
-import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.impl.NamedBuilder;
@@ -40,8 +39,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
@@ -116,12 +113,11 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
     loadShakespeareToHSQL();
     //noinspection UnstableApiUsage,deprecation
     File tempDir = Files.createTempDir();
-    HashMap<String, Document> scannedDocs = new LinkedHashMap<>();
     Cassandra.start(tempDir, "127.0.0.1");
 
     String[] errorId = new String[1];
 
-    NamedBuilder<? extends DocumentProcessor> scannedDocRecorder = getScannedDocRecorder(scannedDocs);
+    NamedBuilder<? extends DocumentProcessor> scannedDocRecorder = getScannedDocRecorder("RECORDER");
     PauseEveryFiveTestProcessor.Builder pause30Every5 = new PauseEveryFiveTestProcessor.Builder()
         .named("pause5")
         .pausingFor(PAUSE_MILLIS);
@@ -137,12 +133,12 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
       Thread.sleep(3*PAUSE_MILLIS/4);
       // the pause ever 5 should have let 5 through and then paused for 30 sec
       plan1.deactivate();
-      assertEquals(5, scannedDocs.size());
+      assertEquals(5, getDocCount(plan1, "test2"));
 
       // plan has been deactivated, leaving 5 as indexed and the rest as processing
 
       Thread.sleep(3*PAUSE_MILLIS/4);
-      assertEquals(5, scannedDocs.size());
+      assertEquals(5, getDocCount(plan1, "test2"));
 
       plan1.activate();
       // plan should first queue all processing docs (from prior scan) and then proceed with new
@@ -151,14 +147,15 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
       // the size of the map shows that the previous documents were not processed.
       Thread.sleep(3*PAUSE_MILLIS/4);
       plan1.deactivate();
-      assertEquals(String.valueOf(scannedDocs.keySet()).replaceAll(", ","\n"), 10,scannedDocs.size()); // test that 5 NEW docs were scanned
+      assertEquals(String.valueOf(getScannedDocs(plan1, "test2").keySet())
+          .replaceAll(", ","\n"), 10, getDocCount(plan1, "test2")); // test that 5 NEW docs were scanned
 
       Thread.sleep(3*PAUSE_MILLIS/4);
-      assertEquals(10, scannedDocs.size()); // test plan really deactivated
+      assertEquals(10, getDocCount(plan1, "test2")); // test plan really deactivated
       startErrors(plan1,"test1");
       plan1.activate();
       Thread.sleep(3*PAUSE_MILLIS/4);
-      assertEquals(14, scannedDocs.size()); // test that 4 NEW docs were seen (a 5th will have errored but not been counted)
+      assertEquals(14, getDocCount(plan1, "test2")); // test that 4 NEW docs were seen (a 5th will have errored but not been counted)
       plan1.deactivate();
       stopErrors(plan1,"test1");
 
@@ -166,11 +163,11 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
       assertNotNull(eid);
 
       Thread.sleep(3*PAUSE_MILLIS/4);
-      assertEquals(14, scannedDocs.size()); // test plan really deactivated
+      assertEquals(14, getDocCount(plan1, "test2")); // test plan really deactivated
 
       plan1.activate();
       Thread.sleep(3*PAUSE_MILLIS/4);
-      assertEquals(19, scannedDocs.size()); // test that 5 NEW docs were scanned
+      assertEquals(19, getDocCount(plan1, "test2")); // test that 5 NEW docs were scanned
       plan1.deactivate();
 
       Thread.sleep(3*PAUSE_MILLIS/4);
@@ -178,9 +175,9 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
       plan1.activate();
       Thread.sleep(3*PAUSE_MILLIS/4);
       plan1.deactivate();
-      assertTrue("key:" + eid + " docs:\n" + String.valueOf(scannedDocs).replaceAll("'},", "'}\n") ,scannedDocs.containsKey(eid)); // AND the error doc was one of them
-      assertEquals(44, scannedDocs.size());
-      scannedDocs.clear();
+      assertTrue("key:" + eid + " docs:\n" + String.valueOf(plan1).replaceAll("'},", "'}\n") ,getScannedDocs(plan1, "test2").containsKey(eid)); // AND the error doc was one of them
+      assertEquals(44, getDocCount(plan1, "test2"));
+      getScannedDocs(plan1, "test2").clear();
       // the documents will have been scanned, but since they are unchanged
       // they do not get sent down the pipeline, and so the counter
       // step won't see them
@@ -191,7 +188,7 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
       Thread.sleep(3*PAUSE_MILLIS/4);
       plan1.deactivate();
       Thread.sleep(3*PAUSE_MILLIS/4);
-      assertEquals(0, scannedDocs.size());
+      assertEquals(0, getDocCount(plan1, "test2"));
     } finally {
       // Thread.sleep(600000); // useful if you want to query cassandra with cqlsh when debugging
       Cassandra.stop();

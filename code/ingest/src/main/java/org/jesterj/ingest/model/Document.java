@@ -118,8 +118,9 @@ public interface Document extends ListMultimap<String, String>, Serializable {
 
   boolean isStatusChanged();
 
-  void reportDocStatus(Status status, String message, Object... messageParams);
+  void reportDocStatus(Status status,    String message, Object... messageParams);
 
+  void reportDocStatus(Status status,  boolean finalStatus,  String message, Object... messageParams);
   /**
    * Ensures that this document will be fed into the plan regardless of memory or hashing settings. Has no
    * effect after the document exits the scanner.

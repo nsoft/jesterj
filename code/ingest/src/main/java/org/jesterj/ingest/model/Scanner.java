@@ -124,5 +124,5 @@ public interface Scanner extends Step {
    *
    * @return a keyspace name encoding the scanner name, plan name and plan version.
    */
-  String keySpace();
+  String keySpace(String potentStep);
 }

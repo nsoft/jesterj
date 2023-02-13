@@ -2,16 +2,14 @@ package org.jesterj.ingest.scanners;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jesterj.ingest.model.Document;
-import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Step;
-import org.jesterj.ingest.model.impl.NamedBuilder;
 import org.jesterj.ingest.model.impl.StepImpl;
+import org.jesterj.ingest.processors.DocumentCounter;
 import org.jesterj.ingest.processors.ErrorFourthTestProcessor;
 import org.jesterj.ingest.processors.PauseEveryFiveTestProcessor;
 
-import java.util.HashMap;
+import java.util.Map;
 
 public class ScannerImplTest {
   @SuppressWarnings("unused")
@@ -37,42 +35,24 @@ public class ScannerImplTest {
     Step pauser = plan1.findStep(pauseStep);
     ((PauseEveryFiveTestProcessor)((StepImpl)pauser).getProcessor()).setMillis(5);
   }
-
-  protected NamedBuilder<DocumentProcessor> getScannedDocRecorder(HashMap<String, Document> scannedDocs) {
-    return new NamedBuilder<>() {
-
-      @Override
-      public NamedBuilder<DocumentProcessor> named(String name) {
-        return null;
-      }
-
-      @Override
-      public DocumentProcessor build() {
-        return new DocumentProcessor() {
-          @Override
-          public String getName() {
-            return "RECORDER";
-          }
-
-          @Override
-          public Document[] processDocument(Document document) {
-            scannedDocs.put(document.getId(), document);
-            log.info("Recording {}", document.getId());
-            return new Document[] {document};
-          }
-
-          @Override
-          public boolean isPotent() {
-            return true;
-          }
-
-          @Override
-          public boolean isSafe() {
-            return false;
-          }
-
-        };
-      }
-    };
+  @SuppressWarnings({"SameParameterValue", "unused"})
+  protected static void longPauses(Plan plan1, String pauseStep, int millis) {
+    //noinspection SpellCheckingInspection
+    Step pauser = plan1.findStep(pauseStep);
+    ((PauseEveryFiveTestProcessor)((StepImpl)pauser).getProcessor()).setMillis(millis);
   }
+
+  static int getDocCount(Plan plan, String stepName) {
+   return ScannerImplTest.getScannedDocs(plan, stepName).size();
+ }
+
+  static Map<String, DocumentCounter.DocCounted> getScannedDocs(Plan plan, String stepName) {
+   StepImpl test2 = (StepImpl) plan.findStep(stepName);
+   return ((DocumentCounter) test2.getProcessor()).getScannedDocs();
+ }
+
+  protected DocumentCounter.Builder getScannedDocRecorder(String name) {
+    return new DocumentCounter.Builder().named(name);
+  }
+
 }

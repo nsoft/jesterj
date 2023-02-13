@@ -1,15 +1,17 @@
 package org.jesterj.ingest.scanners;
 
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.io.Files;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
 import org.jesterj.ingest.persistence.Cassandra;
+import org.jesterj.ingest.persistence.CassandraSupport;
 import org.jesterj.ingest.processors.*;
 import org.jesterj.ingest.routers.RouteByStepName;
 import org.junit.Test;
@@ -24,12 +26,13 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 
-public class NonLinearFTITest extends  ScannerImplTest {
+public class NonLinearFTITest extends ScannerImplTest {
 
   @SuppressWarnings("unused")
   private static final Logger log = LogManager.getLogger();
@@ -51,44 +54,88 @@ public class NonLinearFTITest extends  ScannerImplTest {
   public static final String COPY_FILE_NAME_TO_CATEGORY_STEP = "copyFileNameToCategoryStep";
   public static final String EDIT_CATEGORY = "editCategory";
   public static final String DEFAULT_CATEGORY_TO_OTHER_STEP = "defaultCategoryToOtherStep";
+  public static final String CATEGORY_COUNTER_STEP = "categoryCounterStep";
   public static final String FILE_SCANNER = "fileScanner";
   public static final String JDBC_SCANNER = "jdbcScanner";
 
 
   @Test
-  public void testScanWithMemory() throws Exception{
+  public void testScanWithMemory() throws Exception {
     loadShakespeareToHSQL();
     @SuppressWarnings({"deprecation", "UnstableApiUsage"})
     File tempDir = Files.createTempDir();
     Cassandra.start(tempDir, "127.0.0.1");
     try {
-      LinkedHashMap<String, Document> scannedTragedies = new LinkedHashMap<>();
-      LinkedHashMap<String, Document> scannedComedies = new LinkedHashMap<>();
-      LinkedHashMap<String, Document> scannedOther = new LinkedHashMap<>();
-      Plan plan = getPlan(scannedTragedies, scannedComedies, scannedOther, "testScan");
+
+      Plan plan = getPlan("testScan");
       //System.out.println(plan.visualize(Format.DOT).toString());
       // http://magjac.com/graphviz-visual-editor/?dot=digraph%20%22visualize%22%20%7B%0A%22fileScanner%22%20%5B%22color%22%3D%22blue%22%2C%22penwidth%22%3D%223.0%22%5D%0A%22jdbcScanner%22%20%5B%22color%22%3D%22blue%22%2C%22penwidth%22%3D%223.0%22%5D%0A%22fileScanner%22%20-%3E%20%22pauseStepFile%22%0A%22pauseStepFile%22%20-%3E%20%22errorStepFile%22%0A%22errorStepFile%22%20-%3E%20%22copyFileNameToCategoryStep%22%0A%22copyFileNameToCategoryStep%22%20-%3E%20%22copyIdToCategoryStep%22%0A%22copyIdToCategoryStep%22%20-%3E%20%22editCategory%22%0A%22editCategory%22%20-%3E%20%22defaultCategoryToOtherStep%22%0A%22defaultCategoryToOtherStep%22%20-%3E%20%22pauseStepComedy%22%0A%22defaultCategoryToOtherStep%22%20-%3E%20%22pauseStepTragedy%22%0A%22defaultCategoryToOtherStep%22%20-%3E%20%22pauseStepOther%22%0A%22pauseStepComedy%22%20-%3E%20%22errorStepComedy%22%0A%22errorStepComedy%22%20-%3E%20%22countStepComedy%22%0A%22pauseStepTragedy%22%20-%3E%20%22errorStepTragedy%22%0A%22errorStepTragedy%22%20-%3E%20%22countStepTragedy%22%0A%22pauseStepOther%22%20-%3E%20%22errorStepOther%22%0A%22errorStepOther%22%20-%3E%20%22countStepOther%22%0A%22jdbcScanner%22%20-%3E%20%22pauseStepDb%22%0A%22pauseStepDb%22%20-%3E%20%22errorStepDb%22%0A%22errorStepDb%22%20-%3E%20%22copyFileNameToCategoryStep%22%0A%7D
 
-      shortPauses(plan,PAUSE_STEP_COMEDY);
-      shortPauses(plan,PAUSE_STEP_TRAGEDY);
-      shortPauses(plan,PAUSE_STEP_OTHER);
+      shortPauses(plan, PAUSE_STEP_COMEDY);
+      shortPauses(plan, PAUSE_STEP_TRAGEDY);
+      shortPauses(plan, PAUSE_STEP_OTHER);
       plan.activate();
       // now scanner should find all docs, attempt to index them, all marked
       // as processing...
-      Thread.sleep(3*PAUSE_MILLIS/4);
+      Thread.sleep(3 * PAUSE_MILLIS / 4 + 2*PAUSE_MILLIS);
       // the pause ever 5 should have let 5 through and then paused for 30 sec
       plan.deactivate();
-      assertEquals(10, scannedOther.size()+scannedTragedies.size()+scannedComedies.size());
+      assertEquals(30, getScannedDocs(plan, COUNT_STEP_OTHER).size() +
+          getScannedDocs(plan, COUNT_STEP_TRAGEDY).size() +
+          getScannedDocs(plan, COUNT_STEP_COMEDY).size());
+      assertEquals(getCountForCategory(plan, CATEGORY_COUNTER_STEP, "other"), getDocCount(plan, COUNT_STEP_OTHER));
+      assertEquals(getCountForCategory(plan, CATEGORY_COUNTER_STEP, "tragedies"), getDocCount(plan, COUNT_STEP_TRAGEDY));
+      assertEquals(getCountForCategory(plan, CATEGORY_COUNTER_STEP, "comedies"), getDocCount(plan, COUNT_STEP_COMEDY));
+      assertEquals(2, getDocCount(plan, COUNT_STEP_OTHER));
+      assertEquals(7, getDocCount(plan, COUNT_STEP_TRAGEDY));
+      assertEquals(21, getDocCount(plan, COUNT_STEP_COMEDY));
 
+      CassandraSupport support = new CassandraSupport();
 
-    }finally {
+      ResultSet tables = support.getSession().execute("SELECT table_name, keyspace_name from system_schema.tables");
+      for (Row table : tables) {
+        String keyspaceName = table.getString("keyspace_name");
+        if (keyspaceName == null || !keyspaceName.startsWith("jj_")) {
+          continue;
+        }
+        String tableName = keyspaceName + "." + table.getString("table_name");
+        System.out.print(tableName + " ");
+        ResultSet count = support.getSession().execute("select count(*) from " + tableName);
+        @SuppressWarnings("DataFlowIssue")
+        long rowCount = count.one().getLong(0);
+        if (tableName.endsWith("_hash")) {
+          assertEquals(44,rowCount); // one entry for each file or DB row
+        }
+        if (tableName.endsWith("_status")) {
+          assertEquals(44 + 15, rowCount ); // initial processing, and 15 of them got to indexed
+        }
+        System.out.print(rowCount + " --> ");
+
+        support.getSession().execute("truncate table " + tableName);
+        count = support.getSession().execute("select count(*) from " + tableName);
+        //noinspection DataFlowIssue
+        System.out.println(count.one().getLong(0) );
+      }
+
+    } finally {
       Cassandra.stop();
     }
 
   }
 
- @SuppressWarnings("SameParameterValue")
- private Plan getPlan(LinkedHashMap<String, Document> scannedTragedies, LinkedHashMap<String, Document> scannedComedies, LinkedHashMap<String, Document> scannedOther, String name) {
+  Map<String, DocumentFieldMatchCounter.DocCounted> getScannedDocsForCategory(Plan plan, String stepName, String category) {
+    StepImpl test2 = (StepImpl) plan.findStep(stepName);
+    Map<String, DocumentFieldMatchCounter.DocCounted> stringDocCountedMap = ((DocumentFieldMatchCounter) test2.getProcessor()).getScannedDocs().get(category);
+    return stringDocCountedMap != null ? stringDocCountedMap : new HashMap<>();
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  int getCountForCategory(Plan plan, String stepName, String category) {
+    return getScannedDocsForCategory(plan, stepName, category).size();
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private Plan getPlan(String name) {
 
     // set up two sources each of which can be paused or have errors before routing
     SimpleFileScanner.Builder fileScannerBuilder = new SimpleFileScanner.Builder();
@@ -103,6 +150,7 @@ public class NonLinearFTITest extends  ScannerImplTest {
     StepImpl.Builder copyIdToCategory = new StepImpl.Builder();
     StepImpl.Builder copyFileNameToCategory = new StepImpl.Builder();
     StepImpl.Builder editCategory = new StepImpl.Builder();
+    StepImpl.Builder categoryCounter = new StepImpl.Builder();
 
     // Three destinations all of which can be paused or errored
     StepImpl.Builder tragedyPause = new StepImpl.Builder();
@@ -121,9 +169,24 @@ public class NonLinearFTITest extends  ScannerImplTest {
     fileScannerBuilder.named(FILE_SCANNER)
         .withRoot(tragedies)
         .rememberScannedIds(true)
-        .scanFreqMS(PAUSE_MILLIS/4);
+        .detectChangesViaHashing(true)
+        .scanFreqMS(PAUSE_MILLIS / 4);
 
-    configureJdbcScanner(dbScannerBuilder);
+    dbScannerBuilder.named(JDBC_SCANNER)
+        .withAutoCommit(true)
+        .withFetchSize(1000)
+        .withJdbcDriver("org.hsqldb.jdbc.JDBCDriver")
+        .withJdbcPassword("")
+        .withJdbcUrl("jdbc:hsqldb:mem:shakespeare;ifexists=true")
+        .withJdbcUser("SA")
+        .withPKColumn("ID")
+        .representingTable("play")
+        .withQueryTimeout(3600)
+        .withSqlStatement("SELECT * FROM play order by id desc") // reverse order so that not duplicating file scanner
+        .rememberScannedIds(true)
+        .detectChangesViaHashing(true)
+        .withContentColumn("play_text")
+        .scanFreqMS(PAUSE_MILLIS / 4);
 
     dbPause.named(PAUSE_STEP_DB)
         .withProcessor(new PauseEveryFiveTestProcessor.Builder()
@@ -151,15 +214,15 @@ public class NonLinearFTITest extends  ScannerImplTest {
     String[] tragedyErrorHolder = new String[1];
     String[] otherErrorHolder = new String[1];
 
-    fileError.named(ERROR_STEP_FILE).withProcessor(errorProc(fileErrorHolder,"errorProcFile"));
-    dbError.named(ERROR_STEP_DB).withProcessor(errorProc(dbErrorHolder,"errorProcDb"));
-    comedyError.named(ERROR_STEP_COMEDY).withProcessor(errorProc(comedyErrorHolder,"errorProcComedy"));
-    tragedyError.named(ERROR_STEP_TRAGEDY).withProcessor(errorProc(tragedyErrorHolder,"errorProcTragedy"));
-    otherError.named(ERROR_STEP_OTHER).withProcessor(errorProc(otherErrorHolder,"errorProcOther"));
+    fileError.named(ERROR_STEP_FILE).withProcessor(errorProc(fileErrorHolder, "errorProcFile"));
+    dbError.named(ERROR_STEP_DB).withProcessor(errorProc(dbErrorHolder, "errorProcDb"));
+    comedyError.named(ERROR_STEP_COMEDY).withProcessor(errorProc(comedyErrorHolder, "errorProcComedy"));
+    tragedyError.named(ERROR_STEP_TRAGEDY).withProcessor(errorProc(tragedyErrorHolder, "errorProcTragedy"));
+    otherError.named(ERROR_STEP_OTHER).withProcessor(errorProc(otherErrorHolder, "errorProcOther"));
 
-    tragedyCounter.named(COUNT_STEP_TRAGEDY).withProcessor(getScannedDocRecorder(scannedTragedies));
-    comedyCounter.named(COUNT_STEP_COMEDY).withProcessor(getScannedDocRecorder(scannedComedies));
-    otherCounter.named(COUNT_STEP_OTHER).withProcessor(getScannedDocRecorder(scannedOther));
+    tragedyCounter.named(COUNT_STEP_TRAGEDY).withProcessor(getScannedDocRecorder("recordedTragedies"));
+    comedyCounter.named(COUNT_STEP_COMEDY).withProcessor(getScannedDocRecorder("recordedComedies"));
+    otherCounter.named(COUNT_STEP_OTHER).withProcessor(getScannedDocRecorder("recordedOther"));
 
     copyIdToCategory.named(COPY_ID_TO_CATEGORY_STEP)
         .withProcessor(new CopyField.Builder()
@@ -186,12 +249,18 @@ public class NonLinearFTITest extends  ScannerImplTest {
             .named("defaultCategoryToOtherProc")
             .skipIfHasValue()
             .adding("category")
-            .withValue("other"))
+            .withValue("other"));
+
+    categoryCounter.named(CATEGORY_COUNTER_STEP)
+        .withProcessor(new DocumentFieldMatchCounter.Builder()
+            .named("categoryCounterProc")
+            .matchesForField("category")
+        )
         .routingBy(new RouteByStepName.Builder()
             .keyValuesInField("category")
-            .mappingValueFromTo("other",PAUSE_STEP_OTHER)
-            .mappingValueFromTo("comedies",PAUSE_STEP_COMEDY)
-            .mappingValueFromTo("tragedies",PAUSE_STEP_TRAGEDY));
+            .mappingValueFromTo("other", PAUSE_STEP_OTHER)
+            .mappingValueFromTo("comedies", PAUSE_STEP_COMEDY)
+            .mappingValueFromTo("tragedies", PAUSE_STEP_TRAGEDY));
 
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
     planBuilder
@@ -205,23 +274,24 @@ public class NonLinearFTITest extends  ScannerImplTest {
         .addStep(dbPause, JDBC_SCANNER)
         .addStep(dbError, PAUSE_STEP_DB)
 
-        .addStep(copyFileNameToCategory,ERROR_STEP_DB,ERROR_STEP_FILE) // two sources join
-        .addStep(copyIdToCategory,COPY_FILE_NAME_TO_CATEGORY_STEP)
-        .addStep(editCategory,COPY_ID_TO_CATEGORY_STEP)
-        .addStep(defaultCategoryOther,EDIT_CATEGORY)
+        .addStep(copyFileNameToCategory, ERROR_STEP_DB, ERROR_STEP_FILE) // two sources join
+        .addStep(copyIdToCategory, COPY_FILE_NAME_TO_CATEGORY_STEP)
+        .addStep(editCategory, COPY_ID_TO_CATEGORY_STEP)
+        .addStep(defaultCategoryOther, EDIT_CATEGORY)
+        .addStep(categoryCounter, DEFAULT_CATEGORY_TO_OTHER_STEP)
 
         // split to three destinations
-        .addStep(comedyPause,DEFAULT_CATEGORY_TO_OTHER_STEP)
-        .addStep(tragedyPause,DEFAULT_CATEGORY_TO_OTHER_STEP)
-        .addStep(othersPause,DEFAULT_CATEGORY_TO_OTHER_STEP)
+        .addStep(comedyPause, CATEGORY_COUNTER_STEP)
+        .addStep(tragedyPause, CATEGORY_COUNTER_STEP)
+        .addStep(othersPause, CATEGORY_COUNTER_STEP)
 
-        .addStep(comedyError,PAUSE_STEP_COMEDY)
-        .addStep(tragedyError,PAUSE_STEP_TRAGEDY)
-        .addStep(otherError,PAUSE_STEP_OTHER)
+        .addStep(comedyError, PAUSE_STEP_COMEDY)
+        .addStep(tragedyError, PAUSE_STEP_TRAGEDY)
+        .addStep(otherError, PAUSE_STEP_OTHER)
 
-        .addStep(comedyCounter,ERROR_STEP_COMEDY)
-        .addStep(tragedyCounter,ERROR_STEP_TRAGEDY)
-        .addStep(otherCounter,ERROR_STEP_OTHER)
+        .addStep(comedyCounter, ERROR_STEP_COMEDY)
+        .addStep(tragedyCounter, ERROR_STEP_TRAGEDY)
+        .addStep(otherCounter, ERROR_STEP_OTHER)
 
         .withIdField("id");
 
@@ -233,26 +303,6 @@ public class NonLinearFTITest extends  ScannerImplTest {
         .named(name)
         .withErrorReporter(errorId)
         .erroringFromStart(false);
-  }
-
-  private void configureJdbcScanner(JdbcScanner.Builder scannerBuilder) {
-
-    scannerBuilder.named(JDBC_SCANNER)
-        .withAutoCommit(true)
-        .withFetchSize(1000)
-        .withJdbcDriver("org.hsqldb.jdbc.JDBCDriver")
-        .withJdbcPassword("")
-        .withJdbcUrl("jdbc:hsqldb:mem:shakespeare;ifexists=true")
-        .withJdbcUser("SA")
-        .withPKColumn("ID")
-        .representingTable("play")
-        .withQueryTimeout(3600)
-        .withSqlStatement("SELECT * FROM play order by id desc") // reverse order so that not duplicating file scanner
-        .rememberScannedIds(true)
-        .detectChangesViaHashing(true)
-        .withContentColumn("play_text")
-        .scanFreqMS(PAUSE_MILLIS/4);
-
   }
 
   private void loadShakespeareToHSQL() throws SQLException, IOException {

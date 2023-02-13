@@ -18,12 +18,9 @@ package org.jesterj.ingest.routers;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jesterj.ingest.model.Document;
-import org.jesterj.ingest.model.NextSteps;
-import org.jesterj.ingest.model.Step;
+import org.jesterj.ingest.model.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * A router that sends documents to subsequent steps by comparing the value in a standard field
@@ -37,7 +34,7 @@ public class RouteByStepName extends RouterBase {
   public static final String JESTERJ_NEXT_STEP_NAME = "__JESTERJ_NEXT_STEP_NAME__";
   private String name;
 
-  private final Map<String,String> valueToStepNameMap = new HashMap<>();
+  private final Map<String, String> valueToStepNameMap = new HashMap<>();
 
   private String keyFieldName = JESTERJ_NEXT_STEP_NAME;
 
@@ -68,7 +65,8 @@ public class RouteByStepName extends RouterBase {
       log.warn("Document " + doc.getId() + " dropped! no value for " + JESTERJ_NEXT_STEP_NAME +
           " You probably want to either set a different router or provide a value.");
     }
-    return new NextSteps(doc, dest);
+    updateExcludedDestinations(doc, dest);
+    return dest == null ? null : new NextSteps(doc, dest);
   }
 
   @Override
@@ -102,7 +100,7 @@ public class RouteByStepName extends RouterBase {
     }
 
     public Builder mappingValueFromTo(String from, String to) {
-      getObj().getValueToStepNameMap().put(from,to);
+      getObj().getValueToStepNameMap().put(from, to);
       return this;
     }
 

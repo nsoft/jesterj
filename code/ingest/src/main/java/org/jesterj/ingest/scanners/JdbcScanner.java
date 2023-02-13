@@ -218,7 +218,7 @@ public class JdbcScanner extends ScannerImpl {
         docId,
         getPlan(),
         Document.Operation.NEW,
-        JdbcScanner.this);
+        this);
 
     // For each column value
     for (int i = 1; i <= columnNames.length; i++) {

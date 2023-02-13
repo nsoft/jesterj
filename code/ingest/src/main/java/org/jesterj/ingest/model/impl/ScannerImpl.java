@@ -19,6 +19,7 @@ package org.jesterj.ingest.model.impl;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.*;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -31,6 +32,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -174,6 +177,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
           "?,?) USING TTL ?";
   private volatile boolean shutdownHasStarted;
   private boolean persistenceCreated;
+  private final Map<String,String> keySpaces = new HashMap<>();
 
   protected ScannerImpl() {}
 
@@ -322,8 +326,10 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   }
 
   boolean seenPreviously(String scannerName, String id, CqlSession session) {
-    String actualQuery = String.format(FIND_LATEST_STATUS, keySpace());
-    PreparedStatement seenDocQuery = getCassandra().getPreparedQuery(FIND_LATEST_STATUS_Q, actualQuery);
+    String anyStep = getDownstreamPotentSteps()[0].getName();
+    String keySpace = keySpace(anyStep);
+    String actualQuery = String.format(FIND_LATEST_STATUS, keySpace);
+    PreparedStatement seenDocQuery = getCassandra().getPreparedQuery(FIND_LATEST_STATUS_Q + "_" + keySpace(anyStep), actualQuery);
     BoundStatement bs = seenDocQuery.bind( id);
     ResultSet lastStatus = session.execute(bs);
     if (lastStatus.getAvailableWithoutFetching() > 0) {
@@ -345,8 +351,9 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   }
 
   private void updateHash(Document doc, CqlSession session) {
-    String actualQuery = String.format(FTI_DOC_HASH, keySpace());
-    PreparedStatement updateHash = getCassandra().getPreparedQuery(FTI_DOC_HASH_U,actualQuery);
+    // doc hashing only needs to be determined once per scanner, not for every down stream step
+    String actualQuery = String.format(FTI_DOC_HASH, keySpace(null));
+    PreparedStatement updateHash = getCassandra().getPreparedQuery(FTI_DOC_HASH_U + "_" + keySpace(null),actualQuery);
     BoundStatement bs = updateHash.bind(doc.getId(),
         Instant.now(), (int) (System.nanoTime() % 1_000_000),
         CassandraSupport.antiCollision.get().nextInt(), doc.getHashAlg(), doc.getHash(),FTI_TTL);
@@ -356,8 +363,8 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   @Nullable
   private String findPreviousHash(Document doc, String id, CqlSession session) {
     log.trace("We are using hashing to detect new versions");
-    String actualQuery = String.format(FTI_CHECK_DOC_HASH,keySpace());
-    PreparedStatement preparedQuery = getCassandra().getPreparedQuery(FTI_CHECK_DOC_HASH_Q,actualQuery);
+    String actualQuery = String.format(FTI_CHECK_DOC_HASH,keySpace(null));
+    PreparedStatement preparedQuery = getCassandra().getPreparedQuery(FTI_CHECK_DOC_HASH_Q + "_" + keySpace(null),actualQuery);
 
     BoundStatement bind = preparedQuery.bind(id);
     ResultSet statusRs = session.execute(bind);
@@ -365,7 +372,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     String previousHash = null;
     if (statusRs.getAvailableWithoutFetching() > 0) {
       Row next = statusRs.all().iterator().next();
-      previousHash = next.getString(1);
+      previousHash = next.getString(0);
       log.trace("Found '{}' with hash {}, current hash is {}", id, previousHash, doc.getHash());
     }
     return previousHash;
@@ -421,39 +428,46 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     // Sadly to avoid allow filtering we have to iterate here instead of just using a single IN()
     CassandraSupport cStar = getCassandra();
     CqlSession session = cStar.getSession();
-    String keySpace = keySpace();
-    for (Status status : statusesToProcess) {
-      String actualQuery = String.format(FIND_STRANDED_STATUS, keySpace);
-      pq = cStar.getPreparedQuery(FIND_STRANDED_DOCS, actualQuery);
-      bs = pq.bind( String.valueOf(status));
-      bs = bs.setTimeout(Duration.ofSeconds(TIMEOUT));
-      rs = session.execute(bs);
-      log.info("found {} using {}", rs, actualQuery);
+    List<String> needToProcess = new ArrayList<>();
+    for (Step potentStep : getDownstreamPotentSteps()) {
+      String stepName = potentStep.getName();
+      String keySpace = keySpace(stepName);
+      for (Status status : statusesToProcess) {
+        String actualQuery = String.format(FIND_STRANDED_STATUS, keySpace);
+        pq = cStar.getPreparedQuery(FIND_STRANDED_DOCS + "_" + keySpace, actualQuery);
+        bs = pq.bind( String.valueOf(status));
+        bs = bs.setTimeout(Duration.ofSeconds(TIMEOUT));
+        rs = session.execute(bs);
+        log.trace("found {} using {}", rs, actualQuery);
 
-      for (Row r : rs) {
-        if (isShutdown() || !isActive() && activeAtStart) {
-          // shutdown was initiated during processing.
-          break;
-        }
-        String id = r.getString(0);
-        String latestStatus = findLatestSatus(actualQuery, id);
-        if (status.toString().equals(latestStatus)) {
-          i++;
-          log.info("{} found for reprocessing with status={}", id, status);
-          sentAlready.add(id);
-          fetchById(id).ifPresentOrElse(((d) ->{d.setForceReprocess(force );docFound(d);}),
-              () -> log.error("Unable to load previously scanned (stranded) document {}",id));
-        } else {
-          log.info("{} not processed for status of {}, latest status is {}", id,status, latestStatus);
+        for (Row r : rs) {
+          if (isShutdown() || !isActive() && activeAtStart) {
+            // shutdown was initiated during processing.
+            break;
+          }
+          String id = r.getString(0);
+          String latestStatus = findLatestSatus(actualQuery, id, stepName);
+          if (status.toString().equals(latestStatus)) {
+            log.trace("{} found for reprocessing with status={}", id, status);
+            needToProcess.add(id);
+          } else {
+            log.trace("{} not processed for status of {}, latest status is {}", id,status, latestStatus);
+          }
         }
       }
+    }
+    for (String id : needToProcess) {
+      i++;
+      sentAlready.add(id);
+      fetchById(id).ifPresentOrElse(((d) ->{d.setForceReprocess(force );docFound(d);}),
+          () -> log.error("Unable to load previously scanned (stranded) document {}",id));
     }
     log.info("Found and restarted processing for {} FTI records", i);
   }
 
-  String findLatestSatus(String priorQuery, String docId) {
-    String histQuery = String.format(FIND_HIST, keySpace());
-    PreparedStatement phq = getCassandra().getPreparedQuery(FIND_HISTORY, histQuery);
+  String findLatestSatus(String priorQuery, String docId, String potentStep) {
+    String histQuery = String.format(FIND_HIST, keySpace(potentStep));
+    PreparedStatement phq = getCassandra().getPreparedQuery(FIND_HISTORY + "_" + keySpace(potentStep), histQuery);
     BoundStatement bhq = phq.bind(docId,1);
     ResultSet histRS = getCassandra().getSession().execute(bhq);
     Row one = histRS.one();
@@ -471,83 +485,100 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     if (!this.persistenceCreated) {
       // no need for synchronization should ony be one thread, and if exists is safe anyway.
       CqlSession session = cassandra.getSession();
-      session.execute(String.format(CREATE_FT_KEYSPACE, keySpace()));
-      session.execute(String.format(CREATE_FT_TABLE, keySpace()));
-      session.execute(String.format(CREATE_INDEX_STATUS, keySpace()));
-      session.execute(String.format(CREATE_DOC_HASH, keySpace()));
+      for (Step potentStep : getDownstreamPotentSteps()) {
+        String name = potentStep.getName();
+        session.execute(String.format(CREATE_FT_KEYSPACE, keySpace(name)));
+        session.execute(String.format(CREATE_FT_TABLE, keySpace(name)));
+        session.execute(String.format(CREATE_INDEX_STATUS, keySpace(name)));
+      }
+      session.execute(String.format(CREATE_FT_KEYSPACE, keySpace(null)));
+      session.execute(String.format(CREATE_DOC_HASH, keySpace(null)));
       this.persistenceCreated = true;
     }
   }
 
   void processErrors(FTIQueryContext scanContext) {
     log.info("Processing Errors");
-    ResultSet rs;
-    PreparedStatement pq;
-    BoundStatement bs;
-    String actualQuery = String.format(FIND_ERRORS, keySpace());
-    pq = getCassandra().getPreparedQuery(FIND_ERROR_DOCS, actualQuery);
-    bs = pq.bind();
-    bs = bs.setTimeout(Duration.ofSeconds(TIMEOUT));
-    rs = getCassandra().getSession().execute(bs);
-    for (Row r : rs) {
-      if (!isActive()) {
-        break;
-      }
-      String id = r.getString(0);
-      if (scanContext.getSentAlready().contains(id)) {
-        log.trace("Skipping error for document already submitted during this FTI processing round");
-        continue;
-      }
-      log.trace("Found Errored document:{}",id);
-      String findErrorHistory = String.format(FIND_HIST,keySpace());
-      PreparedStatement pq2 = cassandra.getPreparedQuery(FIND_HISTORY, findErrorHistory);
-      ResultSet hist = cassandra.getSession().execute(pq2.bind(id, retryErrors));
-
-      // In most cases the first row is an error because that's how we got a row in the previous
-      // query that has partition limit = 1, but concurrency could bite us, so we double-check...
-      int errorCount = 0;
-      boolean firstRow = true;
-      boolean errorMostRecent = true;
-      boolean alreadyDropped = false;
-      for (Row row : hist) {
-        String status = row.getString(1);
-        log.trace("Observing status of {} for {}", status, id);
-        switch(Status.valueOf(status)){
-          case ERROR:
-            errorCount++;
-            break;
-          case DROPPED:
-            if (firstRow) {
-              alreadyDropped = true;
-            }
-            //// fall through intentional ////
-          default:
-            if (firstRow) {
-              errorMostRecent = false;
-            }
-        }
-        log.trace("after switch:{}",status);
-        firstRow = false;
-        if (!errorMostRecent) {
+    Set<String> deadDocs = new HashSet<>();
+    Set<String> forceReprocess = new HashSet<>();
+    for (Step potentStep : getDownstreamPotentSteps()) {
+      ResultSet rs;
+      PreparedStatement pq;
+      BoundStatement bs;
+      String name = potentStep.getName();
+      String actualQuery = String.format(FIND_ERRORS, keySpace(name));
+      pq = getCassandra().getPreparedQuery(FIND_ERROR_DOCS + "_" + keySpace(name), actualQuery);
+      bs = pq.bind();
+      bs = bs.setTimeout(Duration.ofSeconds(TIMEOUT));
+      rs = getCassandra().getSession().execute(bs);
+      for (Row r : rs) {
+        if (!isActive()) {
           break;
         }
-      }
-      if (errorMostRecent && errorCount < retryErrors) {
-        log.info("Re-feeding errored document {}", id);
-        scanContext.getSentAlready().add(id);
-        fetchById(id).ifPresentOrElse((d) -> {
-          d.setForceReprocess(true); // ignore the fact that the content hasn't changed if we are hashing.
-          docFound(d);
-        }, () -> log.error("{} could not be fetched by id for error retry!", id));
-      } else {
-        if (!alreadyDropped && errorCount >= retryErrors) {
-          log.warn("Dropping document {} due to too many error retries ({})", id, errorCount);
-          fetchById(id).ifPresentOrElse(d-> d.reportDocStatus(DEAD, "Retry limit of {} exceeded",retryErrors),
-              () -> log.error("{} could not be fetched by id when attempting to mark it dead for repeated retries!",id));
+        String id = r.getString(0);
+        if (scanContext.getSentAlready().contains(id)) {
+          log.trace("Skipping error for document already submitted during this FTI processing round");
+          continue;
+        }
+        log.trace("Found Errored document:{}",id);
+        String findErrorHistory = String.format(FIND_HIST,keySpace(name));
+        PreparedStatement pq2 = cassandra.getPreparedQuery(FIND_HISTORY + "_" + keySpace(name), findErrorHistory);
+        ResultSet hist = cassandra.getSession().execute(pq2.bind(id, retryErrors));
+
+        // In most cases the first row is an error because that's how we got a row in the previous
+        // query that has partition limit = 1, but concurrency could bite us, so we double-check...
+        int errorCount = 0;
+        boolean firstRow = true;
+        boolean errorMostRecent = true;
+        boolean alreadyDropped = false;
+        for (Row row : hist) {
+          String status = row.getString(1);
+          log.trace("Observing status of {} for {}", status, id);
+          switch(Status.valueOf(status)){
+            case ERROR:
+              errorCount++;
+              break;
+            case DROPPED:
+              if (firstRow) {
+                alreadyDropped = true;
+              }
+              //// fall through intentional ////
+            default:
+              if (firstRow) {
+                errorMostRecent = false;
+              }
+          }
+          log.trace("after switch:{}",status);
+          firstRow = false;
+          if (!errorMostRecent) {
+            break;
+          }
+        }
+        if (errorMostRecent && errorCount < retryErrors) {
+          log.info("Re-feeding errored document {}", id);
+          forceReprocess.add(id);
         } else {
-          log.trace("Ignoring {} because errorMostRecent = {} and errorCount = {}", id, errorMostRecent,errorCount);
+          if (!alreadyDropped && errorCount >= retryErrors) {
+            log.warn("Dropping document {} due to too many error retries ({})", id, errorCount);
+            deadDocs.add(id);
+          } else {
+            log.trace("Ignoring {} because errorMostRecent = {} and errorCount = {}", id, errorMostRecent,errorCount);
+          }
         }
       }
+    }
+
+    for (String id : forceReprocess) {
+      scanContext.getSentAlready().add(id);
+      fetchById(id).ifPresentOrElse((d) -> {
+        d.setForceReprocess(true); // ignore the fact that the content hasn't changed if we are hashing.
+        docFound(d);
+      }, () -> log.error("{} could not be fetched by id for error retry!", id));
+
+    }
+    for (String id : deadDocs) {
+      fetchById(id).ifPresentOrElse(d-> d.reportDocStatus(DEAD, "Retry limit of {} exceeded",retryErrors),
+          () -> log.error("{} could not be fetched by id when attempting to mark it dead for repeated retries!",id));
     }
   }
 
@@ -730,9 +761,24 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   }
 
   @Override
-  public String keySpace() {
-    // note plans and scanners already enforce sane names, no injection worries. (unless that changes)
-    return "jj_" + getName() + "_" + getPlan().getName() + "_" + getPlan().getVersion();
+  public String keySpace(String potentStep) {
+    return this.keySpaces.computeIfAbsent(potentStep,(ps) -> "jj_" + keySpaceHash(ps, this));
+  }
+
+  @NotNull
+  private static String keySpaceHash(String potentStep, Scanner s)  {
+    String baseName = "jj_" + s.getName() + "_" + s.getPlan().getName() + "_" + s.getPlan().getVersion() + (potentStep != null ? "_" + potentStep : "");
+    // Sadly we are limited to 48 char for keyspace names, so we must hash the info making our keyspace
+    // names very sad and ugly.
+    MessageDigest md;
+    try {
+      md = MessageDigest.getInstance("MD5");
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException(e);
+    }
+    String result = new String(Hex.encodeHex(md.digest(baseName.getBytes())));
+    log.info("Hash for {} keyspace is {}", baseName, result);
+    return result;
   }
 
   public static abstract class Builder extends StepImpl.Builder {

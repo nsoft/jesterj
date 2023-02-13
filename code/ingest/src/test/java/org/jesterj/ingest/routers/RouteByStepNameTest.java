@@ -5,6 +5,7 @@ import com.copyright.easiertest.Mock;
 import com.copyright.easiertest.ObjectUnderTest;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.NextSteps;
+import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.Step;
 import org.junit.After;
 import org.junit.Before;
@@ -27,6 +28,10 @@ public class RouteByStepNameTest {
   @ObjectUnderTest RouteByStepName router;
   @Mock Step stepMock1;
   @Mock Step stepMock2;
+  @Mock Step stepMock3;
+  @Mock Step stepMock4;
+  @Mock Step stepMockNext1;
+  @Mock Step stepMockNext2;
   @Mock Document docMock1;
   @Mock Document docMock2;
   @Mock Step stepMock; // step to which router is attached
@@ -55,6 +60,7 @@ public class RouteByStepNameTest {
     expect(router.getKeyFieldName()).andReturn(RouteByStepName.JESTERJ_NEXT_STEP_NAME);
     expect(docMock1.getFirstValue(RouteByStepName.JESTERJ_NEXT_STEP_NAME)).andReturn("foo");
     expect(router.getValueToStepNameMap()).andReturn(new HashMap<>());
+    router.updateExcludedDestinations(docMock1, stepMock1);
     replay();
     NextSteps steps = router.route(docMock1);
     assertEquals(1, steps.size());
@@ -71,6 +77,7 @@ public class RouteByStepNameTest {
     expect(router.getKeyFieldName()).andReturn(RouteByStepName.JESTERJ_NEXT_STEP_NAME);
     expect(docMock2.getFirstValue(RouteByStepName.JESTERJ_NEXT_STEP_NAME)).andReturn("bar");
     expect(router.getValueToStepNameMap()).andReturn(new HashMap<>());
+    router.updateExcludedDestinations(docMock2, stepMock2);
     replay();
     NextSteps steps = router.route(docMock2);
     assertEquals(1, steps.size());
@@ -87,6 +94,7 @@ public class RouteByStepNameTest {
     expect(router.getKeyFieldName()).andReturn("foobar");
     expect(docMock2.getFirstValue("foobar")).andReturn("bar");
     expect(router.getValueToStepNameMap()).andReturn(new HashMap<>());
+    router.updateExcludedDestinations(docMock2, stepMock2);
     replay();
     NextSteps steps = router.route(docMock2);
     assertEquals(1, steps.size());
@@ -103,10 +111,36 @@ public class RouteByStepNameTest {
     expect(router.getKeyFieldName()).andReturn("foobar");
     expect(docMock2.getFirstValue("foobar")).andReturn("step named bar");
     expect(router.getValueToStepNameMap()).andReturn(Map.of("step named bar", "bar"));
+    router.updateExcludedDestinations(docMock2, stepMock2);
     replay();
     NextSteps steps = router.route(docMock2);
     assertEquals(1, steps.size());
     assertTrue(steps.list().contains(stepMock2));
+  }
+
+  @Test
+  public void updateExcludedDestinations() {
+    Step[] stepsDownStream = new Step[] {
+        stepMock1,stepMock2,stepMock3,stepMock4
+    };
+
+    Step[] steps1 = new Step[] {
+        stepMock3
+    };
+    Step[] steps2 = new Step[] {
+        stepMock3, stepMock4
+    };
+    expect(router.getStep()).andReturn(stepMock);
+    expect(stepMock2.getName()).andReturn("fooName1");
+    expect(stepMock1.getName()).andReturn("fooName2");
+    expect(router.getName()).andReturn("routerName");
+    expect(stepMock.getDownstreamPotentSteps()).andReturn(stepsDownStream);
+    expect(stepMockNext1.getDownstreamPotentSteps()).andReturn(steps1);
+    expect(stepMockNext2.getDownstreamPotentSteps()).andReturn(steps2);
+    docMock1.reportDocStatus(Status.DROPPED, false,"Document routed down path not leading to this destination by {}","routerName");
+    replay();
+    router.updateExcludedDestinations(docMock1,stepMockNext1,stepMockNext2);
+
   }
 
   @Test

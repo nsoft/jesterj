@@ -226,9 +226,9 @@ public class JesterJAppender extends AbstractAppender {
       for (String downstreamStep : downstreamSteps) {
         Plan plan = Main.locatePlan(planName).orElseThrow(); // will be caught by logging infra
         Scanner step = (Scanner) plan.findStep(scannerName);
-        String keySpace = step.keySpace();
+        String keySpace = step.keySpace(downstreamStep);
         String sq = String.format(INSERT_FTI,keySpace);
-        PreparedStatement update = cassandra.getPreparedQuery(FTI_INSERT_U, sq);
+        PreparedStatement update = cassandra.getPreparedQuery(FTI_INSERT_U + "_" + keySpace, sq);
         List<Object> params = new ArrayList<>(16);
 
         // Document context

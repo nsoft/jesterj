@@ -31,8 +31,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 
 import static com.copyright.easiertest.EasierMocks.prepareMocks;
 import static org.junit.Assert.assertEquals;
@@ -106,10 +104,7 @@ public class JdbcScannerImplTest extends ScannerImplTest {
     PreparedStatement insertRow2 = c.prepareStatement("insert into employee values ('2','Jane Doe','CFO,CTO')");
     insertRow1.execute();
     insertRow2.execute();
-
-    HashMap<String, Document> scannedDocs = new LinkedHashMap<>();
-
-    NamedBuilder<? extends DocumentProcessor> scannedDocRecorder = getScannedDocRecorder(scannedDocs);
+    NamedBuilder<? extends DocumentProcessor> scannedDocRecorder = getScannedDocRecorder("RECORDER");
     StepImpl.Builder capture = new StepImpl.Builder().named("capture").withProcessor(scannedDocRecorder);
     JdbcScanner.Builder scanStep = build(false);
     Plan plan = new PlanImpl.Builder().named("testScan").withIdField("ID")
@@ -118,15 +113,15 @@ public class JdbcScannerImplTest extends ScannerImplTest {
     plan.activate();
     Thread.sleep(5000);
     plan.deactivate();
-    assertEquals("Should have 2 docs", 2, scannedDocs.size());
-    assertTrue(scannedDocs.containsKey("jdbc:hsqldb:mem:employees;ifexists=true/employee/1"));
-    assertTrue(scannedDocs.containsKey("jdbc:hsqldb:mem:employees;ifexists=true/employee/2"));
-    Document doc1 = scannedDocs.get("jdbc:hsqldb:mem:employees;ifexists=true/employee/1");
+    assertEquals("Should have 2 docs", 2, getDocCount(plan, "capture"));
+    assertTrue(getScannedDocs(plan,"capture").containsKey("jdbc:hsqldb:mem:employees;ifexists=true/employee/1"));
+    assertTrue(getScannedDocs(plan,"capture").containsKey("jdbc:hsqldb:mem:employees;ifexists=true/employee/2"));
+    Document doc1 = getScannedDocs(plan,"capture").get("jdbc:hsqldb:mem:employees;ifexists=true/employee/1").document;
     assertEquals("jdbc:hsqldb:mem:employees;ifexists=true/employee/1", doc1.getId());
     assertEquals("[John Doe]",doc1.get("NAME").toString());
     assertEquals("[CEO,Janitor]",doc1.get("TITLE").toString());
 
-    Document doc2 = scannedDocs.get("jdbc:hsqldb:mem:employees;ifexists=true/employee/2");
+    Document doc2 = getScannedDocs(plan,"capture").get("jdbc:hsqldb:mem:employees;ifexists=true/employee/2").document;
     assertEquals("jdbc:hsqldb:mem:employees;ifexists=true/employee/2", doc2.getId());
     assertEquals("[Jane Doe]",doc2.get("NAME").toString());
     assertEquals("[CFO,CTO]",doc2.get("TITLE").toString());

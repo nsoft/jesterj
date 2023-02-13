@@ -335,9 +335,15 @@ public class DocumentImpl implements Document {
     return statusChanged;
   }
 
-  public void reportDocStatus(Status status, String message, Object... messageParams) {
-    setStatus(status, message);
-    statusChanged = false;
+  public void reportDocStatus(Status status,String message, Object... messageParams) {
+    reportDocStatus(status,true,message,messageParams);
+  }
+
+  public void reportDocStatus(Status status, boolean finalStatus, String message, Object... messageParams) {
+    if (finalStatus) {
+      setStatus(status, message);
+      statusChanged = false;
+    }
     try(DocumentLoggingContext dc = new DocumentLoggingContext(this)) {
       dc.run(() -> log.info(status.getMarker(), message, messageParams));
     } catch (AppenderLoggingException e) {
