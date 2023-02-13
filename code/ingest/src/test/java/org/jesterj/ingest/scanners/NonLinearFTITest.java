@@ -36,7 +36,14 @@ public class NonLinearFTITest extends ScannerImplTest {
 
   @SuppressWarnings("unused")
   private static final Logger log = LogManager.getLogger();
-  public static final int PAUSE_MILLIS = 3000;
+
+  // GitHub actions run on VERY slow machines, need to give lots of time for sleeping threads to resume.
+  // Sleeping is a test only behavior meant to give the plan time to process a clearly defined number of documents
+  // before turning it off again without hard coding that limit into the plan (so that if documents do flow down
+  // incorrect paths or statuses are set multiple times we can still see it). Been working fine on my local
+  // machine (1950x processor), but overshooting on GitHub, presumably due to the main test thread not resuming
+  // promptly and allowing more pause periods to expire before shutting down the plan. Thus, this ugly hack...
+  public static final long PAUSE_MILLIS = 3000L + ((System.getenv("GITHUB_ACTION") != null) ? 27000L : 0L);
   public static final String PAUSE_STEP_DB = "pauseStepDb";
   public static final String PAUSE_STEP_FILE = "pauseStepFile";
   public static final String PAUSE_STEP_COMEDY = "pauseStepComedy";
@@ -77,7 +84,7 @@ public class NonLinearFTITest extends ScannerImplTest {
       plan.activate();
       // now scanner should find all docs, attempt to index them, all marked
       // as processing...
-      Thread.sleep(PAUSE_MILLIS / 3 + 2 * PAUSE_MILLIS);
+      Thread.sleep(PAUSE_MILLIS / 3 + 2L * PAUSE_MILLIS);
       blockCounters(plan, true);
       // the pause ever 5 should have let 5 through and then paused for 30 sec
       plan.deactivate();

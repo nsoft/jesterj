@@ -10,7 +10,7 @@ public class PauseEveryFiveTestProcessor implements DocumentProcessor {
   private static final Logger log = LogManager.getLogger();
   private int count = 0;
   private String name;
-  private int millis;
+  private long millis;
 
   @Override
   public String getName() {
@@ -50,7 +50,7 @@ public class PauseEveryFiveTestProcessor implements DocumentProcessor {
       return this;
     }
 
-    public PauseEveryFiveTestProcessor.Builder pausingFor(int millis) {
+    public PauseEveryFiveTestProcessor.Builder pausingFor(long millis) {
       getObj().millis = millis;
       return this;
     }
