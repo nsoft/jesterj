@@ -77,7 +77,7 @@ public class NonLinearFTITest extends ScannerImplTest {
       plan.activate();
       // now scanner should find all docs, attempt to index them, all marked
       // as processing...
-      Thread.sleep(3 * PAUSE_MILLIS / 4 + 2*PAUSE_MILLIS);
+      Thread.sleep(PAUSE_MILLIS / 3 + 2 * PAUSE_MILLIS);
       // the pause ever 5 should have let 5 through and then paused for 30 sec
       plan.deactivate();
       assertEquals(30, getScannedDocs(plan, COUNT_STEP_OTHER).size() +
