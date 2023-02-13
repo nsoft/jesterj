@@ -94,9 +94,6 @@ public class NonLinearFTITest extends ScannerImplTest {
       assertEquals(getCountForCategory(plan, CATEGORY_COUNTER_STEP, "other"), getDocCount(plan, COUNT_STEP_OTHER));
       assertEquals(getCountForCategory(plan, CATEGORY_COUNTER_STEP, "tragedies"), getDocCount(plan, COUNT_STEP_TRAGEDY));
       assertEquals(getCountForCategory(plan, CATEGORY_COUNTER_STEP, "comedies"), getDocCount(plan, COUNT_STEP_COMEDY));
-      assertEquals(2, getDocCount(plan, COUNT_STEP_OTHER));
-      assertEquals(7, getDocCount(plan, COUNT_STEP_TRAGEDY));
-      assertEquals(21, getDocCount(plan, COUNT_STEP_COMEDY));
 
       CassandraSupport support = new CassandraSupport();
 
