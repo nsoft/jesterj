@@ -36,7 +36,7 @@ public class NonLinearFTITest extends ScannerImplTest {
 
   @SuppressWarnings("unused")
   private static final Logger log = LogManager.getLogger();
-  public static final int PAUSE_MILLIS = 9000;
+  public static final int PAUSE_MILLIS = 15000;
   public static final String PAUSE_STEP_DB = "pauseStepDb";
   public static final String PAUSE_STEP_FILE = "pauseStepFile";
   public static final String PAUSE_STEP_COMEDY = "pauseStepComedy";
