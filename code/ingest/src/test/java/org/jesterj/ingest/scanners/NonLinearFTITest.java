@@ -2,7 +2,7 @@ package org.jesterj.ingest.scanners;
 
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
-import com.google.common.io.Files;
+import guru.nidi.graphviz.engine.Format;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.DocumentProcessor;
@@ -27,10 +27,13 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 public class NonLinearFTITest extends ScannerImplTest {
 
@@ -69,14 +72,13 @@ public class NonLinearFTITest extends ScannerImplTest {
   @Test
   public void testScanWithMemory() throws Exception {
     loadShakespeareToHSQL();
-    @SuppressWarnings({"deprecation", "UnstableApiUsage"})
-    File tempDir = Files.createTempDir();
+    File tempDir = getUniqueTempDir();
     Cassandra.start(tempDir, "127.0.0.1");
     try {
 
       Plan plan = getPlan("testScan");
-      //System.out.println(plan.visualize(Format.DOT).toString());
-      // http://magjac.com/graphviz-visual-editor/?dot=digraph%20%22visualize%22%20%7B%0A%22fileScanner%22%20%5B%22color%22%3D%22blue%22%2C%22penwidth%22%3D%223.0%22%5D%0A%22jdbcScanner%22%20%5B%22color%22%3D%22blue%22%2C%22penwidth%22%3D%223.0%22%5D%0A%22fileScanner%22%20-%3E%20%22pauseStepFile%22%0A%22pauseStepFile%22%20-%3E%20%22errorStepFile%22%0A%22errorStepFile%22%20-%3E%20%22copyFileNameToCategoryStep%22%0A%22copyFileNameToCategoryStep%22%20-%3E%20%22copyIdToCategoryStep%22%0A%22copyIdToCategoryStep%22%20-%3E%20%22editCategory%22%0A%22editCategory%22%20-%3E%20%22defaultCategoryToOtherStep%22%0A%22defaultCategoryToOtherStep%22%20-%3E%20%22pauseStepComedy%22%0A%22defaultCategoryToOtherStep%22%20-%3E%20%22pauseStepTragedy%22%0A%22defaultCategoryToOtherStep%22%20-%3E%20%22pauseStepOther%22%0A%22pauseStepComedy%22%20-%3E%20%22errorStepComedy%22%0A%22errorStepComedy%22%20-%3E%20%22countStepComedy%22%0A%22pauseStepTragedy%22%20-%3E%20%22errorStepTragedy%22%0A%22errorStepTragedy%22%20-%3E%20%22countStepTragedy%22%0A%22pauseStepOther%22%20-%3E%20%22errorStepOther%22%0A%22errorStepOther%22%20-%3E%20%22countStepOther%22%0A%22jdbcScanner%22%20-%3E%20%22pauseStepDb%22%0A%22pauseStepDb%22%20-%3E%20%22errorStepDb%22%0A%22errorStepDb%22%20-%3E%20%22copyFileNameToCategoryStep%22%0A%7D
+      System.out.println(plan.visualize(Format.DOT).toString());
+      // http://magjac.com/graphviz-visual-editor/?dot=digraph%20%22visualize%22%20%7B%0A%22fileScanner%22%20%5B%22color%22%3D%22blue%22%2C%22penwidth%22%3D%223.0%22%5D%0A%22jdbcScanner%22%20%5B%22color%22%3D%22blue%22%2C%22penwidth%22%3D%223.0%22%5D%0A%22fileScanner%22%20-%3E%20%22pauseStepFile%22%0A%22pauseStepFile%22%20-%3E%20%22errorStepFile%22%0A%22errorStepFile%22%20-%3E%20%22copyFileNameToCategoryStep%22%0A%22copyFileNameToCategoryStep%22%20-%3E%20%22copyIdToCategoryStep%22%0A%22copyIdToCategoryStep%22%20-%3E%20%22editCategory%22%0A%22editCategory%22%20-%3E%20%22defaultCategoryToOtherStep%22%0A%22defaultCategoryToOtherStep%22%20-%3E%20%22categoryCounterStep%22%0A%22categoryCounterStep%22%20-%3E%20%22pauseStepComedy%22%0A%22categoryCounterStep%22%20-%3E%20%22pauseStepTragedy%22%0A%22categoryCounterStep%22%20-%3E%20%22pauseStepOther%22%0A%22pauseStepComedy%22%20-%3E%20%22errorStepComedy%22%0A%22errorStepComedy%22%20-%3E%20%22countStepComedy%22%0A%22pauseStepTragedy%22%20-%3E%20%22errorStepTragedy%22%0A%22errorStepTragedy%22%20-%3E%20%22countStepTragedy%22%0A%22pauseStepOther%22%20-%3E%20%22errorStepOther%22%0A%22errorStepOther%22%20-%3E%20%22countStepOther%22%0A%22jdbcScanner%22%20-%3E%20%22pauseStepDb%22%0A%22pauseStepDb%22%20-%3E%20%22errorStepDb%22%0A%22errorStepDb%22%20-%3E%20%22copyFileNameToCategoryStep%22%0A%7D
 
       shortPauses(plan, PAUSE_STEP_COMEDY);
       shortPauses(plan, PAUSE_STEP_TRAGEDY);
@@ -88,12 +90,14 @@ public class NonLinearFTITest extends ScannerImplTest {
       blockCounters(plan, true);
       // the pause ever 5 should have let 5 through and then paused for 30 sec
       plan.deactivate();
-      assertEquals(30, getScannedDocs(plan, COUNT_STEP_OTHER).size() +
-          getScannedDocs(plan, COUNT_STEP_TRAGEDY).size() +
-          getScannedDocs(plan, COUNT_STEP_COMEDY).size());
       assertEquals(getCountForCategory(plan, CATEGORY_COUNTER_STEP, "other"), getDocCount(plan, COUNT_STEP_OTHER));
       assertEquals(getCountForCategory(plan, CATEGORY_COUNTER_STEP, "tragedies"), getDocCount(plan, COUNT_STEP_TRAGEDY));
       assertEquals(getCountForCategory(plan, CATEGORY_COUNTER_STEP, "comedies"), getDocCount(plan, COUNT_STEP_COMEDY));
+
+      int actualIndexed = sizeForCounter(plan, COUNT_STEP_OTHER) +
+          sizeForCounter(plan, COUNT_STEP_TRAGEDY) +
+          sizeForCounter(plan, COUNT_STEP_COMEDY);
+      assertEquals(30, actualIndexed);
 
       CassandraSupport support = new CassandraSupport();
 
@@ -122,15 +126,172 @@ public class NonLinearFTITest extends ScannerImplTest {
         System.out.println(count.one().getLong(0) );
       }
 
-    } finally {
+      ///// NOW for a full uninterrupted run as a baseline
+
+      blockCounters(plan, false);
+      shortPauses(plan, PAUSE_STEP_COMEDY);
+      shortPauses(plan, PAUSE_STEP_TRAGEDY);
+      shortPauses(plan, PAUSE_STEP_OTHER);
+      shortPauses(plan, PAUSE_STEP_DB);
+      shortPauses(plan, PAUSE_STEP_FILE);
+
+      // Now let it run to completion and index everything.
+      plan.activate();
+      Thread.sleep(3*PAUSE_MILLIS);
+      plan.deactivate();
+      Thread.sleep(PAUSE_MILLIS);
+
+      tables = support.getSession().execute("SELECT table_name, keyspace_name from system_schema.tables");
+      for (Row table : tables) {
+        String keyspaceName = table.getString("keyspace_name");
+        if (keyspaceName == null || !keyspaceName.startsWith("jj_")) {
+          continue;
+        }
+        String tableName = keyspaceName + "." + table.getString("table_name");
+        ResultSet count = support.getSession().execute("select count(*) from " + tableName);
+        @SuppressWarnings("DataFlowIssue")
+        long rowCount = count.one().getLong(0);
+        if (tableName.endsWith("_hash")) {
+          assertEquals(44,rowCount); // one entry for each file or DB row
+        } else if (tableName.endsWith("_status")) {
+          System.out.println("Testing table:" + tableName);
+          assertEquals(44 + 44, rowCount ); // initial processing, and all of them got to indexed
+        } else {
+          assertEquals("Found unexpected table" + tableName, "jj_logging.regular", tableName);
+        }
+
+        // NOTE intentionally NOT truncating tables this time
+
+      }
+
+      // NOW start up and run again, no new content to index so nothing should change
+      plan.activate();
+      Thread.sleep(3*PAUSE_MILLIS );
+      plan.deactivate();
+      Thread.sleep(PAUSE_MILLIS);
+
+      tables = support.getSession().execute("SELECT table_name, keyspace_name from system_schema.tables");
+      for (Row table : tables) {
+        String keyspaceName = table.getString("keyspace_name");
+        if (keyspaceName == null || !keyspaceName.startsWith("jj_")) {
+          continue;
+        }
+        String tableName = keyspaceName + "." + table.getString("table_name");
+        ResultSet count = support.getSession().execute("select count(*) from " + tableName);
+        @SuppressWarnings("DataFlowIssue")
+        long rowCount = count.one().getLong(0);
+        if (tableName.endsWith("_hash")) {
+          assertEquals(44,rowCount); // one entry for each file or DB row
+        } else if (tableName.endsWith("_status")) {
+          assertEquals(44 + 44, rowCount ); // initial processing, and all of them got to indexed
+        } else {
+          assertEquals("Found unexpected table" + tableName, "jj_logging.regular", tableName);
+        }
+        support.getSession().execute("truncate table " + tableName);
+        count = support.getSession().execute("select count(*) from " + tableName);
+        //noinspection DataFlowIssue
+        assertEquals(0L,count.one().getLong(0));
+      }
+
+      // NOW turn on errors for Comedies, and we expect only the table for the comedies output (potent) step to
+      // have an increase. This should be enough time that the comedies all process and all the errors are successfully
+      // reprocessed.
+
+      startErrors(plan, ERROR_STEP_COMEDY);
+      plan.activate();
+      Thread.sleep(3*PAUSE_MILLIS);
+      plan.deactivate();
+      Thread.sleep(PAUSE_MILLIS);
+
+      tables = support.getSession().execute("SELECT table_name, keyspace_name from system_schema.tables");
+      int rowsBothScanners = 0;
+      Set<String> tablesWithErrors = new HashSet<>();
+      for (Row table : tables) {
+        String keyspaceName = table.getString("keyspace_name");
+        if (keyspaceName == null || !keyspaceName.startsWith("jj_")) {
+          continue;
+        }
+        String tableName = keyspaceName + "." + table.getString("table_name");
+        ResultSet count = support.getSession().execute("select count(*) from " + tableName);
+        @SuppressWarnings("DataFlowIssue")
+        long rowCount = count.one().getLong(0);
+        if (tableName.endsWith("_hash")) {
+          assertEquals(44,rowCount); // one entry for each file or DB row
+        } else if (tableName.endsWith("_status")) {
+          ResultSet example = support.getSession().execute("select potentStepName from " + tableName + " LIMIT 1");
+          @SuppressWarnings("DataFlowIssue")
+          String stepName = example.one().getString(0);
+          if (rowCount != 44+44) {
+            assertEquals("Found " + rowCount + " for " + stepName,COUNT_STEP_COMEDY, stepName);
+            // we can get errors for docs from either scanner
+            tablesWithErrors.add(tableName);
+            ///////////////////////////////////////////////////////////////////////////////////////
+            //
+            // THIS is the key test. It shows that we only processed the missing documents and only
+            // sent them to the potent steps that didn't get them the first time.
+            //
+            // There are 44 documents total, 3 of 17 comedies from 2 scanner should error out, (for a total
+            // of 6 errors on the first pass and the second pass will feed the 6 errors, one of which will
+            // error a second time so these 3 cases are events per document:
+            //   - PROCESSING,INDEXED (41 * 2 * 2 events = 164 events)
+            //   - PROCESSING,ERROR,PROCESSING,INDEXED (5 of 6 * 4 events = 20 events)
+            //   - PROCESSING,ERROR,PROCESSING,ERROR,PROCESSING,INDEXED (1 * 6 events = 6 events)
+            // So across 2 tables we should get a total of 164 + 20 + 6 = 190 events
+            // It is not possible to predict which table will get hit with the second error.
+            // This test has a minuscule chance of failing which would require thread scheduling to completely
+            // pause one scanner and all the errors show up for the other scanner type. The build output will have
+            // a line that says 'countStepComedy has 88' and another line that says 'countStepComedy has 102'
+            // if the failure is indeed spurious.
+            //
+            rowsBothScanners += rowCount;
+            if (tablesWithErrors.size() == 2) {
+              int expected = 190;
+              if (expected != rowsBothScanners) {
+                for (String tableWithErrors : tablesWithErrors) {
+                  System.out.println(tableWithErrors);
+                  showTable(support, tableWithErrors);
+                }
+              }
+              assertEquals(expected, rowsBothScanners);
+            }
+            System.out.println(stepName + " has " + rowCount);
+          } else {
+            // Anything else should be 88
+            if (COUNT_STEP_COMEDY.equals(stepName)) {
+              showTable(support, tableName);
+            }
+            assertNotEquals("But my errors... what happened to my errors?", COUNT_STEP_COMEDY, stepName);
+            System.out.println(stepName + " has " + rowCount);
+          }
+        } else {
+          assertEquals("Found unexpected table" + tableName, "jj_logging.regular", tableName);
+        }
+      }
+      assertEquals( 2,tablesWithErrors.size());
+    } catch (Exception e) {
+      e.printStackTrace();
+      log.error(e);
+    }finally {
+      Thread.sleep(100);
+      System.out.println("sleeping in finally");
+      System.out.flush();
+      //Thread.sleep(5000000);
       Cassandra.stop();
     }
 
   }
 
+  private static void showTable(CassandraSupport support, String tableName) {
+    ResultSet showMe = support.getSession().execute("select * from " + tableName);
+    int rowNum = 1;
+    for (Row row : showMe) {
+      System.out.println(rowNum++ +") " + row.getFormattedContents());
+    }
+  }
+
   Map<String, DocumentFieldMatchCounter.DocCounted> getScannedDocsForCategory(Plan plan, String stepName, String category) {
     StepImpl test2 = (StepImpl) plan.findStep(stepName);
-    Map<String, DocumentFieldMatchCounter.DocCounted> stringDocCountedMap = ((DocumentFieldMatchCounter) test2.getProcessor()).getScannedDocs().get(category);
+    Map<String, DocumentFieldMatchCounter.DocCounted> stringDocCountedMap = ((DocumentFieldMatchCounter) test2.getProcessor()).getScannedDocsByValue().get(category);
     return stringDocCountedMap != null ? stringDocCountedMap : new HashMap<>();
   }
 

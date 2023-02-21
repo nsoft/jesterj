@@ -11,7 +11,6 @@ import org.apache.lucene.util.Version;
 import org.apache.solr.schema.FieldType;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
-import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 import org.jesterj.ingest.utils.ClassSubPathResourceLoader;
 import org.jesterj.ingest.utils.SolrSchemaUtil;
@@ -105,7 +104,6 @@ public class PreAnalyzeFields implements DocumentProcessor {
           ts.end();
           jsonValues.add(mapper.writeValueAsString(tokOutput));
         } catch (IOException e) {
-          document.setStatus(Status.ERROR);
           throw new RuntimeException(e);
         }
       }
@@ -124,7 +122,7 @@ public class PreAnalyzeFields implements DocumentProcessor {
 
     PreAnalyzeFields obj = new PreAnalyzeFields();
     private String typeName;
-    private String luceneMatch = Version.LUCENE_9_0_0.toString(); // default
+    private String luceneMatch = Version.LATEST.toString(); // default
     private String schemaFile = "schema.xml"; // default
     private float schemaVersion;
 
@@ -144,6 +142,7 @@ public class PreAnalyzeFields implements DocumentProcessor {
       return this;
     }
 
+    @SuppressWarnings("unused")
     public Builder withLuceneMatchVersion(String version) {
       this.luceneMatch = version;
       return this;
@@ -169,6 +168,7 @@ public class PreAnalyzeFields implements DocumentProcessor {
       return this;
     }
 
+    @SuppressWarnings("unused")
     public Builder withSchemaVersion(float version) {
       this.schemaVersion = version;
       return this;

@@ -16,11 +16,10 @@
 
 package org.jesterj.ingest.model;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
+import java.util.Map;
 
 public interface Document extends ListMultimap<String, String>, Serializable {
 
@@ -54,17 +53,23 @@ public interface Document extends ListMultimap<String, String>, Serializable {
    * @return An enumeration value indicating whether the item is processing, errored out or complete.
    * @throws java.lang.IllegalStateException if the plan has not been set.
    */
-  Status getStatus();
+  Status getStatus(String potentStep);
 
   /**
-   * Set the status
+   * Set a status for a specific downstream destination. The status message may contain '{}' and additional
+   * arguments which will be substituted in the same manner as log4j logging messages. Since document objects must
+   * remain serializable, these arguments should typically be reduced to strings if they are not already serializable.
+   * <p></p>
+   * <p><strong>WARNING: this method has no persistent effect until {@link Document#reportDocStatus()} is called. If
+   * the system is killed (power cord, whatever) before reportStatus() is completed this status change will not be
+   * retained when JesterJ restarts.</strong></p>
    *
-   * @param status The new status.
-   * @see #getStatus()
+   * @param status The status to set for the destination step
+   * @param potentStep The destination step
+   * @param statusMessage The user readable message explaining the status change
+   * @param messageArgs values to be substituted into the message
    */
-  void setStatus(Status status);
-
-  void setStatus(Status status, String statusMessage);
+  void setStatus(Status status, String potentStep, String statusMessage, Serializable... messageArgs);
 
   /**
    * Get a message relating to the processing status. This will typically be used to print the name of
@@ -72,18 +77,10 @@ public interface Document extends ListMultimap<String, String>, Serializable {
    *
    * @return A short message suitable for logging and debugging (not a stack trace)
    */
-  String getStatusMessage();
-
-  /**
-   * Set the status message.
-   *
-   * @param message the status message.
-   * @see #getStatus()
-   */
-  void setStatusMessage(String message);
+  String getStatusMessage(String potentStep);
 
   @SuppressWarnings("unused")
-  ArrayListMultimap<String, String> getDelegate();
+  ListMultimap<String, String> getDelegate();
 
   /**
    * Returns the identifier for this document. This should be identical to get(getIdField()).
@@ -99,12 +96,11 @@ public interface Document extends ListMultimap<String, String>, Serializable {
    */
   String getHash();
 
-    @NotNull
-    default String getHashAlg() {
-      return "MD5";
-    }
+  default String getHashAlg() {
+    return "MD5";
+  }
 
-    String getIdField();
+  String getIdField();
 
   Operation getOperation();
 
@@ -118,9 +114,8 @@ public interface Document extends ListMultimap<String, String>, Serializable {
 
   boolean isStatusChanged();
 
-  void reportDocStatus(Status status,    String message, Object... messageParams);
+  void reportDocStatus();
 
-  void reportDocStatus(Status status,  boolean finalStatus,  String message, Object... messageParams);
   /**
    * Ensures that this document will be fed into the plan regardless of memory or hashing settings. Has no
    * effect after the document exits the scanner.
@@ -130,6 +125,33 @@ public interface Document extends ListMultimap<String, String>, Serializable {
   void setForceReprocess(boolean b);
 
   boolean isForceReprocess();
+
+  void setIncompletePotentSteps(Map<String, DocDestinationStatus> value);
+
+  boolean alreadyHasIncompleteStepList();
+
+  boolean isIncompletePotentStep(String stepName); // todo: we need to handle Idempotent steps too
+
+  String listIncompletePotentSteps();
+
+  Map<String, DocDestinationStatus> getStatusChanges();
+
+  String[] getIncompletePotentSteps();
+
+  void setStatusAll(Status status, String message, Object... args);
+
+  /**
+   * Remove a downstream potent step. This should only be performed by routers and step infrastructure, hence the
+   * router argument.
+   *
+   * @param routerBase The router for the step in which the removal takes place.
+   * @param step       the name of the step to remove.
+   */
+  void removeDownStreamPotentStep(Router routerBase, Step step);
+
+  String dumpStatus();
+
+  String getOrigination();
 
   enum Operation implements Serializable {
     NEW,

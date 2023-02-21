@@ -1,14 +1,16 @@
 package org.jesterj.ingest.routers;
 
-import org.apache.logging.log4j.ThreadContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.*;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public abstract class RouterBase implements Router {
 
+  @SuppressWarnings("unused")
+  private static final Logger log = LogManager.getLogger();
   Step step;
   String name;
 
@@ -24,25 +26,35 @@ public abstract class RouterBase implements Router {
    * @param dest the steps that the document *will* be routed to.
    */
   void updateExcludedDestinations(Document doc, Step... dest) {
+    // find everywhere we might have went
     List<Step> stepsExcluded = new ArrayList<>(Arrays.asList(getStep().getDownstreamPotentSteps()));
     Set<Step> stillDownStream = new HashSet<>();
     if (dest != null) {
+      // find everywhere we are still going
       for (Step s : dest) {
-        stillDownStream.addAll(Arrays.asList(s.getDownstreamPotentSteps()));
-      }
-      for (Step ps : stillDownStream) {
-        stepsExcluded.remove(ps);
+        Step[] downstreamPotentSteps = s.getDownstreamPotentSteps();
+        List<Step> c = Arrays.asList(downstreamPotentSteps);
+        stillDownStream.addAll(c);
       }
     }
-    String saved = ThreadContext.get(Step.JJ_DOWNSTREAM_POTENT_STEPS);
-    try {
-      String dsPotentStepsToUpdate = stepsExcluded.stream()
-          .map(Configurable::getName)
-          .collect(Collectors.joining(","));
-      ThreadContext.put(Step.JJ_DOWNSTREAM_POTENT_STEPS, dsPotentStepsToUpdate);
-      doc.reportDocStatus(Status.DROPPED, dest == null, "Document routed down path not leading to this destination by {}", getName());
-    } finally {
-      ThreadContext.put(Step.JJ_DOWNSTREAM_POTENT_STEPS, saved);
+    // remove places we are still going to
+    for (Step ps : stillDownStream) {
+      stepsExcluded.remove(ps);
+    }
+
+    // Now stepsExcluded should only include places that were possible that have become impossibe
+
+    // now remove any step to which the document was not targeted (possibly because it has partially completed
+    // and is now re-running due to FTI
+    stepsExcluded.removeIf((s) -> !doc.isIncompletePotentStep(s.getName()));
+
+    // Now if anything remains in stepsExcluded, then it was a valid target that has become invalid due to the
+    // router's routing decision
+
+    for (Step step : stepsExcluded) {
+      // drop anything that is not the current step.
+      doc.setStatus(Status.DROPPED,  step.getName(),"Document routed down path not leading to {} by {}", step.getName(), getName());
+      doc.removeDownStreamPotentStep(this,step);
     }
   }
 

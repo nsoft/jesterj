@@ -26,19 +26,15 @@ import com.datastax.oss.driver.api.core.cql.ExecutionInfo;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
-import org.jesterj.ingest.model.Plan;
-import org.jesterj.ingest.model.Step;
+import org.easymock.Capture;
+import org.jesterj.ingest.model.*;
 import org.jesterj.ingest.persistence.CassandraSupport;
-import org.jesterj.ingest.model.Document;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static com.copyright.easiertest.EasierMocks.prepareMocks;
 import static com.copyright.easiertest.EasierMocks.replay;
@@ -47,6 +43,8 @@ import static com.copyright.easiertest.EasierMocks.verify;
 import static org.easymock.EasyMock.*;
 import static org.jesterj.ingest.model.Status.*;
 import static org.jesterj.ingest.model.impl.ScannerImpl.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class ScannerImplTest {
 
@@ -63,7 +61,11 @@ public class ScannerImplTest {
   @Mock private ExecutionInfo infoMock;
   @Mock private ExecutionInfo execInfo;
   @Mock private Plan planMock;
-  @Mock private Step stepMock;
+  @Mock private Step stepMock1;
+  @Mock private Step stepMock2;
+  @Mock private ScannerImpl.LatestStatus lstatMock;
+  @Mock private Map.Entry<String, List<LatestStatus>> entryMock;
+  @Mock private LatestStatus lstatMock2;
 
   public ScannerImplTest() {
     prepareMocks(this);
@@ -95,14 +97,28 @@ public class ScannerImplTest {
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.removeAll("id")).andReturn(null);
     expect(docMock.put("id", "42")).andReturn(true);
-    expect(docMock.getStatus()).andReturn(PROCESSING).times(2);
+    expect(scanner.getDownstreamPotentSteps()).andReturn(new Step[]{stepMock1}).anyTimes();
+    expect(docMock.alreadyHasIncompleteStepList()).andReturn(false); //<< key test case
+    expect(docMock.getStatus("fooStep")).andReturn(null);  //<< key test case
+    expect(stepMock1.getName()).andReturn("fooStep").anyTimes();
+    Capture<? extends Map<String, DocDestinationStatus>> c = newCapture();
+    docMock.setIncompletePotentSteps(capture(c));
 
     scanner.sendToNext(docMock);
 
     replay();
     scanner.docFound(docMock);
+    Map<String, DocDestinationStatus> value = c.getValue();
+    assertEquals(1,value.size());
+    assertEquals("fooStep",value.keySet().iterator().next());
+    DocDestinationStatus stat = value.values().iterator().next();
+    assertEquals("fooStep", stat.getPotentStep());
+    assertEquals(NEW_CONTENT_FOUND_MSG, stat.getMessage());
+    assertEquals(scannerName, stat.getMessageParams()[0]);
+    assertEquals(PROCESSING,stat.getStatus());
   }
 
+  // FTI finds a doc marked dirty remembering but not hashing
   @Test
   public void testDocFoundDirtyStatus() {
     expect(docMock.isForceReprocess()).andReturn(false);
@@ -120,10 +136,14 @@ public class ScannerImplTest {
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.put("id", "42")).andReturn(true);
     expect(docMock.removeAll("id")).andReturn(null);
-    expect(docMock.getStatus()).andReturn(DIRTY).times(2);
-    expect(scanner.heuristicDirty(docMock)).andReturn(false);
-    docMock.setStatus(PROCESSING);
 
+    expect(scanner.getDownstreamPotentSteps()).andReturn(new Step[]{stepMock1,stepMock2});
+    expect(stepMock1.getName()).andReturn("dest1");
+    expect(stepMock2.getName()).andReturn("dest2");
+    expect(docMock.getStatus("dest1")).andReturn(DIRTY);
+    expect(docMock.getStatus("dest2")).andReturn(DIRTY);
+    expect(scanner.seenPreviously(scannerName,"42",sessionMock)).andReturn(false);
+    expect(docMock.alreadyHasIncompleteStepList()).andReturn(true);
 
     scanner.sendToNext(docMock);
     replay();
@@ -131,9 +151,10 @@ public class ScannerImplTest {
   }
 
   // the case where the doc was found and the status was "processing" but
-  // hashing is not turned on.
+  // hashing is not turned on, and somehow forceReprocess is not set
   @Test
-  public void testDocFoundProcessingStatus() {
+  public void testDocFoundProcessingStatusPreviouslySeen() {
+    // Note: this is an atypical case normally this would be set if processing status was found by FTI
     expect(docMock.isForceReprocess()).andReturn(false);
     String scannerName = "Dent, Aurthur Dent";
     expect(scanner.getName()).andReturn(scannerName).anyTimes();
@@ -147,10 +168,11 @@ public class ScannerImplTest {
     expect(docMock.put("id", "42")).andReturn(true);
     expect(docMock.removeAll("id")).andReturn(null);
     expect(scanner.seenPreviously(scannerName,"42",sessionMock)).andReturn(true);
-    expect(scanner.heuristicDirty(docMock)).andReturn(false);
+    expect(scanner.isHeuristicallyDirty(docMock)).andReturn(false);
 
-    expect(docMock.getStatus()).andReturn(PROCESSING);
-
+    expect(scanner.getDownstreamPotentSteps()).andReturn(new Step[]{stepMock1});
+    expect(stepMock1.getName()).andReturn("fooStep");
+    expect(docMock.getStatus("fooStep")).andReturn(PROCESSING);
     replay();
     scanner.docFound(docMock);
   }
@@ -166,35 +188,49 @@ public class ScannerImplTest {
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(scanner.getCassandra()).andReturn(supportMock).anyTimes();
     expect(supportMock.getSession()).andReturn(sessionMock);
-    expect(scanner.heuristicDirty(docMock)).andReturn(true);
+    expect(scanner.isHeuristicallyDirty(docMock)).andReturn(true);
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.removeAll("id")).andReturn(null);
     expect(docMock.put("id", "42")).andReturn(true);
     scanner.sendToNext(docMock);
     expect(scanner.seenPreviously(scannerName,"42",sessionMock)).andReturn(true);
-    expect(docMock.getStatus()).andReturn(PROCESSING).times(2);
 
-
-
+    expect(scanner.getDownstreamPotentSteps()).andReturn(new Step[]{stepMock1});
+    expect(docMock.alreadyHasIncompleteStepList()).andReturn(true); //<< (if processing already set)
+    expect(stepMock1.getName()).andReturn("fooStep");
+    expect(docMock.getStatus("fooStep")).andReturn(PROCESSING);
     replay();
     scanner.docFound(docMock);
   }
 
+  // Tests the case where a scanner not configured to remember anything finds a document
   @Test
   public void testDocFoundNoMemory() {
-    expect(scanner.getName()).andReturn("Dent, Aurthur Dent").anyTimes();
-    expect(scanner.isRemembering()).andReturn(false).anyTimes();
+    String scannerName = "Dent, Aurthur Dent";
+    expect(scanner.getName()).andReturn(scannerName).anyTimes();
+    expect(scanner.isRemembering()).andReturn(false).anyTimes();  // << key test case
     expect(docMock.getId()).andReturn("42").anyTimes();
     expect(scanner.getIdFunction()).andReturn((foo) -> foo);
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.removeAll("id")).andReturn(null);
     expect(docMock.put("id", "42")).andReturn(true);
-    expect(docMock.getStatus()).andReturn(PROCESSING);
-
+    expect(docMock.isForceReprocess()).andReturn(false);
+    expect(scanner.getDownstreamPotentSteps()).andReturn(new Step[]{stepMock1});
+    expect(stepMock1.getName()).andReturn("fooStep").anyTimes();
+    Capture<? extends Map<String, DocDestinationStatus>> c = newCapture();
+    docMock.setIncompletePotentSteps(capture(c));
     scanner.sendToNext(docMock);
 
     replay();
     scanner.docFound(docMock);
+    Map<String, DocDestinationStatus> value = c.getValue();
+    assertEquals(1,value.size());
+    assertEquals("fooStep",value.keySet().iterator().next());
+    DocDestinationStatus stat = value.values().iterator().next();
+    assertEquals("fooStep", stat.getPotentStep());
+    assertEquals(NEW_CONTENT_FOUND_MSG, stat.getMessage());
+    assertEquals(scannerName, stat.getMessageParams()[0]);
+    assertEquals(PROCESSING,stat.getStatus());
   }
 
   @Test
@@ -213,7 +249,12 @@ public class ScannerImplTest {
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.put("id", "42")).andReturn(true);
     scanner.sendToNext(docMock);
-    expect(docMock.getStatus()).andReturn(PROCESSING).times(2);
+
+    expect(scanner.getDownstreamPotentSteps()).andReturn(new Step[]{stepMock1});
+    expect(docMock.alreadyHasIncompleteStepList()).andReturn(true); //<< (if processing already set)
+    expect(stepMock1.getName()).andReturn("fooStep");
+    expect(docMock.getStatus("fooStep")).andReturn(PROCESSING);
+
 
     replay();
     scanner.docFound(docMock);
@@ -235,9 +276,10 @@ public class ScannerImplTest {
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.put("id", "42")).andReturn(true);
     expect(docMock.removeAll("id")).andReturn(null);
-    expect(scanner.heuristicDirty(docMock)).andReturn(false);
-    expect(docMock.getStatus()).andReturn(PROCESSING);
-
+    expect(scanner.isHeuristicallyDirty(docMock)).andReturn(false);
+    expect(scanner.getDownstreamPotentSteps()).andReturn(new Step[]{stepMock1});
+    expect(stepMock1.getName()).andReturn("fooStep");
+    expect(docMock.getStatus("fooStep")).andReturn(PROCESSING);
     replay();
     scanner.docFound(docMock);
   }
@@ -258,8 +300,10 @@ public class ScannerImplTest {
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.removeAll("id")).andReturn(null);
     expect(docMock.put("id", "42")).andReturn(true);
-    expect(docMock.getStatus()).andReturn(PROCESSING).times(2);
-
+    expect(scanner.getDownstreamPotentSteps()).andReturn(new Step[]{stepMock1});
+    expect(docMock.alreadyHasIncompleteStepList()).andReturn(true); //<< (if processing already set)
+    expect(stepMock1.getName()).andReturn("fooStep");
+    expect(docMock.getStatus("fooStep")).andReturn(PROCESSING);
 
     scanner.sendToNext(docMock);
     replay();
@@ -317,26 +361,65 @@ public class ScannerImplTest {
     expect(iterMock.hasNext()).andReturn(false);
     expect(iterMock.next()).andReturn(rowMock).times(4);
     expect(rowMock.getString(0)).andReturn("foobarId").times(4); // slightly lazy could return 4 diff ids, but this is complicated enough
-    expect(scanner.fetchById("foobarId")).andReturn(Optional.of(docMock)).times(4);
     expect(scanner.isActive()).andReturn(true).anyTimes();
-    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId","potentStepName")).andReturn("PROCESSING");
-    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId","potentStepName")).andReturn("BATCHED");
-    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId","potentStepName")).andReturn("RESTART");
-    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId","potentStepName")).andReturn("FORCE");
-    Step[] steps = new Step[]{stepMock};
+    Map<String,LatestStatus> cache = new HashMap<>();
+    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId","potentStepName", cache)).andReturn(lstatMock);
+    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId","potentStepName", cache)).andReturn(lstatMock);
+    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId","potentStepName", cache)).andReturn(lstatMock);
+    expect(scanner.findLatestSatus(findStrandedDocs, "foobarId","potentStepName", cache)).andReturn(lstatMock);
+    expect(lstatMock.getStatus()).andReturn(PROCESSING.toString()).times(4);
+
+    Step[] steps = new Step[]{stepMock1};
     expect(scanner.getDownstreamPotentSteps()).andReturn(steps);
-    expect(stepMock.getName()).andReturn("potentStepName");
-
-    docMock.setForceReprocess(true);
-    expectLastCall().times(3);
-    docMock.setForceReprocess(true);
-    expectLastCall().times(1);
-    scanner.docFound(docMock);
-    expectLastCall().times(4);
-
+    expect(stepMock1.getName()).andReturn("potentStepName");
+    Set<String> sentAlready = new HashSet<>();
+    Capture<Map.Entry<String, List<LatestStatus>>> c = newCapture();
+    //noinspection DataFlowIssue
+    scanner.process(eq(true),eq(sentAlready),capture(c), eq(FTI_ORIGIN));
     replay();
-    List<String> sentAlready = new ArrayList<>();
     FTIQueryContext src = new FTIQueryContext(sentAlready);
     scanner.processPendingDocs(src, List.of(PROCESSING, BATCHED, RESTART, FORCE), true);
+    Map.Entry<String, List<LatestStatus>> captured = c.getValue();
+    assertEquals("foobarId", captured.getKey());
+    assertEquals(1,captured.getValue().size());
+    assertEquals(lstatMock,captured.getValue().iterator().next());
+  }
+
+  @Test
+  public void testProcess() {
+    Set<String> sentAlready = new HashSet<>();
+    Map.Entry<String, List<LatestStatus>> toProcess = entryMock;
+
+    expect(entryMock.getKey()).andReturn("fooId");
+    expect(scanner.fetchById("fooId",FTI_ORIGIN)).andReturn(Optional.of(docMock));
+    docMock.setForceReprocess(true);
+    Capture<Map<String, DocDestinationStatus>> downstream = newCapture();
+    docMock.setIncompletePotentSteps(capture(downstream));
+    List<LatestStatus> stats = new ArrayList<>();
+    stats.add(lstatMock);
+    stats.add(lstatMock2);
+    expect(entryMock.getValue()).andReturn(stats);
+    expect(lstatMock.getPotentStepName()).andReturn("potentStep1").anyTimes();
+    expect(lstatMock2.getPotentStepName()).andReturn("potentStep2").anyTimes();
+    expect(lstatMock.getStatus()).andReturn(ERROR.toString()).anyTimes();
+    expect(lstatMock2.getStatus()).andReturn(ERROR.toString()).anyTimes();
+    expect(lstatMock.getTimestamp()).andReturn("whenever");
+    expect(lstatMock2.getTimestamp()).andReturn("slightly later");
+    scanner.docFound(docMock);
+
+    replay();
+    scanner.process(true, sentAlready, toProcess, FTI_ORIGIN);
+
+    assertEquals(1, sentAlready.size() );
+    assertEquals("fooId", sentAlready.iterator().next() );
+    Map<String, DocDestinationStatus> downstreamValue = downstream.getValue();
+    assertEquals(2, downstreamValue.size());
+    DocDestinationStatus s1 = downstreamValue.get("potentStep1");
+    assertNotNull(s1);
+    assertEquals("Prior status:potentStep1>ERROR@whenever", s1.getMessage());
+    assertEquals(0, s1.getMessageParams().length);
+    DocDestinationStatus s2 = downstreamValue.get("potentStep2");
+    assertEquals("Prior status:potentStep2>ERROR@slightly later", s2.getMessage());
+    assertEquals(0, s2.getMessageParams().length);
   }
 }

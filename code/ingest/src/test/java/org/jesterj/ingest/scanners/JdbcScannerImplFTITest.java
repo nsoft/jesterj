@@ -16,7 +16,6 @@
 
 package org.jesterj.ingest.scanners;
 
-import com.google.common.io.Files;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.impl.NamedBuilder;
@@ -111,8 +110,7 @@ public class JdbcScannerImplFTITest extends ScannerImplTest {
 //      "expect cassandra is not playing nice here")
   public void testScanWithMemory() throws InterruptedException, SQLException, IOException {
     loadShakespeareToHSQL();
-    //noinspection UnstableApiUsage,deprecation
-    File tempDir = Files.createTempDir();
+    File tempDir = getUniqueTempDir();
     Cassandra.start(tempDir, "127.0.0.1");
 
     String[] errorId = new String[1];

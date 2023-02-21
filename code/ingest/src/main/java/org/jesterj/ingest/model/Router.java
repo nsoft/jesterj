@@ -55,7 +55,8 @@ public interface Router extends Configurable {
   Step getStep();
 
   /**
-   * Decide where to send this document. The result may represent some all or none of the steps down stream.
+   * Decide where to send this document. The result may represent some or all of the steps down stream. Note that
+   * it is illegal for a router not to select at least one destination, and this will cause errors.
    *
    * @param doc The document to route
    * @return An object encapsulating the destinations to which the document (or copies of it) will be sent.

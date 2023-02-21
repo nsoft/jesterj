@@ -16,7 +16,6 @@
 
 package org.jesterj.ingest.scanners;
 
-import com.google.common.io.Files;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
@@ -92,8 +91,7 @@ public class JdbcScannerImplTest extends ScannerImplTest {
   @SuppressWarnings("SqlResolve")
   @Test
   public void testScan() throws InterruptedException, SQLException {
-    @SuppressWarnings({"deprecation", "UnstableApiUsage"})
-    File tempDir = Files.createTempDir();
+    File tempDir = getUniqueTempDir();
     Cassandra.start(tempDir, "127.0.0.1");
 
     Connection c = DriverManager.getConnection("jdbc:hsqldb:mem:employees", "SA", "");

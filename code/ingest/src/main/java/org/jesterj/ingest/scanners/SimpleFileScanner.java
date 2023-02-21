@@ -98,10 +98,10 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   }
 
   @Override
-  public Optional<Document> fetchById(String id) {
+  public Optional<Document> fetchById(String id, String origination) {
     try {
       File file = new File(new URI(id));
-      return makeDoc(file.toPath(), Document.Operation.NEW, Files.readAttributes(file.toPath(), BasicFileAttributes.class));
+      return makeDoc(file.toPath(), Document.Operation.NEW, Files.readAttributes(file.toPath(), BasicFileAttributes.class), origination);
     } catch (URISyntaxException e) {
       log.error("Malformed doc id, can't fetch document: {}", id);
       return Optional.empty();
@@ -127,7 +127,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
       log.trace("found file {}", file);
-      Optional<Document> document = makeDoc(file, Document.Operation.NEW, attrs);
+      Optional<Document> document = makeDoc(file, Document.Operation.NEW, attrs, ScannerImpl.SCAN_ORIGIN);
       log.trace("Created:{}", document::get);
       document.ifPresent(SimpleFileScanner.this::docFound);
       return FileVisitResult.CONTINUE;
@@ -145,7 +145,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     }
   }
 
-  private Optional<Document> makeDoc(Path file, Document.Operation operation, BasicFileAttributes attributes) {
+  private Optional<Document> makeDoc(Path file, Document.Operation operation, BasicFileAttributes attributes, String origination) {
     byte[] rawData = new byte[0];
     try {
       long size = attributes.size();
@@ -166,7 +166,8 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
           id,
           getPlan(),
           operation,
-          this
+          this,
+          origination
       );
       addAttrs(attributes, doc);
       return Optional.of(doc);

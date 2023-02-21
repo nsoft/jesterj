@@ -28,6 +28,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
+import static org.jesterj.ingest.model.impl.ScannerImpl.SCAN_ORIGIN;
 // need to ignore org.apache.zookeeper.server.SessionTrackerImpl thread
 
 @SuppressWarnings("SameParameterValue")
@@ -125,7 +127,7 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
         }
 
         @Override
-        public Optional<Document> fetchById(String id) {
+        public Optional<Document> fetchById(String id, String origination) {
           return Optional.empty();
         }
 
@@ -134,7 +136,7 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
           return "foo";
         }
       };
-      document = new DocumentImpl(new byte[0], "1", plan, Document.Operation.NEW, s);
+      document = new DocumentImpl(new byte[0], "1", plan, Document.Operation.NEW, s, SCAN_ORIGIN);
       document.put("preanalyzed", "Quick red fox or 2 + 2 = 4");
       paf.processDocument(document);
 

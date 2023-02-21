@@ -3,7 +3,6 @@ package org.jesterj.ingest.processors;
 import com.copyright.easiertest.Mock;
 import org.apache.tika.exception.TikaException;
 import org.jesterj.ingest.model.Document;
-import org.jesterj.ingest.model.Status;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -143,7 +142,7 @@ public class TikaProcessorTest {
         .build();
   }
 
-  @Test
+  @Test(expected = RuntimeException.class)
   public void testBadDoc() throws ParserConfigurationException, IOException, SAXException, TikaException {
     DocumentBuilder builder = getDocumentBuilder();
     ByteArrayInputStream input = new ByteArrayInputStream(XML_CONFIG.getBytes("UTF-8"));
@@ -152,7 +151,6 @@ public class TikaProcessorTest {
         .configuredWith(doc)
         .build();
     expect(mockDocument.getRawData()).andReturn(XML_BROKEN.getBytes()).anyTimes();
-    mockDocument.setStatus(Status.ERROR);
     replay();
     proc.processDocument(mockDocument);
   }

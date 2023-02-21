@@ -26,7 +26,8 @@ import java.util.*;
  * A router that sends documents to subsequent steps by comparing the value in a standard field
  * in the document to the name of subsequent steps. Only the first value in the standard field is consulted, and
  * only one step may be returned (because all steps must hae a unique value for name). Therefore this router
- * will never duplicate the document.
+ * will never duplicate the document. Also note that if this router does not find a next destination it will
+ * cause an error for the document.
  */
 public class RouteByStepName extends RouterBase {
   private static final Logger log = LogManager.getLogger();
@@ -40,7 +41,7 @@ public class RouteByStepName extends RouterBase {
 
   @Override
   public boolean isDeterministic() {
-    return false;
+    return true;
   }
 
   @Override
@@ -62,11 +63,17 @@ public class RouteByStepName extends RouterBase {
     }
     Step dest = getStep().getNextSteps().get(firstValue);
     if (dest == null) {
-      log.warn("Document " + doc.getId() + " dropped! no value for " + JESTERJ_NEXT_STEP_NAME +
-          " You probably want to either set a different router or provide a value.");
+      log.warn("Document {} dropped! no value for {} You probably want to either set a different " +
+          "router or provide a value for that field in the document.", doc::getId, this::getKeyFieldName);
+      updateExcludedDestinations(doc);
+    } else {
+      updateExcludedDestinations(doc, dest);
     }
-    updateExcludedDestinations(doc, dest);
-    return dest == null ? null : new NextSteps(doc, dest);
+
+    NextSteps nextSteps = dest == null ? null : new NextSteps(doc, dest);
+    log.trace("Document {} Routed to {}, with statuses:{}", doc::getId, () -> nextSteps, doc::dumpStatus);
+    doc.reportDocStatus();
+    return nextSteps;
   }
 
   @Override

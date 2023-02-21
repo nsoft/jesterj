@@ -20,6 +20,7 @@ import com.copyright.easiertest.Mock;
 import com.copyright.easiertest.ObjectUnderTest;
 import com.google.common.collect.ArrayListMultimap;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.jesterj.ingest.model.DocDestinationStatus;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
@@ -28,14 +29,16 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.copyright.easiertest.EasierMocks.prepareMocks;
 import static com.copyright.easiertest.EasierMocks.replay;
 import static com.copyright.easiertest.EasierMocks.reset;
 import static com.copyright.easiertest.EasierMocks.verify;
 import static org.easymock.EasyMock.expect;
-import static org.jesterj.ingest.model.Status.DROPPED;
-import static org.jesterj.ingest.model.Status.PROCESSING;
+import static org.jesterj.ingest.model.Status.*;
+import static org.jesterj.ingest.model.impl.ScannerImpl.SCAN_ORIGIN;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -70,9 +73,9 @@ public class DocumentImplTest {
     expect(scannerMock.getName()).andReturn("my_name").anyTimes();
     expect(planMock.getDocIdField()).andReturn("id").anyTimes();
     replay();
-    DocumentImpl document = new DocumentImpl(new byte[]{}, "foo", planMock, Document.Operation.NEW, scannerMock);
+    DocumentImpl document = new DocumentImpl(new byte[]{}, "foo", planMock, Document.Operation.NEW, scannerMock, SCAN_ORIGIN);
     document.put("string", "stringvalue");
-    DocumentImpl document2 = new DocumentImpl(new byte[]{}, "foo", planMock, Document.Operation.NEW, scannerMock);
+    DocumentImpl document2 = new DocumentImpl(new byte[]{}, "foo", planMock, Document.Operation.NEW, scannerMock, SCAN_ORIGIN);
     document2.put("string", "stringvalue");
 //    System.out.println(document.getHash());
 //    System.out.println(document2.getHash());
@@ -106,7 +109,12 @@ public class DocumentImplTest {
     expect(planMock.getDocIdField()).andReturn("id");
     replay();
     byte[] rawData = new byte[] {1,2};
-    DocumentImpl impl = new DocumentImpl(rawData, "fooId", planMock, Document.Operation.NEW, scannerMock);
+    DocumentImpl impl = new DocumentImpl(rawData, "fooId", planMock, Document.Operation.NEW, scannerMock, SCAN_ORIGIN);
+
+    Map<String, DocDestinationStatus> foo = new HashMap<>();
+    foo.put("destination1",new DocDestinationStatus(PROCESSING,"destination1","Found by scanner"));
+    foo.put("destination2",new DocDestinationStatus(PROCESSING,"destination2","Found by scanner"));
+    impl.setIncompletePotentSteps(foo);
 
     assertEquals(Document.Operation.NEW, impl.getOperation());
 
@@ -146,19 +154,46 @@ public class DocumentImplTest {
 
     assertArrayEquals(new byte[] {1,2}, impl.getRawData());
 
-    assertEquals(PROCESSING, impl.getStatus());
-    impl.setStatus(DROPPED, "just because...");
-    assertEquals(DROPPED, impl.getStatus());
-    assertEquals(impl.getStatusMessage(), "just because...");
+    assertEquals(PROCESSING, impl.getStatus("destination1"));
+    assertEquals(PROCESSING, impl.getStatus("destination2"));
 
-    assertEquals("DocumentImpl{" +
-        "id=fooId, " +
-        "delegate={doc_raw_size=[2], foo=[baz], fizz=[buzz], nullthing=[null], id=[fooId]}, " +
-        "status=DROPPED, " +
-        "statusMessage='just because...', " +
-        "operation=NEW, " +
-        "sourceScannerName='scannerFoo', " +
-        "idField='id'}", impl.toString());
+    impl.setStatus(DROPPED,"destination1", "Just because...");
+    assertEquals(DROPPED, impl.getStatus("destination1"));
+    assertEquals("Just because...", impl.getStatusMessage("destination1"));
+
+    impl.setStatus(ERROR,"destination2", "It was bad, {} bad", "real");
+    assertEquals(ERROR, impl.getStatus("destination2"));
+    assertEquals("It was bad, {} bad", impl.getStatusMessage("destination2"));
+
+    assertEquals("" +
+        "DocumentImpl{" +
+            "id=fooId, " +
+            "delegate={" +
+              "doc_raw_size=[2], " +
+              "foo=[baz], " +
+              "fizz=[buzz], " +
+              "nullthing=[null], " +
+              "id=[fooId]" +
+            "}, " +
+            "status={" +
+              "destination1=DocDestinationStatus{" +
+                "status=DROPPED, " +
+                "message='Just because...', " +
+                "potentStep='destination1', " +
+                "messageArgs=[]" +
+              "}, " +
+              "destination2=DocDestinationStatus{" +
+                "status=ERROR, " +
+                "message='It was bad, {} bad', " +
+                "potentStep='destination2', " +
+                "messageArgs=[real]" +
+              "}" +
+            "}, " +
+            "operation=NEW, " +
+            "sourceScannerName='scannerFoo', " +
+            "idField='id', " +
+            "origin=SCAN" +
+        "}", impl.toString());
 
     assertFalse(impl.isEmpty());
     impl.clear();

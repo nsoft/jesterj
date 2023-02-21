@@ -22,6 +22,7 @@ import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
+import org.jesterj.ingest.model.StepNameAware;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.util.concurrent.Executors;
@@ -29,7 +30,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-abstract class BatchProcessor<T> implements DocumentProcessor {
+abstract class BatchProcessor<T> implements DocumentProcessor, StepNameAware {
   private static final Logger log = LogManager.getLogger();
 
   private final ScheduledExecutorService sender = Executors.newScheduledThreadPool(1);
@@ -41,6 +42,7 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
   private final Object sendLock = new Object();
 
   private ConcurrentBiMap<Document, T> batch;
+  private String stepName;
 
   {
     // lock on monitor to ensure initialization "happens before" any access.
@@ -68,8 +70,9 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
     }
     scheduledSend = sender.schedule(() -> sendBatch(takeBatch()), sendPartialBatchAfterMs, TimeUnit.MILLISECONDS);
 
-    log.info(Status.BATCHED.getMarker(), "{} queued in position {} for sending to solr. " +
+    document.setStatus(Status.BATCHED,getStepName(), "{} queued in position {} for sending to solr. " +
         "Will be sent within {} milliseconds.", document.getId(), size, sendPartialBatchAfterMs);
+    document.reportDocStatus();
 
     return new Document[0];
   }
@@ -137,6 +140,15 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
 
   protected abstract T convertDoc(Document document);
 
+  @Override
+  public void setStepName(String stepName) {
+    this.stepName = stepName;
+  }
+
+  @Override
+  public String getStepName() {
+    return stepName;
+  }
 
   @SuppressWarnings("unused")
   public static abstract class Builder<T> extends NamedBuilder<BatchProcessor<T>> {

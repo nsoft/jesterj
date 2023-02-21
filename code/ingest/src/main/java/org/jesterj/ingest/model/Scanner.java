@@ -60,7 +60,16 @@ public interface Scanner extends Step {
         };
     }
 
-    /**
+  /**
+   * Scanners that have a way of detecting dirty data that needs re-indexed can override this method to trigger
+   * re-indexing in cases where it would otherwise be skipped.
+   *
+   * @param doc the document to check
+   * @return true if indexing is required, false otherwise.
+   */
+  boolean isHeuristicallyDirty(Document doc);
+
+  /**
      * A callback that calls docFound() on the scanner when a document is found that needs to be indexed.
      * The call back should call {@link org.jesterj.ingest.model.impl.ScannerImpl#scanStarted()} when it starts
      * doing work, and {@link org.jesterj.ingest.model.impl.ScannerImpl#scanFinished()}
@@ -95,9 +104,10 @@ public interface Scanner extends Step {
      * Load a document based on the document's id.
      *
      * @param id the id of the document, see also {@link Document#getId()}
+     * @param origination A constant indicating the source (scanner or fti) for debugging
      * @return An optional that contains the document if it is possible to retrieve the document by ID
      */
-    Optional<Document> fetchById(String id);
+    Optional<Document> fetchById(String id, String origination);
 
   /**
    * Indicates if this scanner will re-feed documents it has already seen. This behavior can

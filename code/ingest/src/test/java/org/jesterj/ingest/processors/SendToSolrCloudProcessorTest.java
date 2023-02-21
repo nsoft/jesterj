@@ -100,7 +100,9 @@ public class SendToSolrCloudProcessorTest {
     RuntimeException e = new RuntimeException("TEST EXCEPTION");
     expect(proc.log()).andReturn(logMock).anyTimes();
     expect(docMock.getId()).andReturn("42");
-    logMock.info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", "42", "TEST EXCEPTION");
+    expect(proc.getStepName()).andReturn("stepFoo");
+    docMock.setStatus(Status.ERROR, "stepFoo", "{} could not be sent to solr because of {}", "42", "TEST EXCEPTION");
+    docMock.reportDocStatus();
     logMock.error("Error communicating with solr!", e);
     replay();
     proc.perDocFailLogging(e, docMock);

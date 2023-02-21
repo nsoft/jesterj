@@ -61,7 +61,8 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
 
   @Override
   protected void perDocFailLogging(Exception e, Document doc) {
-    log().info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", doc.getId(), e.getMessage());
+    doc.setStatus(Status.ERROR, getStepName(), "{} could not be sent to solr because of {}", doc.getId(), e.getMessage());
+    doc.reportDocStatus();
     log().error("Error communicating with solr!", e);
   }
 
@@ -72,22 +73,23 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
 
   @Override
   protected void individualFallbackOperation(ConcurrentBiMap<Document, SolrInputDocument> oldBatch, Exception e) {
-    // TODO: send in bisected batches to avoid massive traffic down due to one doc when batches are large
+    // TODO: send in bisected batches to avoid massive traffic due to one doc when batches are large
     for (Document document : oldBatch.keySet()) {
       createDocContext(document).run(() -> {
         try {
           SolrInputDocument doc = oldBatch.get(document);
           if (doc instanceof Delete) {
             getSolrClient().deleteById(oldBatch.inverse().get(doc).getId());
-            log().info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());
+            document.setStatus(Status.INDEXED,getStepName(),"{} deleted from solr successfully", document.getId());
           } else {
             getSolrClient().add(doc);
-            log().info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
+            document.setStatus(Status.INDEXED,getStepName(),"{} sent to solr successfully", document.getId());
           }
         } catch (IOException | SolrServerException e1) {
-          log().info(Status.ERROR.getMarker(), "{} could not be sent to solr because of {}", document.getId(), e1.getMessage());
+          document.setStatus(Status.ERROR,getStepName(),"{} could not be sent to solr because of {}", document.getId(), e1.getMessage());
           log().error("Error sending to with solr!", e1);
         }
+        document.reportDocStatus();
       });
     }
   }
@@ -123,10 +125,11 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
       DocumentLoggingContext docContext = createDocContext(document);
       Runnable runnable = () -> {
         if (document.getOperation() == Document.Operation.DELETE) {
-          log().info(Status.INDEXED.getMarker(), "{} deleted from solr successfully", document.getId());
+          document.setStatus(Status.INDEXED, getStepName(), "{} deleted from solr successfully", document.getId());
         } else {
-          log().info(Status.INDEXED.getMarker(), "{} sent to solr successfully", document.getId());
+          document.setStatus(Status.INDEXED, getStepName(), "{} sent to solr successfully", document.getId());
         }
+        document.reportDocStatus();
       };
       docContext.run(runnable);
     }

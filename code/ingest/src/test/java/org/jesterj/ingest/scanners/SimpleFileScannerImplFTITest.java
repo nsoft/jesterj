@@ -16,7 +16,6 @@
 
 package org.jesterj.ingest.scanners;
 
-import com.google.common.io.Files;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.DocumentProcessor;
@@ -36,7 +35,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.Assert.*;
 
 
-//@Ignore
 public class SimpleFileScannerImplFTITest extends ScannerImplTest {
 
   private static final String SHAKESPEARE = "Shakespeare_scanner";
@@ -59,8 +57,7 @@ public class SimpleFileScannerImplFTITest extends ScannerImplTest {
 //      "expect cassandra is not playing nice here")
   public void testScanWithMemory() throws InterruptedException {
 
-    @SuppressWarnings({"deprecation", "UnstableApiUsage"})
-    File tempDir = Files.createTempDir();
+    File tempDir = getUniqueTempDir();
 
     Cassandra.start(tempDir, "127.0.0.1");
 

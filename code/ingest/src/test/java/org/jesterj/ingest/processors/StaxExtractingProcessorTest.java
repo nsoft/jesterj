@@ -117,8 +117,9 @@ public class StaxExtractingProcessorTest {
   public void testIncludeAttributeText() {
     Pattern nlmta = Pattern.compile("nlm-ta");
     ElementSpec journal_id_s = new ElementSpec("journal_id_s");
-    journal_id_s.matchOnAttrValue(null, "journal-id-type", nlmta);
-    journal_id_s.inclAttributeText(null, "journal-id-type");
+    journal_id_s
+        .matchOnAttrValue(null, "journal-id-type", nlmta)
+        .inclAttributeText(null, "journal-id-type");
     StaxExtractingProcessor proc = new StaxExtractingProcessor.Builder()
         .named("testIncludeAttributeText")
         .failOnLongPath(true)

@@ -36,7 +36,7 @@ import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.persistence.CassandraSupport;
-import org.jesterj.ingest.processors.DocumentLoggingContext;
+import org.jesterj.ingest.processors.DocumentLoggingContext.ContextNames;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
@@ -44,14 +44,17 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Pattern;
 
-import static org.jesterj.ingest.processors.DocumentLoggingContext.ContextNames.JJ_SCANNER_NAME;
+import static org.jesterj.ingest.processors.DocumentLoggingContext.ContextNames.*;
 
 @SuppressWarnings("deprecation")
 @Plugin(name = "JesterJAppender", category = "Core", elementType = "appender")
 public class JesterJAppender extends AbstractAppender {
 
   public static final int FTI_TTL = 60 * 60 * 24 * 90;
+  public static final List<ContextNames> PER_EVENT_CONTEXT =
+      List.of(JJ_SCANNER_NAME, JJ_POTENT_STEP_CHANGES, JJ_STATUS_CHANGES) ;
 
   private static final String INSERT_REG =
       "INSERT INTO jj_logging.regular " +
@@ -72,10 +75,11 @@ public class JesterJAppender extends AbstractAppender {
           "?,?,?,?," +
           "?) USING TTL ?";
 
-  public static final String REG_INSERT_U = "REG_INSERT_Q";
-  public static final String FTI_INSERT_U = "FTI_INSERT_Q";
+  public static final String REG_INSERT_U = "REG_INSERT_U";
+  public static final String FTI_INSERT_U = "FTI_INSERT_U";
 
   private static final CassandraSupport cassandra = new CassandraSupport();
+  public static final Pattern MESSAGE_DELIMITER = Pattern.compile("#,#");
 
   private static CassandraLog4JManager manager;
 
@@ -216,33 +220,43 @@ public class JesterJAppender extends AbstractAppender {
       CqlSession s = cassandra.getSession();
 
       // everything wrapped in String.valueOf to avoid any issues with null.
-      String status = String.valueOf(e.getMarker().getName());
       Map<String, String> contextData = e.getContextData().toMap();
-      String potentSteps = contextData.get(Step.JJ_DOWNSTREAM_POTENT_STEPS);
-      String[] downstreamSteps = potentSteps.split(",");
+      String potentSteps = contextData.get(String.valueOf(JJ_POTENT_STEP_CHANGES));
+      String[] changedSteps = potentSteps.split(",");
+      String statuses = contextData.get(String.valueOf(JJ_STATUS_CHANGES));
+      String[] changedStatuses = statuses.split(",");
+      String messages = e.getMessage().getFormattedMessage();
+      String[] changeMessages = MESSAGE_DELIMITER.split(messages);
       String planName = contextData.get(Step.JJ_PLAN_NAME);
       String scannerName= contextData.get(String.valueOf(JJ_SCANNER_NAME));
 
-      for (String downstreamStep : downstreamSteps) {
+      int numberOfChanges = changedSteps.length;
+      if (changedStatuses.length != numberOfChanges || changeMessages.length != numberOfChanges ) {
+        throw new IllegalStateException("Cannot process document status update when the number of statuses, changes, " +
+            "messages and arg lists does ot match. This is always a bug in JesterJ");
+      }
+
+      for (int i = 0; i < changedSteps.length; i++) {
+        String changedStep = changedSteps[i];
         Plan plan = Main.locatePlan(planName).orElseThrow(); // will be caught by logging infra
         Scanner step = (Scanner) plan.findStep(scannerName);
-        String keySpace = step.keySpace(downstreamStep);
+        String keySpace = step.keySpace(changedStep);
         String sq = String.format(INSERT_FTI,keySpace);
         PreparedStatement update = cassandra.getPreparedQuery(FTI_INSERT_U + "_" + keySpace, sq);
         List<Object> params = new ArrayList<>(16);
 
         // Document context
-        DocumentLoggingContext.ContextNames[] names = DocumentLoggingContext.ContextNames.values();
-        for (DocumentLoggingContext.ContextNames name : names) {
-          if (name == JJ_SCANNER_NAME) continue;
+        ContextNames[] names = ContextNames.values();
+        for (ContextNames name : names) {
+          if (PER_EVENT_CONTEXT.contains(name)) continue;
           params.add(contextData.get(String.valueOf(name)));
         }
         // Step context
-        params.add(downstreamStep);
+        params.add(changedStep);
 
         // actual logging
-        params.add(status);
-        params.add(message);
+        params.add(changedStatuses[i]);
+        params.add(changeMessages[i]);
 
         // TimeSeries data in cassandra is plagued by a lack of resolution. If a document is scanned and then
         // the very first step drops it after a check that is quick and easily JIT optimized, we have a possible

@@ -20,11 +20,7 @@ package org.jesterj.ingest.model;/*
  * Date: 9/29/14
  */
 
-import org.apache.logging.log4j.Marker;
-
 import java.io.Serializable;
-
-import static org.jesterj.ingest.logging.Markers.*;
 
 /**
  * The conceptual states available for indexed resources.
@@ -39,110 +35,59 @@ public enum Status implements Serializable {
    * best to write a FORCE event to the appropriate table in the keyspace for that scanner in that version of the plan
    * JesterJ never writes force events itself, they only come from external sources.
    */
-  FORCE {
-    @Override
-    public Marker getMarker() {
-      return SET_FORCE;
-    }
-  },
+  FORCE,
 
   /**
    * Resource needs reprocessing, Semantically similar to Force but indicates a decision made in the Plan, or by
    * JesterJ itself.
    */
-  RESTART {
-    @Override
-    public Marker getMarker() {
-      return SET_RESTART;
-    }
-  },
+  RESTART,
 
   /**
    * Resource may require re-indexing. Scanners will look for this state and then decide whether to create
    * a document for processing based on memory and hashing settings.
    */
-  DIRTY {
-    @Override
-    public Marker getMarker() {
-      return SET_DIRTY;
-    }
-  },
+  DIRTY,
 
 
   /**
    * A scanner has picked up resource, and deemed it worthy of processing document is in-flight. Further processing
    * should continue until another status is set.
    */
-  PROCESSING {
-    @Override
-    public Marker getMarker() {
-      return SET_PROCESSING;
-    }
-  },
+  PROCESSING,
 
   /**
    * Something went wrong, human being must intervene and evaluate. Further processing should be avoided, and stateful
    * Scanners should avoid creating new documents for the resource.
    */
-  ERROR {
-    @Override
-    public Marker getMarker() {
-      return SET_ERROR;
-    }
-  },
+  ERROR ,
 
   /**
    * The document is being held for communication to an entity in a batch. Commonly used when send to outside systems
    * that are more efficient receiving batches (e.g. Solr).
    */
-  BATCHED {
-    @Override
-    public Marker getMarker() {
-      return SET_READY;
-    }
-  },
+  BATCHED,
 
   /**
    * The document has been accepted by the destination (usually a search index), but may not be searchable until
    * the next commit.
    */
-  INDEXED {
-    @Override
-    public Marker getMarker() {
-      return SET_INDEXED;
-    }
-  },
+  INDEXED,
 
   /**
    * The resource is visible to users in the search index. This state is optional, and requires an index that
    * can report the status of committed documents. Most indexes don't do this without customization code.
    */
-  SEARCHABLE {
-    @Override
-    public Marker getMarker() {
-      return SET_SEARCHABLE;
-    }
-  },
+  SEARCHABLE ,
 
   /**
    * This document was intentionally skipped by the pipeline. Further processing should be avoided.
    */
-  DROPPED {
-    @Override
-    public Marker getMarker() {
-      return SET_DROPPED;
-    }
-  },
+  DROPPED ,
 
   /**
    * Terminal state for resources that generate documents that will never succeed and cannot be processed.
    */
-  DEAD {
-    @Override
-    public Marker getMarker() {
-      return SET_DEAD;
-    }
-  };
+  DEAD
 
-  public abstract Marker getMarker();
 }

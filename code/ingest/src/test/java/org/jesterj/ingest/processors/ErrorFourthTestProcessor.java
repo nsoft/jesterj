@@ -4,12 +4,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
-import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.impl.NamedBuilder;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ErrorFourthTestProcessor implements DocumentProcessor {
   private static final Logger log = LogManager.getLogger();
-  int count = 0;
+  AtomicInteger count = new AtomicInteger(0);
   private String name;
   @SuppressWarnings("unused")
   private String[] lastErrorId;
@@ -26,11 +27,12 @@ public class ErrorFourthTestProcessor implements DocumentProcessor {
 
   @Override
   public Document[] processDocument(Document document) {
-    count++;
+    int count = this.count.incrementAndGet();
     if (count % 5 == 4 && shouldError) {
-      document.setStatus(Status.ERROR,"Unit Test 4th doc drop");
-      log.info("Erroring {}",document.getId());
-      lastErrorId[0] = document.getId();
+      if (lastErrorId != null) {
+        lastErrorId[0] = document.getId();
+      }
+      throw new RuntimeException("Intentional error by " + getName() + " for " + document.getId());
     }
     log.info(getName() + " saw " + document.getId());
     return new Document[]{document};

@@ -55,6 +55,7 @@ import static com.copyright.easiertest.EasierMocks.replay;
 import static com.copyright.easiertest.EasierMocks.reset;
 import static com.copyright.easiertest.EasierMocks.verify;
 import static org.easymock.EasyMock.expect;
+import static org.jesterj.ingest.model.impl.ScannerImpl.SCAN_ORIGIN;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -154,7 +155,7 @@ public class PlanImplTest {
     assertEquals(object.getClass(), DuplicateToAll.class);
     assertEquals(SCAN_FOO_BAR, scanStep.getName());
     assertEquals(LOG_AND_DROP, dropStep.getName());
-    NextSteps foo = scanStep.getNextSteps(new DocumentImpl(null, "foo", plan, Document.Operation.NEW, (Scanner) scanStep));
+    NextSteps foo = scanStep.getNextSteps(new DocumentImpl(null, "foo", plan, Document.Operation.NEW, (Scanner) scanStep, SCAN_ORIGIN));
     assertEquals(LOG_AND_DROP, foo.list().get(0).getName());
 
   }

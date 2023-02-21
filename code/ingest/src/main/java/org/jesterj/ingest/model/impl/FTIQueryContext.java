@@ -1,17 +1,17 @@
 package org.jesterj.ingest.model.impl;
 
-import java.util.List;
+import java.util.Set;
 
 public class FTIQueryContext {
 
-    private final List<String> sentAlready;
+    private final Set<String> sentAlready;
 
-    public FTIQueryContext(List<String> sentAlready) {
+    public FTIQueryContext(Set<String> sentAlready) {
         this.sentAlready = sentAlready;
     }
 
 
-    public List<String> getSentAlready() {
+    public Set<String> getSentAlready() {
         return sentAlready;
     }
 }

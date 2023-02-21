@@ -16,25 +16,21 @@
 
 package org.jesterj.ingest.scanners;
 
-import com.google.common.io.Files;
-import org.jesterj.ingest.model.Document;
-import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
-import org.jesterj.ingest.model.impl.NamedBuilder;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.ScannerImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
 import org.jesterj.ingest.persistence.Cassandra;
+import org.jesterj.ingest.processors.DocumentCounter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
-import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
 
-public class SimpleFileScannerImplTest {
+public class SimpleFileScannerImplTest extends ScannerImplTest {
 
   private static final String SHAKESPEARE = "Shakespeare_scanner";
 
@@ -56,8 +52,7 @@ public class SimpleFileScannerImplTest {
 
   @Test
   public void testScan() throws InterruptedException {
-    @SuppressWarnings({"deprecation", "UnstableApiUsage"})
-    File tempDir = Files.createTempDir();
+    File tempDir = getUniqueTempDir();
     Cassandra.start(tempDir, "127.0.0.1");
 
     PlanImpl.Builder planBuilder = new PlanImpl.Builder();
@@ -68,33 +63,9 @@ public class SimpleFileScannerImplTest {
     File tragedies = new File("src/test/resources/test-data");
     scannerBuilder.named("test_scanner").withRoot(tragedies).named(SHAKESPEARE).scanFreqMS(1000);
 
-    HashMap<String, Document> scannedDocs = new HashMap<>();
-
-    testStepBuilder.named("test")
+    testStepBuilder.named("counterStep")
         .batchSize(10)
-        .withProcessor(
-            new NamedBuilder<>() {
-              @Override
-              public NamedBuilder<DocumentProcessor> named(String name) {
-                return null;
-              }
-
-              @Override
-              public DocumentProcessor build() {
-                return new DocumentProcessor() {
-                  @Override
-                  public String getName() {
-                    return null;
-                  }
-
-                  @Override
-                  public Document[] processDocument(Document document) {
-                    scannedDocs.put(document.getId(), document);
-                    return new Document[]{document};
-                  }
-                };
-              }
-            }
+        .withProcessor(new DocumentCounter.Builder().named("counterProc")
         );
 
     planBuilder
@@ -108,15 +79,22 @@ public class SimpleFileScannerImplTest {
       plan.activate();
 
       Thread.sleep(2000);
-      assertEquals(44, scannedDocs.size());
 
-      scannedDocs.clear();
+      assertEquals(44, sizeForCounter(plan, "counterStep"));
+
+      clearCounter(plan, "counterStep");
 
       Thread.sleep(2000);
-      assertEquals(44, scannedDocs.size());
+      assertEquals(44, sizeForCounter(plan, "counterStep"));
     } finally {
       plan.deactivate();
     }
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private void clearCounter(Plan plan, String counterStep) {
+    DocumentCounter counter = findCounter(plan, counterStep);
+    counter.getScannedDocs().clear();
   }
 
 

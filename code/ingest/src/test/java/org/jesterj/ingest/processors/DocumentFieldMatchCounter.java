@@ -19,7 +19,7 @@ public class DocumentFieldMatchCounter implements DocumentProcessor {
   private static final Logger log = LogManager.getLogger();
 
 
-  private final Map<String,Map<String, DocCounted>> scannedDocs = new HashMap<>();
+  private final Map<String,Map<String, DocCounted>> scannedDocsByValue = new HashMap<>();
   private String name;
 
   private String fieldName;
@@ -43,9 +43,10 @@ public class DocumentFieldMatchCounter implements DocumentProcessor {
         // ignore, would be shutting down.
       }
     }
-    Map<String, DocCounted> valueMap = getScannedDocs().computeIfAbsent(document.getFirstValue(fieldName), (fValue) -> new HashMap<>());
+    String firstValue = document.getFirstValue(fieldName);
+    Map<String, DocCounted> valueMap = getScannedDocsByValue().computeIfAbsent(firstValue, (fValue) -> new HashMap<>());
     valueMap.computeIfAbsent(document.getId(), (id) -> new DocCounted(document)).timesSeen.incrementAndGet();
-    log.info("Recording {}", document.getId());
+    log.info("Recording {} for value {}", document.getId(), firstValue);
     return new Document[]{document};
   }
 
@@ -59,8 +60,8 @@ public class DocumentFieldMatchCounter implements DocumentProcessor {
     return false;
   }
 
-  public Map<String, Map<String, DocCounted>> getScannedDocs() {
-    return scannedDocs;
+  public Map<String, Map<String, DocCounted>> getScannedDocsByValue() {
+    return scannedDocsByValue;
   }
 
   public void setBlock(boolean block) {

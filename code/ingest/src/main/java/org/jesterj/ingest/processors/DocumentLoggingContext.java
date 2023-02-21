@@ -4,6 +4,7 @@ import org.apache.logging.log4j.ThreadContext;
 import org.jesterj.ingest.model.Document;
 
 import java.io.Closeable;
+import java.util.stream.Collectors;
 
 public class DocumentLoggingContext implements Closeable {
 
@@ -67,7 +68,21 @@ public class DocumentLoggingContext implements Closeable {
       }
     },
 
-    ;
+    JJ_POTENT_STEP_CHANGES {
+      @Override
+      String fromDoc(Document d) {
+        return String.join(",", d.getStatusChanges().keySet()); // , not allowed in step name
+      }
+    },
+    JJ_STATUS_CHANGES {
+      @Override
+      String fromDoc(Document d) {
+        return d.getStatusChanges().values()
+            .stream()
+            .map(dds -> dds.getStatus().toString())
+            .collect(Collectors.joining(",")); // statuses won't have commas
+      }
+    };
      abstract String fromDoc(Document d);
   }
 }

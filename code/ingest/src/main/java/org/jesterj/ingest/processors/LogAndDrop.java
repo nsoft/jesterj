@@ -47,7 +47,7 @@ public class LogAndDrop implements DocumentProcessor {
   @Override
   public Document[] processDocument(Document document) {
     log.log(getLevel(), document.toString());
-    document.setStatus(Status.DROPPED);
+    document.setStatusAll(Status.DROPPED, "Intentional drop by LogAndDrop processor {}", getName());
     return new Document[]{document};
   }
 

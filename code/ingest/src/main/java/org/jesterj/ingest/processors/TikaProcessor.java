@@ -24,7 +24,6 @@ import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
-import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.io.ByteArrayInputStream;
@@ -72,7 +71,7 @@ public class TikaProcessor implements DocumentProcessor {
       } catch (IOException | TikaException e) {
         log.debug("Tika processing failure!", e);
         // if tika can't parse it we certainly don't want random binary crap in the index
-        document.setStatus(Status.ERROR);
+        throw new RuntimeException(e); // causes error statuses for appropriate destinations
       }
     } catch (Throwable t) {
       boolean isAccessControl = t instanceof AccessControlException;

@@ -29,7 +29,6 @@ import java.util.concurrent.BlockingQueue;
  */
 public interface Step extends Active, BlockingQueue<Document>, Runnable, DeferredBuilding, Configurable {
 
-  String JJ_DOWNSTREAM_POTENT_STEPS = "JJ_DOWNSTREAM_POTENT_STEPS";
   String JJ_PLAN_VERSION = "JJ_PLAN_VERSION";
   String JJ_PLAN_NAME = "JJ_PLAN_NAME";
 

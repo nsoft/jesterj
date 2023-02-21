@@ -24,7 +24,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
-import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.io.ByteArrayOutputStream;
@@ -38,6 +37,7 @@ import java.net.URLConnection;
  * complicated scenarios such as authentication, a different processor will be required, probably more
  * complicated versions should be implemented with Apache HTTP Client.
  */
+@SuppressWarnings("unused")
 public class FetchUrl implements DocumentProcessor {
   private static final Logger log = LogManager.getLogger();
 
@@ -79,7 +79,7 @@ public class FetchUrl implements DocumentProcessor {
 
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-      if (protocol != null && ("http".equals(protocol) || "https".equals(protocol))) {
+      if (("http".equals(protocol) || "https".equals(protocol))) {
         HttpURLConnection httpConnection = (HttpURLConnection) conn;
         int responseCode = httpConnection.getResponseCode();
         if (httpStatusField != null) {
@@ -97,12 +97,12 @@ public class FetchUrl implements DocumentProcessor {
       document.setRawData(baos.toByteArray());
     } catch (IOException e) {
       if (failOnIOError) {
+        throw new RuntimeException(e); // will result in error statuses
+      } else {
+        log.warn("Could not fetch " + url + " for " + document.getId(), e);
         if (errorField != null) {
           document.put(errorField, e.getMessage());
         }
-        document.setStatus(Status.ERROR);
-      } else {
-        log.warn("Could not fetch " + url + " for " + document.getId(), e);
       }
     }
     return new Document[]{document};

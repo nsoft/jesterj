@@ -16,33 +16,31 @@
 
 package org.jesterj.ingest.model.impl;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ForwardingListMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multiset;
+import com.google.common.collect.*;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.appender.AppenderLoggingException;
 import org.jesterj.ingest.Main;
-import org.jesterj.ingest.model.Document;
-import org.jesterj.ingest.model.Plan;
+import org.jesterj.ingest.logging.Markers;
 import org.jesterj.ingest.model.Scanner;
-import org.jesterj.ingest.model.Status;
+import org.jesterj.ingest.model.*;
 import org.jesterj.ingest.processors.DocumentLoggingContext;
+import org.jesterj.ingest.utils.Cloner;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 
 /**
  * A container for the file data and associated metadata. MetaData for which the key and the value
@@ -60,26 +58,29 @@ public class DocumentImpl implements Document {
   // document id field.
   private final String idField;
 
-  Logger log = LogManager.getLogger();
+  private static final Logger log = LogManager.getLogger();
 
-  private final ArrayListMultimap<String, String> delegate = ArrayListMultimap.create();
+  // sync so we have no issues with happens before among steps... possibly over conservative, but was fighting
+  // concurrency bugs, optimize it out later.
+  private final ListMultimap<String, String> delegate = Multimaps.synchronizedListMultimap(ArrayListMultimap.create());
   private byte[] rawData;
-  private Status status = Status.PROCESSING;
-  private String statusMessage = "";
+
   private final Operation operation;
   private final String sourceScannerName;
   private final String parentId;
   private final String originalParentId;
-  private volatile boolean statusChanged = true;
   private String docHash;
   private boolean forceReprocess;
+  private final Map<String, DocDestinationStatus> statusChanges = new ConcurrentHashMap<>();
+  private final Map<String, DocDestinationStatus> incompletePotentSteps = new ConcurrentHashMap<>();
+  private final String origination;
 
 
-  public DocumentImpl(byte[] rawData, String id, Plan plan, Operation operation, Scanner source) {
-    this(rawData,id,plan.getDocIdField(), operation,source.getName(),null,id);
+  public DocumentImpl(byte[] rawData, String id, Plan plan, Operation operation, Scanner source, String origination) {
+    this(rawData, id, plan.getDocIdField(), operation, source.getName(), null, id, origination);
   }
 
-  DocumentImpl(byte[] rawData, String id, String idField, Operation operation, String source,String parentId, String originalParentId) {
+  DocumentImpl(byte[] rawData, String id, String idField, Operation operation, String source, String parentId, String originalParentId, String origination) {
     this.rawData = rawData;
     this.operation = operation;
     this.sourceScannerName = source;
@@ -90,22 +91,45 @@ public class DocumentImpl implements Document {
     if (this.rawData != null) {
       this.delegate.put(DOC_RAW_SIZE, String.valueOf(this.rawData.length));
     }
+    this.origination =origination;
+  }
+
+  public DocumentImpl(byte[] rawData, String id, Operation oper, DocumentImpl parent) {
+    this.rawData =rawData;
+    if (this.rawData != null) {
+      this.delegate.put(DOC_RAW_SIZE, String.valueOf(this.rawData.length));
+    }
+    this.operation = oper;
+
+    this.idField = parent.idField;
+    this.delegate.put(idField,id);
+    this.sourceScannerName = parent.sourceScannerName;
+    this.parentId = parent.getId();
+    this.originalParentId = parent.originalParentId;
+    this.origination = parent.origination;
+    Cloner<DocDestinationStatus> cloner = new Cloner<>();
+    for (Map.Entry<String, DocDestinationStatus> step : parent.incompletePotentSteps.entrySet()) {
+      try {
+        this.incompletePotentSteps.put(step.getKey(), cloner.cloneObj(step.getValue()));
+      } catch (IOException | ClassNotFoundException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
   }
 
   /**
    * Make a child document. DeterministChild ID generation is critical for handling future
    *
-   * @param rawData Any raw data for the child document
+   * @param rawData   Any raw data for the child document
    * @param operation The operation implied for this child
-   * @param childId A unique and deterministically generated identifier for the child
+   * @param childId   A unique and deterministically generated identifier for the child
    * @return A properly configured child document, with an ID composed of the parentID and
    * the child id separated by a delimiter of '⇛' ('U+21DB')
    */
   @SuppressWarnings("unused")
-  Document makeChild(byte[] rawData,  Operation operation, int childId) {
-    String id = getId() + CHILD_SEP + childId;
-    return new DocumentImpl(rawData, id, this.idField, operation, this.sourceScannerName,
-        this.getId(),this.originalParentId);
+  Document makeChild(byte[] rawData, Operation operation, int childId) {
+    return new DocumentImpl(rawData, getId() + CHILD_SEP + childId, operation,this);
   }
 
   @Override
@@ -216,34 +240,29 @@ public class DocumentImpl implements Document {
   }
 
   @Override
-  public Status getStatus() {
-    return this.status;
+  public Status getStatus(String potentStepName) {
+    DocDestinationStatus result = incompletePotentSteps.get(potentStepName);
+    return result == null ? null : result.getStatus();
   }
 
   @Override
-  public void setStatus(Status status, String statusMessage) {
-    this.statusMessage = statusMessage;
-    setStatus(status);
+  public String getStatusMessage(String potentStep) {
+    return incompletePotentSteps.get(potentStep).getMessage();
   }
 
   @Override
-  public  void setStatus(Status status) {
-    this.statusChanged = true;
-    this.status = status;
+  public void setStatus(Status status, String potentStep, String statusMessage, Serializable... messageArgs) {
+    if (!incompletePotentSteps.containsKey(potentStep)) {
+      throw new UnsupportedOperationException("Do not add new downstream steps via setStatus");
+    }
+    @SuppressWarnings("RedundantCast")
+    DocDestinationStatus docStat = new DocDestinationStatus(status, potentStep, statusMessage, (Serializable[]) messageArgs);
+    incompletePotentSteps.put(potentStep, docStat);
+    statusChanges.put(potentStep, docStat);
   }
 
   @Override
-  public String getStatusMessage() {
-    return statusMessage;
-  }
-
-  @Override
-  public void setStatusMessage(String message) {
-    this.statusMessage = message;
-  }
-
-  @Override
-  public ArrayListMultimap<String, String> getDelegate() {
+  public ListMultimap<String, String> getDelegate() {
     return delegate;
   }
 
@@ -266,7 +285,7 @@ public class DocumentImpl implements Document {
         log.warn("Detected possible default Object.toString() when calculating hash code for {}! " +
             "If allowed, this will lead to non-reproducable hash codes due to the inclusion of java memory " +
             "addresses that are non-deterministic. The normal fix is to implement toString() for the object, or" +
-            "serialize the object in a deterministic fashion before adding it to the document when scanning."+
+            "serialize the object in a deterministic fashion before adding it to the document when scanning." +
             "Offending match={}", getId(), m.group(1));
       }
       md.update(delegateString.getBytes(StandardCharsets.UTF_8));
@@ -321,39 +340,44 @@ public class DocumentImpl implements Document {
     return "DocumentImpl{" +
         "id=" + getId() +
         ", delegate=" + delegate +
-        ", status=" + status +
-        ", statusMessage='" + statusMessage + '\'' +
+        ", status=" + incompletePotentSteps +
         ", operation=" + operation +
         ", sourceScannerName='" + sourceScannerName + '\'' +
         ", idField='" + idField + '\'' +
+        ", origin=" + origination +
         '}';
   }
 
 
   @Override
   public boolean isStatusChanged() {
-    return statusChanged;
+    return statusChanges.size() != 0;
   }
 
-  public void reportDocStatus(Status status,String message, Object... messageParams) {
-    reportDocStatus(status,true,message,messageParams);
-  }
-
-  public void reportDocStatus(Status status, boolean finalStatus, String message, Object... messageParams) {
-    if (finalStatus) {
-      setStatus(status, message);
-      statusChanged = false;
+  @Override
+  public void reportDocStatus() {
+    if (!isStatusChanged()) {
+      return;
     }
-    try(DocumentLoggingContext dc = new DocumentLoggingContext(this)) {
-      dc.run(() -> log.info(status.getMarker(), message, messageParams));
+    String message = statusChanges.values().stream().map(DocDestinationStatus::getMessage).collect(Collectors.joining("#,#"));
+    Object[] params = statusChanges.values().stream().flatMap(d -> Arrays.stream(d.getMessageParams())).toArray();
+    try (DocumentLoggingContext dc = new DocumentLoggingContext(this)) {
+      dc.run(() -> log.info(Markers.FTI_MARKER, message, params));
     } catch (AppenderLoggingException e) {
       if (Main.isNotShuttingDown()) {
         log.error("Could not contact our internal Cassandra!!!", e);
       } else {
-        log.info("Shutdown prevented update {} ==> {}", getId(), status);
+        log.info("Shutdown prevented update {} ==> {}", getId(), getStatusChanges());
       }
     }
+    for (DocDestinationStatus value : statusChanges.values()) {
+      if (value.getStatus() != Status.PROCESSING) {
+        incompletePotentSteps.remove(value.getPotentStep());
+      }
+    }
+    statusChanges.clear();
   }
+
 
   @Override
   public void setForceReprocess(boolean b) {
@@ -363,5 +387,68 @@ public class DocumentImpl implements Document {
   @Override
   public boolean isForceReprocess() {
     return forceReprocess;
+  }
+
+  //
+  // NOTE: many methods here, the point of which is that the document should not expose the incomplete steps
+  // map such that it could be modified directly.
+  //
+
+  @Override
+  public void setIncompletePotentSteps(Map<String, DocDestinationStatus> value) {
+    this.incompletePotentSteps.clear();
+    this.incompletePotentSteps.putAll(value);
+    this.statusChanges.clear();
+    this.statusChanges.putAll(value);
+  }
+
+  @Override
+  public boolean alreadyHasIncompleteStepList() {
+    return this.incompletePotentSteps.size() > 0;
+  }
+
+  @Override
+  public boolean isIncompletePotentStep(String stepName) {
+    return incompletePotentSteps.containsKey(stepName);
+  }
+
+  @Override
+  public String listIncompletePotentSteps() {
+    return String.join(",", incompletePotentSteps.keySet());
+  }
+
+  @Override
+  public Map<String, DocDestinationStatus> getStatusChanges() {
+    return statusChanges;
+  }
+
+  @Override
+  public String[] getIncompletePotentSteps() {
+    return incompletePotentSteps.keySet().toArray(String[]::new);
+  }
+
+  @Override
+  public void setStatusAll(Status status, String message, Object... args) {
+    for (String step : incompletePotentSteps.keySet()) {
+      setStatus(status, step, message, args);
+    }
+  }
+
+  @Override
+  public void removeDownStreamPotentStep(Router router, Step step) {
+    log.trace("Removing destination step {} from {} after processing with {}", step.getName(), getId(), router.getStep().getName());
+    if (incompletePotentSteps.remove(step.getName()) == null) {
+      throw new RuntimeException("Tried to remove non-existent destination step! Router:" + router.getClass().getSimpleName() + " Step:" + step.getName());
+    }
+  }
+
+  @Override
+  public String dumpStatus() {
+    return String.valueOf(incompletePotentSteps);
+  }
+
+  @Override
+  public String getOrigination() {
+    return this.origination;
   }
 }

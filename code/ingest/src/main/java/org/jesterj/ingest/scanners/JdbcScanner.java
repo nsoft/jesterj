@@ -218,7 +218,7 @@ public class JdbcScanner extends ScannerImpl {
         docId,
         getPlan(),
         Document.Operation.NEW,
-        this);
+        this, SCAN_ORIGIN);
 
     // For each column value
     for (int i = 1; i <= columnNames.length; i++) {
@@ -346,7 +346,7 @@ public class JdbcScanner extends ScannerImpl {
   }
 
   @Override
-  public Optional<Document> fetchById(String id) {
+  public Optional<Document> fetchById(String id, String origination) {
     // TODO: implement this, something like:
     String sql = "select * from " + this.table + " where " + this.getDatabasePkColumnName() + " = ?";
 

@@ -92,8 +92,11 @@ public class Cassandra {
     try {
       File triggers = new File(cassandraDir, "triggers");
       System.setProperty("cassandra.triggers_dir", triggers.getCanonicalPath());
-      if (!cassandraDir.exists() && !cassandraDir.mkdirs() && triggers.mkdirs()) {
-        throw new RuntimeException("could not create" + cassandraDir);
+      if (!cassandraDir.exists()) {
+        System.out.println("CREATING NEW cassandra directory.");
+        if (!cassandraDir.mkdirs() && triggers.mkdirs()) {
+          throw new RuntimeException("could not create" + cassandraDir);
+        }
       }
       File yaml = new File(cassandraDir, "cassandra.yaml");
       String confURI = yaml.toURI().toString();
@@ -109,7 +112,7 @@ public class Cassandra {
           cfg.setListen_address(listenAddress);
         }
         String cfgStr = new Yaml().dumpAsMap(cfg);
-        System.out.println("First time startup detected, writing default config to " + yaml.toPath());
+        System.out.println("FIRST TIME STARTUP: writing default config to " + yaml.toPath());
         System.out.println(cfgStr);
         Files.write(yaml.toPath(), cfgStr.getBytes(), StandardOpenOption.CREATE);
       }

@@ -10,53 +10,47 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static org.jesterj.ingest.model.NextSteps.StepStatus.SENT;
-import static org.jesterj.ingest.model.NextSteps.StepStatus.TRY;
+import static org.jesterj.ingest.model.NextSteps.StepStatus.*;
 
 /**
  * Encapsulate and manage status of steps to which a document should be sent
  */
 public class NextSteps {
-
+  Map<Step, StepStatusHolder> steps = new HashMap<>();
 
   public NextSteps(Document doc, Step... next) {
     Objects.requireNonNull(doc);
     Objects.requireNonNull(next);
-    for (Step step : next) {
-      steps.put(step,TRY);
+    if (next.length == 0) {
+      throw new RuntimeException("Router selected no next steps. This is a bug in the router implementation " +
+          "or a misconfigured router");
     }
-    Document original = doc;
-    if (steps.size() > 0) {
-      for (StepStatus stat : steps.values()) {
-        if (doc != null) {
-          stat.doc = doc;
-          doc = null;
-        } else {
-          try {
-            Cloner<Document> cloner = new Cloner<>();
-            stat.doc = cloner.cloneObj(original);
-          } catch (IOException | ClassNotFoundException e) {
-            stat.exception = e;
-          }
-        }
+
+    for (int i = 0; i < next.length; i++) {
+      Step step = next[i];
+      if (i == 0) {
+        steps.put(step,new StepStatusHolder(TRY, doc));
+        continue;
       }
+      try {
+        Cloner<Document> cloner = new Cloner<>();
+        Document tmp = cloner.cloneObj(doc);
+        steps.put(step,new StepStatusHolder(TRY,tmp));
+      } catch (IOException | ClassNotFoundException e) {
+        StepStatusHolder stepStatusHolder = new StepStatusHolder(FAIL, null);
+        stepStatusHolder.setException(e);
+        steps.put(step,stepStatusHolder);
+      }
+
+
     }
+
   }
 
   public void update(Step step, StepStatus stepStatus) {
-    steps.put(step,stepStatus);
+    steps.get(step).setStatus(stepStatus);
   }
 
-  public enum StepStatus {
-    TRY,
-    RETRY,
-    SENT,
-    FAIL;
-
-    public Document doc;
-    public Exception exception;
-  }
-  Map<Step, StepStatus> steps = new HashMap<>();
 
   public int size() {
     return steps.size();
@@ -66,9 +60,55 @@ public class NextSteps {
     return new ArrayList<>(steps.keySet());
   }
 
-  public List<Map.Entry<Step,StepStatus>> remaining() {
+  public List<Map.Entry<Step,StepStatusHolder>> remaining() {
     return steps.entrySet().stream()
-        .filter(e-> e.getValue().ordinal() < SENT.ordinal())
+        .filter(e-> e.getValue().getStatus().ordinal() < SENT.ordinal())
         .collect(Collectors.toList());
+  }
+
+  @Override
+  public String toString() {
+    return "NextSteps{" +
+        "steps=" + steps +
+        '}';
+  }
+
+  public enum StepStatus {
+    TRY,
+    RETRY,
+    SENT,
+    FAIL
+  }
+
+  public static class StepStatusHolder {
+    private  StepStatus status;
+    private final Document doc;
+    private  Exception exception;
+
+    StepStatusHolder(StepStatus status, Document doc) {
+      this.status = status;
+      this.doc = doc;
+    }
+
+
+    public Document getDoc() {
+      return doc;
+    }
+
+    public Exception getException() {
+      return exception;
+    }
+
+    public void setStatus(StepStatus status) {
+      this.status = status;
+    }
+
+    public void setException(Exception exception) {
+      this.exception = exception;
+    }
+
+    public StepStatus getStatus() {
+      return status;
+    }
   }
 }

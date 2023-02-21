@@ -21,20 +21,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
-import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 3/18/16
- */
-
 /**
  * A processor for testing failure scenarios.
  */
+@SuppressWarnings("unused")
 public class LogAndFail implements DocumentProcessor {
 
   // leaving this non-final because logging is a critical aspect of the unit test for this
@@ -44,7 +38,7 @@ public class LogAndFail implements DocumentProcessor {
   private String name;
   private RuntimeException exception;
   private int afterNumCalls;
-  private AtomicInteger calls = new AtomicInteger(0);
+  private final AtomicInteger calls = new AtomicInteger(0);
 
   protected LogAndFail() {
   }
@@ -52,11 +46,13 @@ public class LogAndFail implements DocumentProcessor {
   @Override
   public Document[] processDocument(Document document) {
     if (getCalls().getAndIncrement() >= getAfterNumCalls()) {
-      if (getException() != null) {
+      if (getException() != null && getLevel() != null) {
         log.log(getLevel(), getException());
         throw getException();
       } else {
-        document.setStatus(Status.ERROR);
+        RuntimeException e = new RuntimeException("Intentional failure by LogAndFail processor " + getName());
+        log.info(e);
+        throw e;
       }
     }
     log.log(getLevel(), document.toString());

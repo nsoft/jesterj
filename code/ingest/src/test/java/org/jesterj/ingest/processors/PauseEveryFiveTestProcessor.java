@@ -26,17 +26,17 @@ public class PauseEveryFiveTestProcessor implements DocumentProcessor {
     count++; // first is #1
     if (count % 5 == 1 && count > 1) {
       try {
-        log.warn("FOO:sleeping {} starting {}", Thread.currentThread().getName(), this.getName());
+        log.warn("sleeping {} starting {}", Thread.currentThread().getName(), this.getName());
         Thread.sleep(millis);
-        log.warn("FOO:sleeping done {}", this.getName());
+        log.warn("sleeping done {}", this.getName());
       } catch (InterruptedException e) {
-        log.warn("FOO:sleeping interrupted {}", this.getName());
+        log.warn("sleeping interrupted {}", this.getName());
 
         count = 0;
         return new Document[0];
       }
     }
-    log.warn("FOO: {} sending {} with {}", getName(), document.getId(), Thread.currentThread().getName());
+    log.trace("FOO: {} sending {} with {}", getName(), document.getId(), Thread.currentThread().getName());
     return new Document[]{document};
   }
 

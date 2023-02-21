@@ -33,6 +33,6 @@ public interface Configurable {
   String getName();
 
   default boolean isValidName(String name) {
-    return name != null && VALID_NAME.matcher(name).matches();
+    return name != null && !"null".equals(name) && VALID_NAME.matcher(name).matches();
   }
 }

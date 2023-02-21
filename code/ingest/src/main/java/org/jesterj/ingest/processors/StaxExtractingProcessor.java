@@ -6,7 +6,6 @@ import org.codehaus.stax2.XMLInputFactory2;
 import org.codehaus.stax2.XMLStreamReader2;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
-import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 import org.jesterj.ingest.trie.PatriciaTrie;
 
@@ -21,13 +20,13 @@ import java.util.regex.Pattern;
 
 /**
  * A class for extracting fields from an xml document using a memory efficient Stax parsing.
-\ */
+ */
 public class StaxExtractingProcessor implements DocumentProcessor {
   static final Logger log = LogManager.getLogger();
 
   private String name;
   private int capacity;
-  private PatriciaTrie<List<ElementSpec>> extractMapping = new PatriciaTrie<>();
+  private final PatriciaTrie<List<ElementSpec>> extractMapping = new PatriciaTrie<>();
   private boolean failOnLongPath = false; // default
   private XMLResolver resolver;
   private boolean supportExternalEntities;
@@ -62,9 +61,8 @@ public class StaxExtractingProcessor implements DocumentProcessor {
           case XMLEvent.START_ELEMENT:
             String s = xmlStreamReader.getName().toString();
             if (!addToPath(s, path) && failOnLongPath) {
-              document.setStatus(Status.ERROR);
-              log.info("Errored Document:{}",document.getId());
-              return new Document[]{document};
+              throw new RuntimeException("Exceeded allowable xml nesting depth. Configure larger buffer with " +
+                  "Builder.withPathBuffer(int), or turn off errors for long paths with Builder.failOnLongPath(false)");
             }
             log.trace("Starting {}", path.toString());
             List<ElementSpec> specList = extractMapping.get(path);
@@ -78,7 +76,7 @@ public class StaxExtractingProcessor implements DocumentProcessor {
               }
             }
             for (LimitedStaxHandler handler : handlers) {
-              log.trace("{} start element called for {} ({})", document::getId,() ->  path, () -> handler.getSpec().getDestField());
+              log.trace("{} start element called for {} ({})", document::getId, () -> path, () -> handler.getSpec().getDestField());
               handler.onStartElement(xmlStreamReader);
             }
             break;
@@ -117,15 +115,16 @@ public class StaxExtractingProcessor implements DocumentProcessor {
         }
       }
     } catch (Throwable e) {
-      document.setStatus(Status.ERROR);
-      log.error("Exception Processing XML in StaxExtractingProcessor:",e);
+      log.error("Exception Processing XML in StaxExtractingProcessor:", e);
       log.trace("Offending XML:\n{}", trim);
       log.error(e);
       if (e instanceof Error) {
         throw (Error) e;
+      } else {
+        throw new RuntimeException(e);
       }
     }
-    return new Document[] {document};
+    return new Document[]{document};
   }
 
   private void decrementPath(CharBuffer path) {
@@ -207,6 +206,7 @@ public class StaxExtractingProcessor implements DocumentProcessor {
       getObj().supportExternalEntities = support;
       return this;
     }
+
     @Override
     protected StaxExtractingProcessor getObj() {
       return obj;
@@ -227,13 +227,13 @@ public class StaxExtractingProcessor implements DocumentProcessor {
   @SuppressWarnings("WeakerAccess")
   public static class Attribute {
 
-    private String namespace;
+    private final String namespace;
 
     public String getNamespace() {
       return namespace;
     }
 
-    private String qname;
+    private final String qname;
 
     public String getQname() {
       return qname;
@@ -285,10 +285,11 @@ public class StaxExtractingProcessor implements DocumentProcessor {
      * but only once per attribute. This method should NEVER be called during document processing only
      * during configuration.
      *
-     * @param attrName the attribute to append
+     * @param attrName     the attribute to append
      * @param namespaceUri the namespace for the attribute (or null for default)
      * @return this object for further configuration.
      */
+    @SuppressWarnings("UnusedReturnValue")
     public ElementSpec inclAttributeText(String namespaceUri, String attrName) {
       attrsToInclude.add(new Attribute(namespaceUri, attrName));
       return this;
@@ -313,7 +314,7 @@ public class StaxExtractingProcessor implements DocumentProcessor {
      * matching needs to be determined.
      *
      * @param reader The reader, typically during {@link javax.xml.stream.XMLStreamConstants#START_ELEMENT}
-     * @param spec The specification of how to handle the element
+     * @param spec   The specification of how to handle the element
      * @return A handler if we match null otherwise.
      */
     public LimitedStaxHandler handleIfMatches(XMLStreamReader2 reader, ElementSpec spec) {
@@ -402,7 +403,7 @@ public class StaxExtractingProcessor implements DocumentProcessor {
     }
 
     public void reset() {
-      accumulator.delete(0,accumulator.length());
+      accumulator.delete(0, accumulator.length());
     }
   }
 
