@@ -46,7 +46,7 @@ public class NonLinearFTITest extends ScannerImplTest {
   // incorrect paths or statuses are set multiple times we can still see it). Been working fine on my local
   // machine (1950x processor), but overshooting on GitHub, presumably due to the main test thread not resuming
   // promptly and allowing more pause periods to expire before shutting down the plan. Thus, this ugly hack...
-  public static final long PAUSE_MILLIS = 3000L + ((System.getenv("GITHUB_ACTION") != null) ? 27000L : 0L);
+  public static final long PAUSE_MILLIS = 3000L + ((System.getenv("GITHUB_ACTION") != null) ? 57000L : 0L);
   public static final String PAUSE_STEP_DB = "pauseStepDb";
   public static final String PAUSE_STEP_FILE = "pauseStepFile";
   public static final String PAUSE_STEP_COMEDY = "pauseStepComedy";
