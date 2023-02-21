@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Processor for tests to use as a potent step (destination)
+ * Processor for tests to use as a output step (destination)
  */
 public class DocumentFieldMatchCounter implements DocumentProcessor {
 

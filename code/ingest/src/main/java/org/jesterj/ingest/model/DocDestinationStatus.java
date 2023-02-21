@@ -8,11 +8,11 @@ public class DocDestinationStatus implements Serializable {
 
   private final String message;
 
-  private final String potentStep;
+  private final String outputStep;
 
   Serializable[] messageArgs;
 
-  public DocDestinationStatus(Status status, String potentStep, String message, Serializable... messageArgs) {
+  public DocDestinationStatus(Status status, String outputStep, String message, Serializable... messageArgs) {
     if (messageArgs != null) {
       for (Serializable messageArg : messageArgs) {
         if (messageArg != null) {
@@ -29,7 +29,7 @@ public class DocDestinationStatus implements Serializable {
     }
     this.status = status;
     this.message = message;
-    this.potentStep = potentStep;
+    this.outputStep = outputStep;
     this.messageArgs = messageArgs;
   }
 
@@ -41,8 +41,8 @@ public class DocDestinationStatus implements Serializable {
     return status;
   }
 
-  public String getPotentStep() {
-    return potentStep;
+  public String getOutputStep() {
+    return outputStep;
   }
 
   @Override
@@ -50,7 +50,7 @@ public class DocDestinationStatus implements Serializable {
     return "DocDestinationStatus{" +
         "status=" + status +
         ", message='" + message + '\'' +
-        ", potentStep='" + potentStep + '\'' +
+        ", outputStep='" + outputStep + '\'' +
         ", messageArgs=" + Arrays.toString(messageArgs) +
         '}';
   }

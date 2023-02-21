@@ -72,7 +72,7 @@ public interface Step extends Active, BlockingQueue<Document>, Runnable, Deferre
    *
    * @return The steps downstream from this one that are neither safe nor idempotent.
    */
-  Step[] getDownstreamPotentSteps();
+  Step[] geOutputSteps();
 
 
   /**

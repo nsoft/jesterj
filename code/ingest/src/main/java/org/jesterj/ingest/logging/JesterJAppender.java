@@ -54,7 +54,7 @@ public class JesterJAppender extends AbstractAppender {
 
   public static final int FTI_TTL = 60 * 60 * 24 * 90;
   public static final List<ContextNames> PER_EVENT_CONTEXT =
-      List.of(JJ_SCANNER_NAME, JJ_POTENT_STEP_CHANGES, JJ_STATUS_CHANGES) ;
+      List.of(JJ_SCANNER_NAME, JJ_OUTPUT_STEP_CHANGES, JJ_STATUS_CHANGES) ;
 
   private static final String INSERT_REG =
       "INSERT INTO jj_logging.regular " +
@@ -62,9 +62,9 @@ public class JesterJAppender extends AbstractAppender {
           "VALUES(?,?,?,?,?,?)";
 
   private static final String INSERT_FTI =
-      "INSERT INTO %s.jj_potent_step_status " +
+      "INSERT INTO %s.jj_output_step_status " +
           "(docid, docHash, parentId, " +
-          "origParentId, potentStepName, " +
+          "origParentId, outputStepName, " +
           "status, message, antiCollision, created, " +
           "createdNanos) " +
           // Funny formatting here, so we can keep track of the number of
@@ -221,8 +221,8 @@ public class JesterJAppender extends AbstractAppender {
 
       // everything wrapped in String.valueOf to avoid any issues with null.
       Map<String, String> contextData = e.getContextData().toMap();
-      String potentSteps = contextData.get(String.valueOf(JJ_POTENT_STEP_CHANGES));
-      String[] changedSteps = potentSteps.split(",");
+      String outputStepNames = contextData.get(String.valueOf(JJ_OUTPUT_STEP_CHANGES));
+      String[] changedSteps = outputStepNames.split(",");
       String statuses = contextData.get(String.valueOf(JJ_STATUS_CHANGES));
       String[] changedStatuses = statuses.split(",");
       String messages = e.getMessage().getFormattedMessage();

@@ -53,31 +53,32 @@ public interface Document extends ListMultimap<String, String>, Serializable {
    * @return An enumeration value indicating whether the item is processing, errored out or complete.
    * @throws java.lang.IllegalStateException if the plan has not been set.
    */
-  Status getStatus(String potentStep);
+  Status getStatus(String outputStep);
 
   /**
    * Set a status for a specific downstream destination. The status message may contain '{}' and additional
    * arguments which will be substituted in the same manner as log4j logging messages. Since document objects must
    * remain serializable, these arguments should typically be reduced to strings if they are not already serializable.
-   * <p></p>
+   * <p>&nbsp;</p>
    * <p><strong>WARNING: this method has no persistent effect until {@link Document#reportDocStatus()} is called. If
    * the system is killed (power cord, whatever) before reportStatus() is completed this status change will not be
    * retained when JesterJ restarts.</strong></p>
    *
    * @param status The status to set for the destination step
-   * @param potentStep The destination step
+   * @param outputStep The destination step
    * @param statusMessage The user readable message explaining the status change
    * @param messageArgs values to be substituted into the message
    */
-  void setStatus(Status status, String potentStep, String statusMessage, Serializable... messageArgs);
+  void setStatus(Status status, String outputStep, String statusMessage, Serializable... messageArgs);
 
   /**
    * Get a message relating to the processing status. This will typically be used to print the name of
    * The last successful processor, or the error message onto the item.
    *
+   * @param outputStep the output step for which we want to know the message.
    * @return A short message suitable for logging and debugging (not a stack trace)
    */
-  String getStatusMessage(String potentStep);
+  String getStatusMessage(String outputStep);
 
   @SuppressWarnings("unused")
   ListMultimap<String, String> getDelegate();
@@ -126,17 +127,16 @@ public interface Document extends ListMultimap<String, String>, Serializable {
 
   boolean isForceReprocess();
 
-  void setIncompletePotentSteps(Map<String, DocDestinationStatus> value);
+  void setIncompleteOutputSteps(Map<String, DocDestinationStatus> value);
 
   boolean alreadyHasIncompleteStepList();
 
-  boolean isIncompletePotentStep(String stepName); // todo: we need to handle Idempotent steps too
-
-  String listIncompletePotentSteps();
+  boolean isPlanOutput(String stepName);
+  String listIncompleteOutputSteps();
 
   Map<String, DocDestinationStatus> getStatusChanges();
 
-  String[] getIncompletePotentSteps();
+  String[] getIncompleteOutputSteps();
 
   void setStatusAll(Status status, String message, Object... args);
 
@@ -147,7 +147,7 @@ public interface Document extends ListMultimap<String, String>, Serializable {
    * @param routerBase The router for the step in which the removal takes place.
    * @param step       the name of the step to remove.
    */
-  void removeDownStreamPotentStep(Router routerBase, Step step);
+  void removeDownStreamOutputStep(Router routerBase, Step step);
 
   String dumpStatus();
 

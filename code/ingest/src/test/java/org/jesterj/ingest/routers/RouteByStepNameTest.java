@@ -138,13 +138,13 @@ public class RouteByStepNameTest {
     expect(stepMock2.getName()).andReturn("fooName1").anyTimes();
     expect(stepMock1.getName()).andReturn("fooName2").anyTimes();
     expect(router.getName()).andReturn("routerName").anyTimes();
-    expect(stepMock.getDownstreamPotentSteps()).andReturn(stepsDownStream);
-    expect(stepMockNext1.getDownstreamPotentSteps()).andReturn(steps1);
-    expect(stepMockNext2.getDownstreamPotentSteps()).andReturn(steps2);
-    expect(docMock1.isIncompletePotentStep("fooName1")).andReturn(true);
-    expect(docMock1.isIncompletePotentStep("fooName2")).andReturn(false);
+    expect(stepMock.geOutputSteps()).andReturn(stepsDownStream);
+    expect(stepMockNext1.geOutputSteps()).andReturn(steps1);
+    expect(stepMockNext2.geOutputSteps()).andReturn(steps2);
+    expect(docMock1.isPlanOutput("fooName1")).andReturn(true);
+    expect(docMock1.isPlanOutput("fooName2")).andReturn(false);
     docMock1.setStatus(Status.DROPPED,"fooName1","Document routed down path not leading to {} by {}", "fooName1", "routerName");
-    docMock1.removeDownStreamPotentStep(router,stepMock2);
+    docMock1.removeDownStreamOutputStep(router,stepMock2);
     replay();
     router.updateExcludedDestinations(docMock1,stepMockNext1,stepMockNext2);
 

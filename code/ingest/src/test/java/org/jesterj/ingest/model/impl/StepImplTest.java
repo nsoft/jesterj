@@ -52,6 +52,7 @@ public class StepImplTest {
   private static final String SHAKESPEARE = "Shakespeare_scanner";
 
 
+  @SuppressWarnings("unused")
   @ObjectUnderTest StepImpl step;
 
   private Step testStep;
@@ -92,7 +93,7 @@ public class StepImplTest {
     replay();
     try {
       testStep = new StepImpl.Builder().withProcessor(new LogAndDrop.Builder().named("foo")).build();
-      Step[] possibleSideEffects = testStep.getDownstreamPotentSteps();
+      Step[] possibleSideEffects = testStep.geOutputSteps();
       assertEquals(0, possibleSideEffects.length);
     } finally {
       testStep.deactivate();
@@ -106,7 +107,7 @@ public class StepImplTest {
       testStep = new StepImpl.Builder().withProcessor(new SendToSolrCloudProcessor.Builder()
           .named("foo")
           .withZookeeper("localhost:9983")).build();
-      Step[] possibleSideEffects = testStep.getDownstreamPotentSteps();
+      Step[] possibleSideEffects = testStep.geOutputSteps();
       assertEquals(1, possibleSideEffects.length);
     } finally {
       testStep.deactivate();
@@ -118,7 +119,7 @@ public class StepImplTest {
     replay();
     Plan plan = getPlan();
     testStep = plan.findStep(SHAKESPEARE);
-    Step[] possibleSideEffects = testStep.getDownstreamPotentSteps();
+    Step[] possibleSideEffects = testStep.geOutputSteps();
     assertEquals(1, possibleSideEffects.length);
   }
 

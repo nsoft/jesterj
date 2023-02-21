@@ -68,7 +68,7 @@ public class DocumentLoggingContext implements Closeable {
       }
     },
 
-    JJ_POTENT_STEP_CHANGES {
+    JJ_OUTPUT_STEP_CHANGES {
       @Override
       String fromDoc(Document d) {
         return String.join(",", d.getStatusChanges().keySet()); // , not allowed in step name

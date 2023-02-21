@@ -114,7 +114,7 @@ public class DocumentImplTest {
     Map<String, DocDestinationStatus> foo = new HashMap<>();
     foo.put("destination1",new DocDestinationStatus(PROCESSING,"destination1","Found by scanner"));
     foo.put("destination2",new DocDestinationStatus(PROCESSING,"destination2","Found by scanner"));
-    impl.setIncompletePotentSteps(foo);
+    impl.setIncompleteOutputSteps(foo);
 
     assertEquals(Document.Operation.NEW, impl.getOperation());
 
@@ -179,13 +179,13 @@ public class DocumentImplTest {
               "destination1=DocDestinationStatus{" +
                 "status=DROPPED, " +
                 "message='Just because...', " +
-                "potentStep='destination1', " +
+                "outputStep='destination1', " +
                 "messageArgs=[]" +
               "}, " +
               "destination2=DocDestinationStatus{" +
                 "status=ERROR, " +
                 "message='It was bad, {} bad', " +
-                "potentStep='destination2', " +
+                "outputStep='destination2', " +
                 "messageArgs=[real]" +
               "}" +
             "}, " +

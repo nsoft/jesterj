@@ -72,7 +72,7 @@ public class DocumentImpl implements Document {
   private String docHash;
   private boolean forceReprocess;
   private final Map<String, DocDestinationStatus> statusChanges = new ConcurrentHashMap<>();
-  private final Map<String, DocDestinationStatus> incompletePotentSteps = new ConcurrentHashMap<>();
+  private final Map<String, DocDestinationStatus> incompleteOutputSteps = new ConcurrentHashMap<>();
   private final String origination;
 
 
@@ -108,9 +108,9 @@ public class DocumentImpl implements Document {
     this.originalParentId = parent.originalParentId;
     this.origination = parent.origination;
     Cloner<DocDestinationStatus> cloner = new Cloner<>();
-    for (Map.Entry<String, DocDestinationStatus> step : parent.incompletePotentSteps.entrySet()) {
+    for (Map.Entry<String, DocDestinationStatus> step : parent.incompleteOutputSteps.entrySet()) {
       try {
-        this.incompletePotentSteps.put(step.getKey(), cloner.cloneObj(step.getValue()));
+        this.incompleteOutputSteps.put(step.getKey(), cloner.cloneObj(step.getValue()));
       } catch (IOException | ClassNotFoundException e) {
         throw new RuntimeException(e);
       }
@@ -240,25 +240,25 @@ public class DocumentImpl implements Document {
   }
 
   @Override
-  public Status getStatus(String potentStepName) {
-    DocDestinationStatus result = incompletePotentSteps.get(potentStepName);
+  public Status getStatus(String outputStep) {
+    DocDestinationStatus result = incompleteOutputSteps.get(outputStep);
     return result == null ? null : result.getStatus();
   }
 
   @Override
-  public String getStatusMessage(String potentStep) {
-    return incompletePotentSteps.get(potentStep).getMessage();
+  public String getStatusMessage(String outputStep) {
+    return incompleteOutputSteps.get(outputStep).getMessage();
   }
 
   @Override
-  public void setStatus(Status status, String potentStep, String statusMessage, Serializable... messageArgs) {
-    if (!incompletePotentSteps.containsKey(potentStep)) {
+  public void setStatus(Status status, String outputStep, String statusMessage, Serializable... messageArgs) {
+    if (!incompleteOutputSteps.containsKey(outputStep)) {
       throw new UnsupportedOperationException("Do not add new downstream steps via setStatus");
     }
     @SuppressWarnings("RedundantCast")
-    DocDestinationStatus docStat = new DocDestinationStatus(status, potentStep, statusMessage, (Serializable[]) messageArgs);
-    incompletePotentSteps.put(potentStep, docStat);
-    statusChanges.put(potentStep, docStat);
+    DocDestinationStatus docStat = new DocDestinationStatus(status, outputStep, statusMessage, (Serializable[]) messageArgs);
+    incompleteOutputSteps.put(outputStep, docStat);
+    statusChanges.put(outputStep, docStat);
   }
 
   @Override
@@ -340,7 +340,7 @@ public class DocumentImpl implements Document {
     return "DocumentImpl{" +
         "id=" + getId() +
         ", delegate=" + delegate +
-        ", status=" + incompletePotentSteps +
+        ", status=" + incompleteOutputSteps +
         ", operation=" + operation +
         ", sourceScannerName='" + sourceScannerName + '\'' +
         ", idField='" + idField + '\'' +
@@ -372,7 +372,7 @@ public class DocumentImpl implements Document {
     }
     for (DocDestinationStatus value : statusChanges.values()) {
       if (value.getStatus() != Status.PROCESSING) {
-        incompletePotentSteps.remove(value.getPotentStep());
+        incompleteOutputSteps.remove(value.getOutputStep());
       }
     }
     statusChanges.clear();
@@ -395,26 +395,26 @@ public class DocumentImpl implements Document {
   //
 
   @Override
-  public void setIncompletePotentSteps(Map<String, DocDestinationStatus> value) {
-    this.incompletePotentSteps.clear();
-    this.incompletePotentSteps.putAll(value);
+  public void setIncompleteOutputSteps(Map<String, DocDestinationStatus> value) {
+    this.incompleteOutputSteps.clear();
+    this.incompleteOutputSteps.putAll(value);
     this.statusChanges.clear();
     this.statusChanges.putAll(value);
   }
 
   @Override
   public boolean alreadyHasIncompleteStepList() {
-    return this.incompletePotentSteps.size() > 0;
+    return this.incompleteOutputSteps.size() > 0;
   }
 
   @Override
-  public boolean isIncompletePotentStep(String stepName) {
-    return incompletePotentSteps.containsKey(stepName);
+  public boolean isPlanOutput(String stepName) {
+    return incompleteOutputSteps.containsKey(stepName);
   }
 
   @Override
-  public String listIncompletePotentSteps() {
-    return String.join(",", incompletePotentSteps.keySet());
+  public String listIncompleteOutputSteps() {
+    return String.join(",", incompleteOutputSteps.keySet());
   }
 
   @Override
@@ -423,28 +423,28 @@ public class DocumentImpl implements Document {
   }
 
   @Override
-  public String[] getIncompletePotentSteps() {
-    return incompletePotentSteps.keySet().toArray(String[]::new);
+  public String[] getIncompleteOutputSteps() {
+    return incompleteOutputSteps.keySet().toArray(String[]::new);
   }
 
   @Override
   public void setStatusAll(Status status, String message, Object... args) {
-    for (String step : incompletePotentSteps.keySet()) {
+    for (String step : incompleteOutputSteps.keySet()) {
       setStatus(status, step, message, args);
     }
   }
 
   @Override
-  public void removeDownStreamPotentStep(Router router, Step step) {
+  public void removeDownStreamOutputStep(Router router, Step step) {
     log.trace("Removing destination step {} from {} after processing with {}", step.getName(), getId(), router.getStep().getName());
-    if (incompletePotentSteps.remove(step.getName()) == null) {
+    if (incompleteOutputSteps.remove(step.getName()) == null) {
       throw new RuntimeException("Tried to remove non-existent destination step! Router:" + router.getClass().getSimpleName() + " Step:" + step.getName());
     }
   }
 
   @Override
   public String dumpStatus() {
-    return String.valueOf(incompletePotentSteps);
+    return String.valueOf(incompleteOutputSteps);
   }
 
   @Override

@@ -489,8 +489,8 @@ public class PlanImplTest {
     }
 
     @Override
-    public Step[] getDownstreamPotentSteps() {
-      return mock.getDownstreamPotentSteps();
+    public Step[] geOutputSteps() {
+      return mock.geOutputSteps();
     }
 
 

@@ -114,21 +114,21 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
           "WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };";
 
   public static final String CREATE_FT_TABLE =
-      "CREATE TABLE IF NOT EXISTS %s.jj_potent_step_status (" +
+      "CREATE TABLE IF NOT EXISTS %s.jj_output_step_status (" +
           "docId varchar, " + // k1
           "docHash varchar, " +
           "parentId varchar, " +
           "origParentId varchar, " +
-          "potentStepName varchar, " +
+          "outputStepName varchar, " +
           "status varchar, " +
           "message varchar, " +
           "antiCollision int, " + // C3 avoid collisions on systems with poor time resolution
           "created timestamp, " + // C1
           "createdNanos int, " + // C2 best effort for ordering ties in timestamp, just the nanos
-          "PRIMARY KEY (docId, created,createdNanos,potentStepName,antiCollision)) " +
+          "PRIMARY KEY (docId, created,createdNanos,outputStepName,antiCollision)) " +
           "WITH CLUSTERING ORDER BY (created DESC, createdNanos DESC);";
 
-  public static final String CREATE_INDEX_STATUS = "CREATE INDEX IF NOT EXISTS jj_ft_idx_step_status ON %s.jj_potent_step_status (status);";
+  public static final String CREATE_INDEX_STATUS = "CREATE INDEX IF NOT EXISTS jj_ft_idx_step_status ON %s.jj_output_step_status (status);";
 
 
   public static final String CREATE_DOC_HASH =
@@ -143,22 +143,22 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
           "WITH CLUSTERING ORDER BY (created DESC, createdNanos DESC);";
 
   static final String FIND_STRANDED_STATUS =
-      "SELECT docid FROM %s.jj_potent_step_status " +
+      "SELECT docid FROM %s.jj_output_step_status " +
           "WHERE status = ?" +
           " PER PARTITION LIMIT 1";
 
   static final String FIND_ERRORS =
-      "SELECT docid, created FROM %s.jj_potent_step_status " +
+      "SELECT docid, created FROM %s.jj_output_step_status " +
           "WHERE status = 'ERROR' " +
           " PER PARTITION LIMIT 1";
 
   static final String FIND_HIST =
-      "SELECT docid, status, created FROM %s.jj_potent_step_status " +
+      "SELECT docid, status, created FROM %s.jj_output_step_status " +
           "WHERE docid = ? " +
           " PER PARTITION LIMIT ?";
   private static final String FIND_LATEST_STATUS_Q = "find_latest_status_for_doc";
   static final String FIND_LATEST_STATUS =
-      "SELECT docid, created, status FROM %s.jj_potent_step_status " +
+      "SELECT docid, created, status FROM %s.jj_output_step_status " +
           "WHERE docId = ? " +
           "PER PARTITION LIMIT 1";
 
@@ -296,10 +296,10 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     if (isRemembering() & !shouldIndex) {
       id = doc.getId();
       CqlSession session = getCassandra().getSession();
-      Step[] downstreamPotentSteps = getDownstreamPotentSteps();
-      for (int i = 0; i < downstreamPotentSteps.length && !shouldIndex; i++) {
-        Step potentStep = downstreamPotentSteps[i];
-        Status status = doc.getStatus(potentStep.getName());
+      Step[] downstreamOutputSteps = geOutputSteps();
+      for (int i = 0; i < downstreamOutputSteps.length && !shouldIndex; i++) {
+        Step outputStep = downstreamOutputSteps[i];
+        Status status = doc.getStatus(outputStep.getName());
         // Typically these statuses already have forceReprocess set, but just in case.
         if (status == FORCE || status == RESTART) {
           shouldIndex = true;
@@ -330,10 +330,10 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         // This was a document found by the scanner during a scan and either we are not hashing, not remembering
         // or a new hash (i.e. new content) was found, so ALL downstream steps should be eligible
         HashMap<String, DocDestinationStatus> steps = new HashMap<>();
-        for (Step downStream : getDownstreamPotentSteps()) {
+        for (Step downStream : geOutputSteps()) {
           steps.put(downStream.getName(), new DocDestinationStatus(PROCESSING, downStream.getName(), NEW_CONTENT_FOUND_MSG, getName()));
         }
-        doc.setIncompletePotentSteps(steps);
+        doc.setIncompleteOutputSteps(steps);
       }
       sendToNext(doc);
     } else {
@@ -342,7 +342,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   }
 
   boolean seenPreviously(String scannerName, String id, CqlSession session) {
-    String anyStep = getDownstreamPotentSteps()[0].getName();
+    String anyStep = geOutputSteps()[0].getName();
     String keySpace = keySpace(anyStep);
     String actualQuery = String.format(FIND_LATEST_STATUS, keySpace);
     PreparedStatement seenDocQuery = getCassandra().getPreparedQuery(FIND_LATEST_STATUS_Q + "_" + keySpace(anyStep), actualQuery);
@@ -441,8 +441,8 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     CqlSession session = cStar.getSession();
     Map<String, List<LatestStatus>> needToProcess = new HashMap<>();
     Map<String, LatestStatus> statusCheckCache = new HashMap<>();
-    for (Step potentStep : getDownstreamPotentSteps()) {
-      String stepName = potentStep.getName();
+    for (Step outputStep : geOutputSteps()) {
+      String stepName = outputStep.getName();
       String keySpace = keySpace(stepName);
       for (Status status : statusesToProcess) {
         String actualQuery = String.format(FIND_STRANDED_STATUS, keySpace);
@@ -485,11 +485,11 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
           d.setForceReprocess(force);
           List<LatestStatus> statuses = toProcess.getValue();
           Map<String, DocDestinationStatus> downstream = new HashMap<>();
-          statuses.forEach((status) -> downstream.put(status.getPotentStepName(),
-              new DocDestinationStatus(PROCESSING, status.getPotentStepName(),
-                  "Prior status:" + status.getPotentStepName() + ">" + status.getStatus() + "@" + status.getTimestamp()
+          statuses.forEach((status) -> downstream.put(status.getoutputStepName(),
+              new DocDestinationStatus(PROCESSING, status.getoutputStepName(),
+                  "Prior status:" + status.getoutputStepName() + ">" + status.getStatus() + "@" + status.getTimestamp()
               )));
-          d.setIncompletePotentSteps(downstream);
+          d.setIncompleteOutputSteps(downstream);
           docFound(d);
         },
         () -> log.error("Unable to load previously scanned (stranded) document {}", docId));
@@ -499,12 +499,12 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     private final String status;
     private final String timestamp;
 
-    private final String potentStepName;
+    private final String outputStepName;
 
-    LatestStatus(String status, String timestamp, String potentStepName) {
+    LatestStatus(String status, String timestamp, String outputStepName) {
       this.status = status;
       this.timestamp = timestamp;
-      this.potentStepName = potentStepName;
+      this.outputStepName = outputStepName;
     }
 
     @Override
@@ -512,7 +512,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       return "LatestStatus{" +
           "status='" + getStatus() + '\'' +
           ", timestamp='" + getTimestamp() + '\'' +
-          ", potentStepName='" + getPotentStepName() + '\'' +
+          ", outputStepName='" + getoutputStepName() + '\'' +
           '}';
     }
 
@@ -524,28 +524,28 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       return timestamp;
     }
 
-    public String getPotentStepName() {
-      return potentStepName;
+    public String getoutputStepName() {
+      return outputStepName;
     }
   }
 
-  LatestStatus findLatestSatus(String priorQuery, String docId, String potentStepName, Map<String, LatestStatus> cache) {
-    if (cache.containsKey(docId + potentStepName)) {
+  LatestStatus findLatestSatus(String priorQuery, String docId, String outputStepName, Map<String, LatestStatus> cache) {
+    if (cache.containsKey(docId + outputStepName)) {
       return cache.get(docId);
     }
-    String histQuery = String.format(FIND_HIST, keySpace(potentStepName));
-    PreparedStatement phq = getCassandra().getPreparedQuery(FIND_HISTORY + "_" + keySpace(potentStepName), histQuery);
+    String histQuery = String.format(FIND_HIST, keySpace(outputStepName));
+    PreparedStatement phq = getCassandra().getPreparedQuery(FIND_HISTORY + "_" + keySpace(outputStepName), histQuery);
     BoundStatement bhq = phq.bind(docId, 1);
     ResultSet histRS = getCassandra().getSession().execute(bhq);
     Row one = histRS.one();
     LatestStatus latestStatus;
     if (one == null) {
       log.error("{} appeared in {} but not in {}", docId, priorQuery, histQuery);
-      latestStatus = new LatestStatus("NO PRIOR STATUS FOUND", Instant.now().toString(), potentStepName);
+      latestStatus = new LatestStatus("NO PRIOR STATUS FOUND", Instant.now().toString(), outputStepName);
     } else {
-      latestStatus = new LatestStatus(one.getString(1),String.valueOf(one.getInstant(2)), potentStepName);
+      latestStatus = new LatestStatus(one.getString(1),String.valueOf(one.getInstant(2)), outputStepName);
     }
-    cache.put(docId + potentStepName, latestStatus);
+    cache.put(docId + outputStepName, latestStatus);
     return latestStatus;
   }
 
@@ -553,8 +553,8 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     if (!this.persistenceCreated) {
       // no need for synchronization should ony be one thread, and if exists is safe anyway.
       CqlSession session = cassandra.getSession();
-      for (Step potentStep : getDownstreamPotentSteps()) {
-        String name = potentStep.getName();
+      for (Step outputStep : geOutputSteps()) {
+        String name = outputStep.getName();
         session.execute(String.format(CREATE_FT_KEYSPACE, keySpace(name)));
         session.execute(String.format(CREATE_FT_TABLE, keySpace(name)));
         session.execute(String.format(CREATE_INDEX_STATUS, keySpace(name)));
@@ -569,13 +569,13 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     log.info("Processing Errors");
     Set<DocumentImpl> deadDocs = new HashSet<>();
     Map<String, List<LatestStatus>> forceReprocess = new HashMap<>();
-    for (Step potentStep : getDownstreamPotentSteps()) {
+    for (Step outputStep : geOutputSteps()) {
       ResultSet rs;
       PreparedStatement pq;
       BoundStatement bs;
-      String potentStepName = potentStep.getName();
-      String actualQuery = String.format(FIND_ERRORS, keySpace(potentStepName));
-      pq = getCassandra().getPreparedQuery(FIND_ERROR_DOCS + "_" + keySpace(potentStepName), actualQuery);
+      String outputStepName = outputStep.getName();
+      String actualQuery = String.format(FIND_ERRORS, keySpace(outputStepName));
+      pq = getCassandra().getPreparedQuery(FIND_ERROR_DOCS + "_" + keySpace(outputStepName), actualQuery);
       bs = pq.bind();
       bs = bs.setTimeout(Duration.ofSeconds(TIMEOUT));
       rs = getCassandra().getSession().execute(bs);
@@ -590,8 +590,8 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
           continue;
         }
         log.trace("Found Errored document:{}", id);
-        String findErrorHistory = String.format(FIND_HIST, keySpace(potentStepName));
-        PreparedStatement pq2 = cassandra.getPreparedQuery(FIND_HISTORY + "_" + keySpace(potentStepName), findErrorHistory);
+        String findErrorHistory = String.format(FIND_HIST, keySpace(outputStepName));
+        PreparedStatement pq2 = cassandra.getPreparedQuery(FIND_HISTORY + "_" + keySpace(outputStepName), findErrorHistory);
         ResultSet hist = cassandra.getSession().execute(pq2.bind(id, retryErrors));
 
         // In most cases the first row is an error because that's how we got a row in the previous
@@ -631,12 +631,12 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         }
         if (errorMostRecent && errorCount < retryErrors) {
           log.info("Re-feeding errored document {}", id);
-          LatestStatus latestStatus = new LatestStatus(ERROR.toString(), String.valueOf(mostRecent), potentStepName);
+          LatestStatus latestStatus = new LatestStatus(ERROR.toString(), String.valueOf(mostRecent), outputStepName);
           forceReprocess.computeIfAbsent(id, (k) -> new ArrayList<>()).add(latestStatus);
         } else {
           if (!alreadyDropped && errorCount >= retryErrors) {
             log.warn("Dropping document {} due to too many error retries ({})", id, errorCount);
-            tempDoc.setStatus(DEAD, potentStepName, "Retry limit of {} exceeded", retryErrors);
+            tempDoc.setStatus(DEAD, outputStepName, "Retry limit of {} exceeded", retryErrors);
             deadDocs.add(tempDoc);
           } else {
             log.trace("Ignoring {} because errorMostRecent = {} and errorCount = {}", id, errorMostRecent, errorCount);
@@ -832,15 +832,15 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   }
 
   @Override
-  public String keySpace(String potentStep) {
-    return this.keySpaces.computeIfAbsent(String.valueOf(potentStep), (ps) -> "jj_" + keySpaceHash(ps, this));
+  public String keySpace(String outputStep) {
+    return this.keySpaces.computeIfAbsent(String.valueOf(outputStep), (ps) -> "jj_" + keySpaceHash(ps, this));
   }
 
   @NotNull
-  private static String keySpaceHash(String potentStep, Scanner s) {
+  private static String keySpaceHash(String outputStep, Scanner s) {
     String baseName = "jj_" + s.getName() + "_" + s.getPlan().getName() + "_" + s.getPlan().getVersion() +
         // below test for "null" is due to ConcurrentHashMap not accepting null keys, so we don't support steps named "null"
-        (potentStep != null && !"null".equals(potentStep) ? "_" + potentStep : "");
+        (outputStep != null && !"null".equals(outputStep) ? "_" + outputStep : "");
     // Sadly we are limited to 48 char for keyspace names, so we must hash the info making our keyspace
     // names very sad and ugly.
     MessageDigest md;

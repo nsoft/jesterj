@@ -132,7 +132,8 @@ public interface Scanner extends Step {
   /**
    * Calculates the keyspace for this scanner's FTI records.
    *
+   * @param outputStep the step for which we want to generate a keyspace
    * @return a keyspace name encoding the scanner name, plan name and plan version.
    */
-  String keySpace(String potentStep);
+  String keySpace(String outputStep);
 }

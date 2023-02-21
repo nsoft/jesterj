@@ -27,13 +27,13 @@ public abstract class RouterBase implements Router {
    */
   void updateExcludedDestinations(Document doc, Step... dest) {
     // find everywhere we might have went
-    List<Step> stepsExcluded = new ArrayList<>(Arrays.asList(getStep().getDownstreamPotentSteps()));
+    List<Step> stepsExcluded = new ArrayList<>(Arrays.asList(getStep().geOutputSteps()));
     Set<Step> stillDownStream = new HashSet<>();
     if (dest != null) {
       // find everywhere we are still going
       for (Step s : dest) {
-        Step[] downstreamPotentSteps = s.getDownstreamPotentSteps();
-        List<Step> c = Arrays.asList(downstreamPotentSteps);
+        Step[] downstreamOutputSteps = s.geOutputSteps();
+        List<Step> c = Arrays.asList(downstreamOutputSteps);
         stillDownStream.addAll(c);
       }
     }
@@ -46,7 +46,7 @@ public abstract class RouterBase implements Router {
 
     // now remove any step to which the document was not targeted (possibly because it has partially completed
     // and is now re-running due to FTI
-    stepsExcluded.removeIf((s) -> !doc.isIncompletePotentStep(s.getName()));
+    stepsExcluded.removeIf((s) -> !doc.isPlanOutput(s.getName()));
 
     // Now if anything remains in stepsExcluded, then it was a valid target that has become invalid due to the
     // router's routing decision
@@ -54,7 +54,7 @@ public abstract class RouterBase implements Router {
     for (Step step : stepsExcluded) {
       // drop anything that is not the current step.
       doc.setStatus(Status.DROPPED,  step.getName(),"Document routed down path not leading to {} by {}", step.getName(), getName());
-      doc.removeDownStreamPotentStep(this,step);
+      doc.removeDownStreamOutputStep(this,step);
     }
   }
 
