@@ -27,14 +27,15 @@ jobs:
         distribution: 'zulu'
     - name: Get the Crave binary
       run: curl -s https://raw.githubusercontent.com/accupara/crave/master/get_crave.sh | bash -s --
+      working-directory: ${{env.working-directory}}
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
       working-directory: ${{env.working-directory}}
     - name: Build with Gradle
-      run: crave run --clean -- ./gradlew jacocoTestReport
+      run: ./crave run --clean -- ./gradlew jacocoTestReport
       working-directory: ${{env.working-directory}}
     - name: Get back the codecov report
-      run: crave pull build/reports/jacoco/test/jacocoTestReport.xml
+      run: ./crave pull build/reports/jacoco/test/jacocoTestReport.xml
       working-directory: ${{env.working-directory}}
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
