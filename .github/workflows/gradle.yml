@@ -25,6 +25,8 @@ jobs:
       with:
         java-version: 1.11
         distribution: 'zulu'
+    - name: Unshallow the repo
+      run: /usr/bin/git fetch --unshallow
     - name: Get the Crave binary
       run: curl -s https://raw.githubusercontent.com/accupara/crave/master/get_crave.sh | bash -s --
       working-directory: ${{env.working-directory}}
