@@ -26,11 +26,7 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 3/20/16
- */
+
 public class SimpleDateTimeReformatter implements DocumentProcessor {
 
   private static final Logger log = LogManager.getLogger();
@@ -57,7 +53,7 @@ public class SimpleDateTimeReformatter implements DocumentProcessor {
       }
       if (instant == null) {
         try {
-          instant = Instant.ofEpochMilli(Long.valueOf(s));
+          instant = Instant.ofEpochMilli(Long.parseLong(s));
         } catch (NumberFormatException nfe) {
           log.warn("could not parse date field {} with value {} as a Long", inputField, s);
         }
@@ -86,6 +82,7 @@ public class SimpleDateTimeReformatter implements DocumentProcessor {
     return name;
   }
 
+  @SuppressWarnings("unused")
   public static class Builder extends NamedBuilder<SimpleDateTimeReformatter> {
 
     SimpleDateTimeReformatter obj = new SimpleDateTimeReformatter();

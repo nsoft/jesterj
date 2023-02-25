@@ -1,5 +1,7 @@
 To see JesterJ in action, you can run this example. (Java 11 required)
 
+**PLEASE DO use this project to bootstrap your own!**
+
 Setup Solr
 1. Set up a local Solr Cloud node with zookeeper on 9983  (or edit ShakespeareConfig.java to match your ports)
 1. Create a collection named jjtest using the _default configset
@@ -8,9 +10,9 @@ Start JesterJ
 1. Clone https://github.com/nsoft/jesterj.git
 1. In /jesterj/code/ingest run `./gradlew  publishToMavenLocal` (to publish 1.0-SNAPSHOT required by this example)
 1. In /jesterj/code/example/shakespeare run `./gradlew build`
-1. In /jesterj/code/example/shakespeare run run `java -jar ../../ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar build/libs/example-shakespeare-1.0-SNAPSHOT.jar foo bar`
+1. In /jesterj/code/example/shakespeare run `java -jar ../../ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar build/libs/example-shakespeare-1.0-SNAPSHOT.jar foo bar`
 
-Your search engine(s) should have indexed shakespeare's plays within a minute or so.  
+Your search engine(s) should have indexed shakespeare's plays within a minute or so.
 
 ```
 http://localhost:8983/solr/jjtest/update?commit=true

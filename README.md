@@ -1,21 +1,34 @@
-JesterJ 
+JesterJ
 =======
-[![License](https://img.shields.io/badge/license-Apache%202.0-B70E23.svg?style=plastic)](http://www.opensource.org/licenses/Apache-2.0) 
+[![License](https://img.shields.io/badge/license-Apache%202.0-B70E23.svg?style=plastic)](http://www.opensource.org/licenses/Apache-2.0)
 [![Build Status](https://github.com/nsoft/jesterj/actions/workflows/gradle.yml/badge.svg)](https://github.com/nsoft/jesterj/actions)
 
-A new highly flexible, highly scalable document ingestion system. 
+A highly flexible, scalable document ingestion system.
+
+## The problem
+Frequently search projects start by feeding a few documents manually to a search engine, often via the "just for testing" built in processing features of Solr such as SolrCell or post.jar.
+That's how it should be for first exploring solr but unfortunately all too often, not knowing any better the user then sets about automating the same submission into those interfaces which are really not meant for production use, and are not scalable.
+The usual result is that it works "ok" for a small test corpus and then becomes unstable on a larger production corpus.
+The code written to feed into such interfaces often needs to be repeated for several types of documents or for various document formats, and can easily lead to duplication and cut and paste copying of common functionality.
+Also, after investing substantial engineering to get such solutions working on a large corpus, the next thing they discover is that they have no way to recover if indexing fails part way through.
+The result is a terrible painful and expensive set of growing pains, and an antipathy for search systems in general
+
+## JesterJ's solution
+
+JesterJ endeavors to make it easy to start with a robust full featured indexing infrastructure, so that you don't have to re-invent the wheel.
+JesterJ is meant to be a system you won't need to abandon until you are working with extremely large numbers of documents (and hopefully by that point you are already making good profits that can pay for a large custom solution!).
+A variety of re-usable processing components are provided and writing your own custom processors is as simple as implementing a 4 method interface following some simple guidelines.
+
 Often the first version of a system for indexing documents into Solr or other search engine is fairly linear and straight forward, but as time passes features and enhancements often add complexity.
 Other times, the system is complex from the very start, possibly because search is being added to an existing system.
-JesterJ is designed to handle complex indexing scenarios. 
+JesterJ is designed to handle complex indexing scenarios.
 Consider the following hypothetical indexing workflow:
 
 ![Complex Processing](https://raw.githubusercontent.com/nsoft/jesterj/79ed481c7c0b98469e3e41c96b92170837a26130/code/examples/routing/complex-routing.png)
 
-JesterJ handles such scenarios with a single centralized processing plan, and will ensure that if the system is unplugged, you won't get a second message about an order received[^1]
+JesterJ handles such scenarios with a single centralized processing plan, and will ensure that if the system is unplugged, you won't get a second message about an order received. The default mode for JesterJ is to ensure at most once delivery for steps that are not marked safe or idempotent. Safe steps do not have external effects, and idempotent steps may be repeated en-route to the final processing end point.
 
 See the [website](http://www.jesterj.org) and the [documentation](https://github.com/nsoft/jesterj/wiki/Documentation) for more info
-
-[^1]: After issue #84 is resolved.
 
 # Getting Started
 
@@ -23,30 +36,27 @@ Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki
 
 # Project Status
 
-Current release version: 1.0-beta2. (But head revision in GitHub is much better right now! New release soon)
+**Current release**: 1.0-beta2. (Very Stale, not reccomended)
 
-Can be used with gradle configuration:
+**Reccomended:** Build from `master` branch
 
-    repositories {
-      mavenCentral()
-      maven {
-        url 'https://jesterj.jfrog.io/jesterj/libs-release/'
-      }
-      maven {
-        url 'https://clojars.org/repo'
-      }
-    }
+ - `cd /code/ingest; ./gradlew packageUnoJar`
+ - use /code/ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar
+ - ask [on discord](https://discord.com/invite/RmdTYvpXr9) if you have issues with the build
 
-    dependencies {
-      compile ('org.jesterj:ingest:1.0-beta2')
-    }
+**Next Release:** 1.0-beta3
 
-The extra repos are for a patched version of cassandra, and should go away in future releases (see https://issues.apache.org/jira/browse/CASSANDRA-13396). The clojars repo is for a clojure based implementation
-of docopt, which will hopefully become unnecessary in future versions.
+This next release will be a true feature locked beta suitable for use with all the latest features.
+
+NOTE: The current code and the upcoming 1.0 release expect to support any design and load that can be serviced by a single machine.
+Scaling across many machines is a priority for future releases, but not yet available.
+JesterJ is explicitly designed to take advantage of machines with many processors.
+Automatic scaling of threads/step based on load will be in 1.1 (current estimate), but in 1.0 you can design your plan with duplicates of your slowest step to alleviate bottlenecks.
+This is better than linear pipeline based systems which just have to choke on whatever is slowest, and for which the only way to speed up is to duplicate everything, which makes fault tolerance extremely difficult to manage.
 
 # JDK versions
 
-Presently only JDK 8 has been supported. JDK 9/10 will not be explicitly supported. Now that JDK 11 is out as an LTS version, support for it will commence. JDK 11 is supported in the master branch, but not yet released
+Presently only JDK 11 has been tested regularly. Any Distribution of JDK 11 should work. Support for Java 17 and future LTS versions is planned for future releases.
 
 # Discord Server
 
@@ -56,74 +66,42 @@ Discuss features, ask questions etc on Discord: https://discord.gg/RmdTYvpXr9
 
 In this release we have the following features
 
- * Embedded Cassandra server
- * Cassandra config and data location configurable, defaults to ~/.jj/cassandra
- * Initial support for fault tolerance via logging statuses to the embedded cassandra server (WIP)
- * Log4j appender to write to Cassandra where desired
- * Initial API/process for user written steps. (see [documentation](https://github.com/nsoft/jesterj/wiki/Documentation))
- * 40% test coverage (jacoco)
- * Simple filesystem scanner
- * Copy Field processor
- * Date Reformat processor
- * Human Readable File Size processor 
- * Tika processor to extract content
- * Solr sender to send documents to solr in batches.
- * Runnable example to [execute a plan](https://github.com/nsoft/jesterj/blob/master/code/ingest/README.md) that scans a filesystem, and indexes the documents in solr.
+* Simple filesystem scanner for locally mounted drives (replacement for post.jar)
+* JDBC scanner (replacement for Data Import Handler!)
+* Scanners can remember what documents they've seen (or not, boolean flag)
+* Scanners can recognize updated content (or not, boolean flag)
+* Send to Solr processor with tunable batch sizes
+* Tika processor to extract content from Word/PDF/xml/html, etc (Replacement for SolrCell!)
+* Stax extract processor for dissecting xml documents directly.
+* Copy field processor to rename source fields to desired index field
+* Regexp replace processor to edit field content, or drop fields that don't match
+* Split field processor to split delimited values for multi-value fields
+* Drop field processor to get rid of annoying excess fields.
+* Field template processor for composing field content using a velocity template
+* URL encode processor to encode the value of a field and make it safe for use in URLs
+* Fetch URL processor for acquiring or enhancing content by contacting other systems
+* Log and drop processor for when you identify an invalid docuemnt
+* Date Reformat processor, because dates, formatting... always. (*sigh*)
+* Human Readable File Size processor
+* Solr sender to send documents to solr in batches.
+* Pre-Analyze processor to move Solr analysis workload out of Solr (just give it your schema.xml!)
+* Embedded Cassandra server (no need to install cassandra yourself!)
+* Cassandra config and data location configurable, defaults to `~/.jj/cassandra`
+* Support for fault tolerance writing status change events to the embedded cassandra server
+* Initial API/process for user written document processors. (see [documentation](https://github.com/nsoft/jesterj/wiki/Documentation))
+* 60% test coverage (jacoco)
+* Simple, single java file to configure everything, non-java programmers need only follow a simple example (for use cases not requiring custom code)
+* If you DO need custom code that code can be packaged as an [uno-jar](https://github.com/nsoft/uno-jar) to provide all required dependencies and escape from any library versions that JesterJ uses! You only have to deal with your OWN jar hell, not ours! Of course, you can also just rely on whatever we already provide too. The classloaders for custom code prefer your uno-jar and then default back to whatever JesterJ has available on it's classpath.
+* Runnable example to [execute a plan](https://github.com/nsoft/jesterj/blob/master/code/ingest/README.md) that scans a filesystem, and indexes the documents in solr.
 
-Release 0.1 is intended to be the smallest functional unit. Plans and steps will need to be assembled 
-in code etc. and only run locally, only single node supported. Documents indexed will have fields for mod-time, 
-file name and file size.
 
-## Progress for 1.0
- * JDBC scanner
- * Cassandra based FTI
- * Document hashing to detect changed docs (any scanner)
- * Node and Transport style senders for Elastic
- * Ability to load Java based config from a jar file - experimental. 
- * More processors: Fetch URL, Regex Replace Value, Delete Field, Parse Field as Template, URL Encode Field
- * Publish jars on Maven Central
- * Up-to-date docs in wiki.
- 
-The Java config feature is experimental but working out better than expected. I wanted to use what I had built for a project, but the lack of externalized configuration was a blocker. It was a quick fix, but it's turning out to be quite pleasant to work with. The downside is I'm not sure how it would carry forward to later stages of the project, so it might still go away. Feedback welcome.
+## TODO for 1.0 final release
+ * Doc updates
+ * [Remaining issues](https://github.com/nsoft/jesterj/issues?q=is%3Aopen+is%3Aissue+milestone%3A1.0)
+ * Beta release, testing.
 
-## TODO for 1.0 final
- * 50% [test coverage](https://codecov.io/gh/nsoft/jesterj) 
- * fix https://github.com/nsoft/jesterj/issues/84
- * Build a demo jar that can be run to demonstrate the java config usage
- * Demo/tutorial to demonstrate indexing a database and a filesystem simultaneously into solr
+Release 1.0 is intended to be the usable for single node systems, and therefore suitable for use on small to medium-sized projects (tens of millions or maybe low hundreds of million of documents).
 
-Release 1.0 is intended to be the usable for single node systems, and therefore suitable for production use on small to medium-sized projects.  
- 
-## TODO for 2.0
- * Serialized format for a plan/steps.
- * JINI Registrar 
- * Register Node Service on JINI Registrar
- * Display nodes visible in control web app.
- * JINI Service to accept serialized format
- * Ability to build a plan in web-app.
- * 60% [test coverage](https://codecov.io/gh/nsoft/jesterj) 
- * Availability on maven central.
- * Build and run the 0.2 scenario via the control web-app.
- 
-Release 2.0 is intended to be similar to 1.0 but with a very basic web control UI. At this point it should be
-possible to install the war file, start a node, 
+## Road Map
 
-## TODO for 3.0
- * secure connections among nodes and with the web app. (credential provider)
- * Ensure nodes namespace their cassandra data dirs to avoid disasters if more than one node run per user account
- * Cassandra cluster formation 
- * pass Documents among nodes using Java Spaces
- * Support for adding helper nodes that scale a step or several steps horizontally.
- * Make the control UI pretty.
-
-Release 3.0 is intended to be the first release to spread work across nodes. 
-
-# What is FTI?
-
-FTI stands for Fault Tolerant Indexing. For our purposes this means that once a scanner is pointed at a document
-source, it is guaranteed to eventually do one of the following things with every qualifying document:
-
- * Process the document and send it to solr. 
- * Log an error explaining why the document processing failed.
- 
-It will do this no matter how many nodes fail, or how many times Solr is rebooted  
+The best guess at any time of what will be in future releases is given by the milestones filters [on our issues page](https://github.com/nsoft/jesterj/issues)
