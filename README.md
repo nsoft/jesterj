@@ -1,17 +1,27 @@
 JesterJ
 =======
+A highly flexible, scalable document ingestion system designed for search.
+
 [![License](https://img.shields.io/badge/license-Apache%202.0-B70E23.svg?style=plastic)](http://www.opensource.org/licenses/Apache-2.0)
 [![Build Status](https://github.com/nsoft/jesterj/actions/workflows/gradle.yml/badge.svg)](https://github.com/nsoft/jesterj/actions)
 
-A highly flexible, scalable document ingestion system.
+Builds are run on infrastructure kindly donated by [Crave.io](https://crave.io/)
+
 
 ## The problem
-Frequently search projects start by feeding a few documents manually to a search engine, often via the "just for testing" built in processing features of Solr such as SolrCell or post.jar.
-That's how it should be for first exploring solr but unfortunately all too often, not knowing any better the user then sets about automating the same submission into those interfaces which are really not meant for production use, and are not scalable.
+Frequently, search projects start by feeding a few documents manually to a search engine, often via the "just for testing" built in processing features of Solr such as [SolrCell](https://solr.apache.org/guide/6_6/uploading-data-with-solr-cell-using-apache-tika.html) or [post.jar](https://solr.apache.org/guide/6_6/post-tool.html#simpleposttool).
+These features are documented and included in order to help the user get a feel for what they can do with Solr with a minimum of painful setup.
+That's how it should be for first explorations. 
+
+All too often, users who don't know any better, and are perhaps mislead by the fact that these interfaces are documented in the reference manual (and assume anything documente must be "the right way" to do it) continue developing their search system by automating the use of those same interfaces. 
+In fairness to those users, some older versions of the Solr Ref guide failed to identify the "just for testing" nature of the interface, sometimes because it took a while for the community to realize the pitfalls associated with it.
+
+Unfortunately, large scale ingestion of documents for search is non-trivial and those indexing interfaces not meant for production use.
 The usual result is that it works "ok" for a small test corpus and then becomes unstable on a larger production corpus.
 The code written to feed into such interfaces often needs to be repeated for several types of documents or for various document formats, and can easily lead to duplication and cut and paste copying of common functionality.
 Also, after investing substantial engineering to get such solutions working on a large corpus, the next thing they discover is that they have no way to recover if indexing fails part way through.
-The result is a terrible painful and expensive set of growing pains, and an antipathy for search systems in general
+In the worst cases the failure is related to the size of the corpus and the failures become increasingly common as the corpus grows until the chance of completing and indexing run is small and the system eventually cannot be indexed or upgraded at all if the problem is allowed to fester.
+The result is a terrible, painful and potentially expensive set of growing pains.
 
 ## JesterJ's solution
 
