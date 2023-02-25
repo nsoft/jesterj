@@ -13,7 +13,7 @@ Frequently, search projects start by feeding a few documents manually to a searc
 These features are documented and included in order to help the user get a feel for what they can do with Solr with a minimum of painful setup.
 That's how it should be for first explorations. 
 
-All too often, users who don't know any better, and are perhaps mislead by the fact that these interfaces are documented in the reference manual (and assume anything documente must be "the right way" to do it) continue developing their search system by automating the use of those same interfaces. 
+All too often, users who don't know any better, and are perhaps mislead by the fact that these interfaces are documented in the reference manual (and assume anything documented must be "the right way" to do it) continue developing their search system by automating the use of those same interfaces. 
 In fairness to those users, some older versions of the Solr Ref guide failed to identify the "just for testing" nature of the interface, sometimes because it took a while for the community to realize the pitfalls associated with it.
 
 Unfortunately, large scale ingestion of documents for search is non-trivial and those indexing interfaces not meant for production use.
@@ -76,6 +76,7 @@ Discuss features, ask questions etc on Discord: https://discord.gg/RmdTYvpXr9
 
 In this release we have the following features
 
+* Ability to visualize the structure of your plan (.dot or .png format: [example from unit tests here](https://tinyurl.com/22k7tu74) )
 * Simple filesystem scanner for locally mounted drives (replacement for post.jar)
 * JDBC scanner (replacement for Data Import Handler!)
 * Scanners can remember what documents they've seen (or not, boolean flag)
