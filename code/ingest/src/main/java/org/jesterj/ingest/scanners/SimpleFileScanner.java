@@ -69,9 +69,6 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   @Transient
   @Override
   public ScanOp getScanOperation() {
-    //TODO: consider pulling this check up to ScannerImpl so its similar for
-    // all ScannerImpl subclasses
-
     return new ScanOp(() -> {
       log.trace("Scan Op:{}" , opCountTrace::incrementAndGet);
       synchronized (SimpleFileScanner.SCAN_LOCK) {
@@ -172,7 +169,6 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
       addAttrs(attributes, doc);
       return Optional.of(doc);
     } catch (IOException e) {
-      // TODO: perhaps we still want to proceed with non-canonical version?
       log.error("Could not resolve file path. Skipping:" + file, e);
       return Optional.empty();
     }

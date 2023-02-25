@@ -16,6 +16,7 @@ import static org.jesterj.ingest.model.NextSteps.StepStatus.*;
  * Encapsulate and manage status of steps to which a document should be sent
  */
 public class NextSteps {
+  public static final Cloner<Document> CLONER = new Cloner<>();
   Map<Step, StepStatusHolder> steps = new HashMap<>();
 
   public NextSteps(Document doc, Step... next) {
@@ -25,24 +26,25 @@ public class NextSteps {
       throw new RuntimeException("Router selected no next steps. This is a bug in the router implementation " +
           "or a misconfigured router");
     }
-
-    for (int i = 0; i < next.length; i++) {
-      Step step = next[i];
-      if (i == 0) {
-        steps.put(step,new StepStatusHolder(TRY, doc));
-        continue;
-      }
+    if (next.length == 1) {
+      steps.put(next[0],new StepStatusHolder(TRY, doc));
+      return;
+    }
+    // below here only for cases where more than step. To handle that we make clones. The original will be used for
+    // Drop Status updates and the clones will have their destinations adjusted to match their designated path.
+    for (Step step : next) {
       try {
-        Cloner<Document> cloner = new Cloner<>();
-        Document tmp = cloner.cloneObj(doc);
-        steps.put(step,new StepStatusHolder(TRY,tmp));
+        Document tmp = CLONER.cloneObj(doc);
+        tmp.removeAllOtherDestinationsQuietly(step.getOutputDestinationNames());
+        if (tmp.getIncompleteOutputSteps().length > 0) {
+          // ONLY keep things that have a destination.
+          steps.put(step, new StepStatusHolder(TRY, tmp));
+        }
       } catch (IOException | ClassNotFoundException e) {
         StepStatusHolder stepStatusHolder = new StepStatusHolder(FAIL, null);
         stepStatusHolder.setException(e);
-        steps.put(step,stepStatusHolder);
+        steps.put(step, stepStatusHolder);
       }
-
-
     }
 
   }

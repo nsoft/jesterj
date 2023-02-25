@@ -11,9 +11,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 import static com.copyright.easiertest.EasierMocks.prepareMocks;
 import static com.copyright.easiertest.EasierMocks.replay;
@@ -124,27 +122,35 @@ public class RouteByStepNameTest {
 
   @Test
   public void testUpdateExcludedDestinations() {
-    Step[] stepsDownStream = new Step[] {
-        stepMock1,stepMock2,stepMock3,stepMock4
-    };
 
-    Step[] steps1 = new Step[] {
-        stepMock3
-    };
-    Step[] steps2 = new Step[] {
-        stepMock3, stepMock4
-    };
+
+
     expect(router.getStep()).andReturn(stepMock);
-    expect(stepMock2.getName()).andReturn("fooName1").anyTimes();
-    expect(stepMock1.getName()).andReturn("fooName2").anyTimes();
+    expect(stepMock1.getName()).andReturn("fooName1").anyTimes();
+    expect(stepMock2.getName()).andReturn("fooName2").anyTimes();
+    expect(stepMock3.getName()).andReturn("fooName3").anyTimes();
+    expect(stepMock4.getName()).andReturn("fooName4").anyTimes();
     expect(router.getName()).andReturn("routerName").anyTimes();
-    expect(stepMock.geOutputSteps()).andReturn(stepsDownStream);
-    expect(stepMockNext1.geOutputSteps()).andReturn(steps1);
-    expect(stepMockNext2.geOutputSteps()).andReturn(steps2);
-    expect(docMock1.isPlanOutput("fooName1")).andReturn(true);
-    expect(docMock1.isPlanOutput("fooName2")).andReturn(false);
-    docMock1.setStatus(Status.DROPPED,"fooName1","Document routed down path not leading to {} by {}", "fooName1", "routerName");
-    docMock1.removeDownStreamOutputStep(router,stepMock2);
+
+    expect(docMock1.isPlanOutput("fooName2")).andReturn(true);
+    expect(docMock1.isPlanOutput("fooName1")).andReturn(false);  // < reason only one drop issued!
+    docMock1.setStatus(Status.DROPPED,"fooName2","Document routed down path not leading to {} by {}", "fooName2", "routerName");
+    docMock1.removeDownStreamOutputStep(router, "fooName2");
+
+    Set<String> destsCurrent = new HashSet<>();
+    destsCurrent.add("fooName1");
+    destsCurrent.add("fooName2");
+    destsCurrent.add("fooName3");
+    destsCurrent.add("fooName4");
+    Set<String> dests1 = new HashSet<>();
+    dests1.add("fooName3");
+    Set<String> dests2 = new HashSet<>();
+    dests2.add("fooName3");
+    dests2.add("fooName4");
+    expect(stepMock.getOutputDestinationNames()).andReturn(destsCurrent);
+    expect(stepMockNext1.getOutputDestinationNames()).andReturn(dests1);
+    expect(stepMockNext2.getOutputDestinationNames()).andReturn(dests2);
+
     replay();
     router.updateExcludedDestinations(docMock1,stepMockNext1,stepMockNext2);
 

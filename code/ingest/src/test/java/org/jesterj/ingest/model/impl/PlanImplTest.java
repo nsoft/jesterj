@@ -24,11 +24,8 @@ import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.session.Session;
 import guru.nidi.graphviz.engine.Format;
 import org.apache.logging.log4j.Level;
-import org.jesterj.ingest.model.Document;
-import org.jesterj.ingest.model.NextSteps;
-import org.jesterj.ingest.model.Plan;
+import org.jesterj.ingest.model.*;
 import org.jesterj.ingest.model.Scanner;
-import org.jesterj.ingest.model.Step;
 import org.jesterj.ingest.processors.LogAndDrop;
 import org.jesterj.ingest.routers.DuplicateToAll;
 import org.jesterj.ingest.scanners.SimpleFileScanner;
@@ -40,10 +37,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.lang.reflect.Field;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Spliterator;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
@@ -489,8 +483,18 @@ public class PlanImplTest {
     }
 
     @Override
-    public Step[] geOutputSteps() {
-      return mock.geOutputSteps();
+    public Set<String> getOutputDestinationNames() {
+      return mock.getOutputDestinationNames();
+    }
+
+    @Override
+    public Set<Step> getDownstreamOutputSteps() {
+      return mock.getDownstreamOutputSteps();
+    }
+
+    @Override
+    public boolean isOutputStep() {
+      return mock.isOutputStep();
     }
 
 
@@ -505,8 +509,18 @@ public class PlanImplTest {
     }
 
     @Override
+    public List<Step> getPriorSteps() {
+      return mock.getPriorSteps();
+    }
+
+    @Override
     public void addPredecessor(StepImpl obj) {
       mock.addPredecessor(obj);
+    }
+
+    @Override
+    public Router getRouter() {
+      return mock.getRouter();
     }
 
     @Override

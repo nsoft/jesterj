@@ -46,12 +46,12 @@ public class RouteByStepName extends RouterBase {
 
   @Override
   public boolean isConstantNumberOfOutputDocs() {
-    return false;
+    return true;
   }
 
   @Override
   public int getNumberOfOutputCopies() {
-    return 0;
+    return 1;
   }
 
   @Override
@@ -120,6 +120,9 @@ public class RouteByStepName extends RouterBase {
     }
 
     public RouteByStepName build() {
+      if (getObj().name == null) {
+        throw new IllegalStateException("Name of router must nto be null");
+      }
       RouteByStepName object = getObj();
       setObj(new RouteByStepName());
       return object;

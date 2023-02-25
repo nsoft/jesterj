@@ -383,10 +383,10 @@ class BulkTestSuiteMaker {
             }
         } catch (final InvocationTargetException ex) {
             ex.getTargetException().printStackTrace();
-            throw new Error(); // FIXME;
+            throw new Error(ex);
         } catch (final IllegalAccessException ex) {
             ex.printStackTrace();
-            throw new Error(); // FIXME;
+            throw new Error(ex);
         }
 
         // Save current state on the stack.
@@ -427,7 +427,7 @@ class BulkTestSuiteMaker {
 
     private static <T> Constructor<T> getTestCaseConstructor(final Class<T> c) {
         try {
-            return c.getConstructor(new Class[] { String.class });
+            return c.getConstructor(String.class);
         } catch (final NoSuchMethodException e) {
             throw new IllegalArgumentException(c + " must provide a (String) constructor");
         }
@@ -439,11 +439,11 @@ class BulkTestSuiteMaker {
             return con.newInstance(m.getName());
         } catch (final InvocationTargetException e) {
             e.printStackTrace();
-            throw new RuntimeException(); // FIXME;
+            throw new RuntimeException(e);
         } catch (final IllegalAccessException e) {
             throw new Error(); // should never occur
         } catch (final InstantiationException e) {
-            throw new RuntimeException(); // FIXME;
+            throw new RuntimeException(e);
         }
     }
 
@@ -474,10 +474,7 @@ class BulkTestSuiteMaker {
         if (Modifier.isStatic(mods)) {
             return false;
         }
-        if (Modifier.isAbstract(mods)) {
-            return false;
-        }
-        return true;
+      return !Modifier.isAbstract(mods);
     }
 
     /**
@@ -497,10 +494,7 @@ class BulkTestSuiteMaker {
         if (Modifier.isStatic(mods)) {
             return false;
         }
-        if (Modifier.isAbstract(mods)) {
-            return false;
-        }
-        return true;
+      return !Modifier.isAbstract(mods);
     }
 
 }

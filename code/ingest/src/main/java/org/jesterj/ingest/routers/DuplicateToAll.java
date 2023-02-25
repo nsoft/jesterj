@@ -19,6 +19,7 @@ package org.jesterj.ingest.routers;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.NextSteps;
 import org.jesterj.ingest.model.Step;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A router that simply duplicates the document to all subsequent steps.
@@ -42,6 +43,13 @@ public class DuplicateToAll extends RouterBase {
 
   @Override
   public NextSteps route(Document doc) {
+    NextSteps nextSteps = createNextSteps(doc);
+    updateExcludedDestinations(doc, nextSteps.list().toArray(new Step[0]));
+    return nextSteps;
+  }
+
+  @NotNull
+  NextSteps createNextSteps(Document doc) {
     return new NextSteps(doc, getStep().getNextSteps().values().toArray(new Step[0]));
   }
 
@@ -62,6 +70,9 @@ public class DuplicateToAll extends RouterBase {
     }
 
     public DuplicateToAll build() {
+      if (getObj().name == null) {
+        throw new IllegalStateException("Name of router must nto be null");
+      }
       DuplicateToAll object = getObj();
       setObj(new DuplicateToAll());
       return object;

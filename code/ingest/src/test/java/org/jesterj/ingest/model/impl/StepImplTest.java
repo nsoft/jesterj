@@ -27,11 +27,7 @@ import org.jesterj.ingest.model.ConfiguredBuildable;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Step;
-import org.jesterj.ingest.processors.CopyField;
-import org.jesterj.ingest.processors.LogAndDrop;
-import org.jesterj.ingest.processors.SendToSolrCloudProcessor;
-import org.jesterj.ingest.processors.SimpleDateTimeReformatter;
-import org.jesterj.ingest.processors.TikaProcessor;
+import org.jesterj.ingest.processors.*;
 import org.jesterj.ingest.routers.DuplicateToAll;
 import org.jesterj.ingest.scanners.SimpleFileScanner;
 import org.junit.After;
@@ -39,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.Set;
 
 import static com.copyright.easiertest.EasierMocks.*;
 import static org.junit.Assert.*;
@@ -81,24 +78,6 @@ public class StepImplTest {
     builder.build();
   }
 
-  /**
-   * Test the oddball case where we have a final step with no side effects
-   * (i.e. a waste of time!) Bad design, but should not throw an error since
-   * it could be a custom step that's actually  got side effects but perhaps is
-   * idempotent and doesn't need to be tracked anyway, or is optional or
-   * best effort
-   */
-  @Test
-  public void testSideEffectsNoneLastStep() {
-    replay();
-    try {
-      testStep = new StepImpl.Builder().withProcessor(new LogAndDrop.Builder().named("foo")).build();
-      Step[] possibleSideEffects = testStep.geOutputSteps();
-      assertEquals(0, possibleSideEffects.length);
-    } finally {
-      testStep.deactivate();
-    }
-  }
 
   @Test
   public void testSideEffectsLastStep() {
@@ -107,8 +86,8 @@ public class StepImplTest {
       testStep = new StepImpl.Builder().withProcessor(new SendToSolrCloudProcessor.Builder()
           .named("foo")
           .withZookeeper("localhost:9983")).build();
-      Step[] possibleSideEffects = testStep.geOutputSteps();
-      assertEquals(1, possibleSideEffects.length);
+      Set<Step> possibleSideEffects = testStep.getDownstreamOutputSteps();
+      assertEquals(1, possibleSideEffects.size());
     } finally {
       testStep.deactivate();
     }
@@ -119,8 +98,8 @@ public class StepImplTest {
     replay();
     Plan plan = getPlan();
     testStep = plan.findStep(SHAKESPEARE);
-    Step[] possibleSideEffects = testStep.geOutputSteps();
-    assertEquals(1, possibleSideEffects.length);
+    Set<Step> possibleSideEffects = testStep.getDownstreamOutputSteps();
+    assertEquals(1, possibleSideEffects.size());
   }
 
   private Plan getPlan() {

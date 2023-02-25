@@ -347,7 +347,6 @@ public class JdbcScanner extends ScannerImpl {
 
   @Override
   public Optional<Document> fetchById(String id, String origination) {
-    // TODO: implement this, something like:
     String sql = "select * from " + this.table + " where " + this.getDatabasePkColumnName() + " = ?";
 
     int slash = id.lastIndexOf("/") + 1;

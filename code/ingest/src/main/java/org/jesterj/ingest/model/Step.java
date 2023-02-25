@@ -19,6 +19,8 @@ package org.jesterj.ingest.model;
 import org.jesterj.ingest.model.impl.StepImpl;
 
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 
 /**
@@ -67,13 +69,17 @@ public interface Step extends Active, BlockingQueue<Document>, Runnable, Deferre
    */
   void sendToNext(Document doc);
 
+  Set<String> getOutputDestinationNames();
+
   /**
    * Identify the downstream steps that must only be executed once per document.
    *
    * @return The steps downstream from this one that are neither safe nor idempotent.
    */
-  Step[] geOutputSteps();
+  Set<Step> getDownstreamOutputSteps();
 
+
+  boolean isOutputStep();
 
   /**
    * The steps that are reachable from this step.
@@ -91,6 +97,9 @@ public interface Step extends Active, BlockingQueue<Document>, Runnable, Deferre
    */
   boolean isActivePriorSteps();
 
+  // visible for testing
+  List<Step> getPriorSteps();
+
   /**
    * Register a step as a predecessor of this step (one that might send documents to
    * this step).
@@ -98,4 +107,6 @@ public interface Step extends Active, BlockingQueue<Document>, Runnable, Deferre
    * @param obj The step to register as a potential upstream source of documents.
    */
   void addPredecessor(StepImpl obj);
+
+  Router getRouter();
 }

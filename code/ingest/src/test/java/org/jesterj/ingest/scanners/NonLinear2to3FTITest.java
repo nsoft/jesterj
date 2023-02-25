@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
-public class NonLinearFTITest extends ScannerImplTest {
+public class NonLinear2to3FTITest extends ScannerImplTest {
 
   @SuppressWarnings("unused")
   private static final Logger log = LogManager.getLogger();
@@ -70,7 +70,7 @@ public class NonLinearFTITest extends ScannerImplTest {
 
 
   @Test
-  public void testScanWithMemory() throws Exception {
+  public void testScanWithMemoryTwoIntoThree() throws Exception {
     // GitHub: "I want the threads!"
     // Me: "You can't handle the threads!"
     if((System.getenv("GITHUB_ACTION") != null)) return;
@@ -83,7 +83,7 @@ public class NonLinearFTITest extends ScannerImplTest {
     Cassandra.start(tempDir, "127.0.0.1");
     try {
 
-      Plan plan = getPlan("testScan");
+      Plan plan = getTwoIntoThreePlan("testScan");
       System.out.println(plan.visualize(Format.DOT).toString());
       // http://magjac.com/graphviz-visual-editor/?dot=digraph%20%22visualize%22%20%7B%0A%22fileScanner%22%20%5B%22color%22%3D%22blue%22%2C%22penwidth%22%3D%223.0%22%5D%0A%22jdbcScanner%22%20%5B%22color%22%3D%22blue%22%2C%22penwidth%22%3D%223.0%22%5D%0A%22fileScanner%22%20-%3E%20%22pauseStepFile%22%0A%22pauseStepFile%22%20-%3E%20%22errorStepFile%22%0A%22errorStepFile%22%20-%3E%20%22copyFileNameToCategoryStep%22%0A%22copyFileNameToCategoryStep%22%20-%3E%20%22copyIdToCategoryStep%22%0A%22copyIdToCategoryStep%22%20-%3E%20%22editCategory%22%0A%22editCategory%22%20-%3E%20%22defaultCategoryToOtherStep%22%0A%22defaultCategoryToOtherStep%22%20-%3E%20%22categoryCounterStep%22%0A%22categoryCounterStep%22%20-%3E%20%22pauseStepComedy%22%0A%22categoryCounterStep%22%20-%3E%20%22pauseStepTragedy%22%0A%22categoryCounterStep%22%20-%3E%20%22pauseStepOther%22%0A%22pauseStepComedy%22%20-%3E%20%22errorStepComedy%22%0A%22errorStepComedy%22%20-%3E%20%22countStepComedy%22%0A%22pauseStepTragedy%22%20-%3E%20%22errorStepTragedy%22%0A%22errorStepTragedy%22%20-%3E%20%22countStepTragedy%22%0A%22pauseStepOther%22%20-%3E%20%22errorStepOther%22%0A%22errorStepOther%22%20-%3E%20%22countStepOther%22%0A%22jdbcScanner%22%20-%3E%20%22pauseStepDb%22%0A%22pauseStepDb%22%20-%3E%20%22errorStepDb%22%0A%22errorStepDb%22%20-%3E%20%22copyFileNameToCategoryStep%22%0A%7D
 
@@ -237,7 +237,7 @@ public class NonLinearFTITest extends ScannerImplTest {
             // THIS is the key test. It shows that we only processed the missing documents and only
             // sent them to the output steps that didn't get them the first time.
             //
-            // There are 44 documents total, 3 of 17 comedies from 2 scanner should error out, (for a total
+            // There are 44 documents total, 3 of 17 comedies from 2 scanners should error out, for a total
             // of 6 errors on the first pass and the second pass will feed the 6 errors, one of which will
             // error a second time so these 3 cases are events per document:
             //   - PROCESSING,INDEXED (41 * 2 * 2 events = 164 events)
@@ -308,7 +308,7 @@ public class NonLinearFTITest extends ScannerImplTest {
   }
 
   @SuppressWarnings("SameParameterValue")
-  private Plan getPlan(String name) {
+  private Plan getTwoIntoThreePlan(String name) {
 
     // set up two sources each of which can be paused or have errors before routing
     SimpleFileScanner.Builder fileScannerBuilder = new SimpleFileScanner.Builder();
@@ -430,6 +430,7 @@ public class NonLinearFTITest extends ScannerImplTest {
             .matchesForField("category")
         )
         .routingBy(new RouteByStepName.Builder()
+            .named("CategoryRouter")
             .keyValuesInField("category")
             .mappingValueFromTo("other", PAUSE_STEP_OTHER)
             .mappingValueFromTo("comedies", PAUSE_STEP_COMEDY)

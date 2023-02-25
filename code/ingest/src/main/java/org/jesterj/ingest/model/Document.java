@@ -20,6 +20,7 @@ import com.google.common.collect.ListMultimap;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Set;
 
 public interface Document extends ListMultimap<String, String>, Serializable {
 
@@ -145,13 +146,27 @@ public interface Document extends ListMultimap<String, String>, Serializable {
    * router argument.
    *
    * @param routerBase The router for the step in which the removal takes place.
-   * @param step       the name of the step to remove.
+   * @param name the name of the step to remove
    */
-  void removeDownStreamOutputStep(Router routerBase, Step step);
+  void removeDownStreamOutputStep(Router routerBase, String name);
 
   String dumpStatus();
 
   String getOrigination();
+
+  /**
+   * For use during routing, to remove destinations from document duplicates before distribution to
+   * downstream steps. This is only necessary for routers that route to more than one step and therefore
+   * must clone documents. The clones need to be adjusted so that they do not have statuses for destinations
+   * not downstream from their immediate targets, without causing updates to the removed destinations (which might
+   * still be serviced by another clone). The returned destinations need to be aggregated and inspected to
+   * subsequently determine if the routing is in effect dropping some destinations For example a router that
+   * sends 2 copies to 2 out of 3 possible down stream steps has to only issue DROPPED status updates for the
+   * 3rd step that doesn't get a clone of the original document.
+   *
+   * @param outputDestinationNames the correct destinations at which this clone will be targeted
+   */
+  void removeAllOtherDestinationsQuietly(Set<String> outputDestinationNames);
 
   enum Operation implements Serializable {
     NEW,

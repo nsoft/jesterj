@@ -23,7 +23,6 @@ import org.apache.logging.log4j.ThreadContext;
 import org.jesterj.ingest.config.Transient;
 import org.jesterj.ingest.model.*;
 import org.jesterj.ingest.processors.NoOpProcessor;
-import org.jesterj.ingest.routers.RouteByStepName;
 import org.jesterj.ingest.routers.RouterBase;
 
 import java.io.PrintWriter;
@@ -33,7 +32,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /*
@@ -53,6 +51,7 @@ import java.util.stream.Stream;
 public class StepImpl implements Step {
 
   private static final Logger log = LogManager.getLogger();
+  public static final String VIA = "<-via->"; // note: must contain characters disallowed for step names.
 
   DocumentConsumer documentConsumer = new DocumentConsumer(); // stateless bean
   private LinkedBlockingQueue<Document> queue;
@@ -60,7 +59,7 @@ public class StepImpl implements Step {
   private final LinkedHashMap<String, Step> nextSteps = new LinkedHashMap<>();
   private volatile boolean active;
   private String stepName;
-  private Router router = new RouteByStepName();
+  private Router router;
   private volatile DocumentProcessor processor = new NoOpProcessor();
   private volatile Thread worker;
   private final Object WORKER_LOCK = new Object();
@@ -68,9 +67,10 @@ public class StepImpl implements Step {
 
   private final List<Runnable> deferred = new ArrayList<>();
   private final Object OUTPUT_STEP_LIST_LOCK = new Object();
-  private volatile Step[] outputSteps;
+  private volatile Set<Step> outputSteps;
   private int shutdownTimeout = 100;
   private final List<Step> priorSteps = new ArrayList<>();
+  private Set<String> outputDestinationNames;
 
   StepImpl() {
   }
@@ -309,40 +309,104 @@ public class StepImpl implements Step {
     pushToNextIfOk(doc);
   }
 
+
   @Override
-  public Step[] geOutputSteps() {
+  public Set<String> getOutputDestinationNames() {
+    if (this.outputDestinationNames != null) {
+      return outputDestinationNames;
+    }
+    Set<Step> downstreamOutputSteps = getDownstreamOutputSteps();
+    Set<String> destinations = new HashSet<>();
+    for (Step downstreamOutputStep : downstreamOutputSteps) {
+      String destinationName = downstreamOutputStep.getName();
+      appendUpstreamDuplicatingSplitDestinationNamesAndAdd(destinationName,
+          downstreamOutputStep, this, destinations, new HashSet<>());
+    }
+    this.outputDestinationNames = destinations;
+    return this.outputDestinationNames;
+  }
+
+  /**
+   * Appends '&lt;-via-&gt;XXXX' to the destination name and add it to the destinations collection.
+   * The suffix is appended for any case where there is an upstream step (from the perspective of
+   * the original current step before recursion) that would receive a copy of a document from a
+   * router that returns more than one step.
+   *
+   * @param destinationName the name of the step (to which '&lt;-via-&gt;XXXX' might get added during recursion).
+   * @param currentStep     Initially the destination step, but representing where we currently are during recursion
+   * @param referenceStep   the step for which we want to generate a set of destination names
+   * @param destinations    The "output" destination list that we wish to fill with destinations
+   * @param pathElements    An initially empty collection used to track the steps already seen during recursion. Will be empty when the initial call completes.
+   */
+  private void appendUpstreamDuplicatingSplitDestinationNamesAndAdd(String destinationName, Step currentStep,
+                                                                    Step referenceStep, Set<String> destinations,
+                                                                    Set<String> pathElements) {
+
+    pathElements.add(currentStep.getName());
+    List<Step> priors = currentStep.getPriorSteps();
+    if (priors == null || priors.size() == 0) {
+      // we are at a scanner,
+      if (pathElements.contains(referenceStep.getName())) {
+        // this recursion from the destination up to the scanner passed through our reference step.
+        destinations.add(destinationName);
+      }
+      // get ready for next trip up to the scanner (if any)
+      return;
+    }
+    for (Step prior : priors) {
+      Router router = prior.getRouter();
+      if (router != null && router.isDeterministic() && router.getNumberOfOutputCopies() > 1) {
+        appendUpstreamDuplicatingSplitDestinationNamesAndAdd(
+            destinationName + VIA + currentStep.getName(), prior, referenceStep, destinations, pathElements);
+      } else {
+        appendUpstreamDuplicatingSplitDestinationNamesAndAdd(destinationName,
+            prior, referenceStep, destinations, pathElements);
+      }
+    }
+    pathElements.remove(currentStep.getName());
+  }
+
+  @Override
+  public Set<Step> getDownstreamOutputSteps() {
     if (this.outputSteps == null) {
       synchronized (OUTPUT_STEP_LIST_LOCK) {
         if (this.outputSteps == null) {
           if (nextSteps.isEmpty()) {
-            if (processor.isPotent()) {
-              outputSteps = new Step[]{this};
+            if (processor.isPotent() || processor.isIdempotent()) {
+              outputSteps = new HashSet<>();
+              outputSteps.add(this);
             } else {
-              // oddball case! but shouldn't
-              outputSteps = new Step[0];
+              throw new RuntimeException("Detected terminal step that does not produce an output!. " +
+                  "Final step on any path must be potent or idempotent");
             }
           } else {
-            Step[][] subEffects = new Step[nextSteps.size()][];
-            ArrayList<Step> values = new ArrayList<>(nextSteps.values());
-            for (int i = 0; i < values.size(); i++) {
-              subEffects[i] = values.get(i).geOutputSteps();
+            List<Set<Step>> subEffects = new ArrayList<>(nextSteps.size());
+            HashSet<Step> values = new HashSet<>(nextSteps.values());
+            for (Step value : values) {
+              subEffects.add(value.getDownstreamOutputSteps());
             }
             ArrayList<Step> tmp = new ArrayList<>();
-            for (Step[] subEffect : subEffects) {
-              Collections.addAll(tmp, subEffect);
+            for (Set<Step> subEffect : subEffects) {
+              tmp.addAll(subEffect);
             }
             // since we fail if the last step is safe, this ensures that every path happens at least once.
             // idempotent steps not at the terminus don't need to be tracked, they will be guaranteed to be
             // executed en-route to a terminus. By definition, it's ok to execute them more than once.
-            if (processor.isPotent() || processor.isIdempotent() && nextSteps.isEmpty()) {
+            if (isOutputStep()) {
               tmp.add(this);
             }
-            outputSteps = tmp.toArray(new Step[0]);
+            outputSteps = new HashSet<>();
+            outputSteps.addAll(tmp);
           }
         }
       }
     }
     return outputSteps;
+  }
+
+  @Override
+  public boolean isOutputStep() {
+    return processor.isPotent() || processor.isIdempotent() && nextSteps.isEmpty();
   }
 
   @Override
@@ -356,7 +420,8 @@ public class StepImpl implements Step {
   }
 
   // visible for testing
-  List<Step> getPriorSteps() {
+  @Override
+  public List<Step> getPriorSteps() {
     return priorSteps;
   }
 
@@ -388,8 +453,8 @@ public class StepImpl implements Step {
               getName() + " Document:" + document);
         }
         if (document.getIncompleteOutputSteps().length > 1 && nextSteps.isEmpty()) {
-          throw new RuntimeException("Critical failure! JesterJ calculated more than one down stream step " +
-              "for a final step. This is likely to be a bug in JesterJ, please report an issue in the project " +
+          throw new RuntimeException("Critical failure! JesterJ calculated more than one down stream step on a document " +
+              "at a final step. This is likely to be a bug in JesterJ, please report an issue in the project " +
               "issue tracker. Remaining incomplete steps:" + document.listIncompleteOutputSteps() + " Current Step:" +
               getName() + " Document:" + document);
         }
@@ -399,9 +464,10 @@ public class StepImpl implements Step {
               "is not POTENT or IDEMPOTENT, or the name doesn't match the current step! Our Name:" + getName() +
               " Expected destination:" + incompleteOutputStep);
         }
-        if (!incompleteOutputStep.equals(getName())) {
+        if (!getOutputDestinationNames().contains(incompleteOutputStep)) {
           throw new RuntimeException("We reached a valid final step, but it does not have the expected step name, " +
-              "This is likely to be a bug in JesterJ please report an issue in the project issue tracker");
+              "This is likely to be a bug in JesterJ please report an issue in the project issue tracker. Named valid:"
+              + getOutputDestinationNames() + " Name expected:" + incompleteOutputStep);
         }
         // we have a single step, we are the right type of step, and this is the expected step. Our work is done here!
         markIndexed(document, incompleteOutputStep);
@@ -412,7 +478,7 @@ public class StepImpl implements Step {
           markIndexed(document, this.getName());
         }
         document.reportDocStatus();
-        pushToNext(document, next);
+        pushToNext(next);
       }
       document.reportDocStatus();
       log.trace("completing push to next if ok {} for {}", getName(), document.getId());
@@ -424,7 +490,7 @@ public class StepImpl implements Step {
     }
   }
 
-  Router getRouter() {
+  public Router getRouter() {
     return this.router;
   }
 
@@ -435,7 +501,7 @@ public class StepImpl implements Step {
     }
   }
 
-  void pushToNext(Document document, NextSteps next) {
+  void pushToNext(NextSteps next) {
     List<Map.Entry<Step, NextSteps.StepStatusHolder>> remaining = next.remaining();
     if (remaining.size() == 1) {
       // simple case, do not make/use clones
@@ -443,13 +509,13 @@ public class StepImpl implements Step {
     } else {
       // This loop allows us to push to any steps that are ready, and come back to the ones that are blocked.
       while (remaining.size() > 0) {
-        for (Map.Entry<Step, NextSteps.StepStatusHolder> stepStatuEntry : next.remaining()) {
-          Step destinationStep = stepStatuEntry.getKey();
-          if (stepStatuEntry.getValue().getException() != null) {
+        for (Map.Entry<Step, NextSteps.StepStatusHolder> stepStatusEntry : next.remaining()) {
+          Step destinationStep = stepStatusEntry.getKey();
+          if (stepStatusEntry.getValue().getException() != null) {
             next.update(destinationStep, NextSteps.StepStatus.FAIL); // update this first to ensure loop terminates
-            reportException(document, stepStatuEntry, "Failed to clone document when sending to multiple steps");
+            reportException(stepStatusEntry, "Failed to clone document when sending to multiple steps");
           } else {
-            NextSteps.StepStatus stepStatus = pushToStep(stepStatuEntry, false);
+            NextSteps.StepStatus stepStatus = pushToStep(stepStatusEntry, false);
             next.update(destinationStep, stepStatus);
           }
         }
@@ -476,7 +542,7 @@ public class StepImpl implements Step {
           return NextSteps.StepStatus.FAIL;
         } catch (Exception e) {
           String message = "Exception while offering to " + name + ". Exception message:{}";
-          reportException(document, entry, message, e);
+          reportException(entry, message, e);
           return NextSteps.StepStatus.FAIL;
         }
         offer = true;
@@ -544,21 +610,16 @@ public class StepImpl implements Step {
   }
 
   @SuppressWarnings("WeakerAccess")
-  protected void reportException(Document doc, Map.Entry<Step, NextSteps.StepStatusHolder> entry, String message, Object... params) {
+  protected void reportException( Map.Entry<Step, NextSteps.StepStatusHolder> entry, String message, Object... params) {
+    Document doc = entry.getValue().getDoc();
     StringWriter buff = new StringWriter();
     Exception e = entry.getValue().getException();
     e.printStackTrace(new PrintWriter(buff));
     String errorMsg = message + " " + e.getMessage() + "\n" + buff;
-    List<String> downstreamForStep = Arrays.stream(entry.getKey().geOutputSteps())
-        .map(Configurable::getName)
-        .collect(Collectors.toList());
+    Set<String> downstreamForStep = entry.getKey().getOutputDestinationNames();
 
-    // TODO: this fails if there's more than one path to the downstream step (diamond shaped plan). Will need to
-    //  consider outputs that lead to a join point potent if the router may produce more than one output.
-    //  The assumption will be that non-deterministic routers are choosing between equivalent paths and that
-    //  any deterministic router that only emits 1 or 0 documents need not be tracked.
     for (String incompleteOutputStep : downstreamForStep) {
-      doc.setStatus(Status.ERROR,incompleteOutputStep, errorMsg,  params);
+      doc.setStatus(Status.ERROR, incompleteOutputStep, errorMsg, params);
     }
     doc.reportDocStatus();
     if (e instanceof InterruptedException) {

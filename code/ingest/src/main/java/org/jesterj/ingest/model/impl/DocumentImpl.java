@@ -435,10 +435,10 @@ public class DocumentImpl implements Document {
   }
 
   @Override
-  public void removeDownStreamOutputStep(Router router, Step step) {
-    log.trace("Removing destination step {} from {} after processing with {}", step.getName(), getId(), router.getStep().getName());
-    if (incompleteOutputSteps.remove(step.getName()) == null) {
-      throw new RuntimeException("Tried to remove non-existent destination step! Router:" + router.getClass().getSimpleName() + " Step:" + step.getName());
+  public void removeDownStreamOutputStep(Router router, String name) {
+    log.trace("Removing destination step {} from {} after processing with {}", name, getId(), router.getStep().getName());
+    if (incompleteOutputSteps.remove(name) == null) {
+      throw new RuntimeException("Tried to remove non-existent destination step! Router:" + router.getClass().getSimpleName() + " Step:" + name);
     }
   }
 
@@ -450,5 +450,20 @@ public class DocumentImpl implements Document {
   @Override
   public String getOrigination() {
     return this.origination;
+  }
+
+  @Override
+  public void removeAllOtherDestinationsQuietly(Set<String> outputDestinationNames) {
+    Map<String,DocDestinationStatus> removed = new HashMap<>();
+    synchronized (this.incompleteOutputSteps) {
+      for (Map.Entry<String, DocDestinationStatus> destStat : incompleteOutputSteps.entrySet()) {
+        if (!outputDestinationNames.contains(destStat.getKey())) {
+          removed.put(destStat.getKey(), destStat.getValue());
+        }
+      }
+      for (String dest : removed.keySet()) {
+        incompleteOutputSteps.remove(dest);
+      }
+    }
   }
 }

@@ -101,7 +101,11 @@ public class PlanImpl implements Plan {
     }
     Graph g = graph("visualize").directed();
     for (Step scanner : scanners) {
-      Node node = nodes.get(scanner.getName());
+      String label = scanner.getName();
+      if (scanner.getRouter() != null) {
+        label += "\n(" +scanner.getRouter().getName()+ ")";
+      }
+      Node node = nodes.get(label);
       g = g.with(node);
     }
     Graphviz tmp = Graphviz.fromGraph(g);
@@ -115,26 +119,45 @@ public class PlanImpl implements Plan {
 
   private void linkUp(Map<String, Node> nodes, List<String> knownSteps, StepImpl step) {
     LinkedHashMap<String, Step> nextSteps = step.getNextSteps();
-    Node node = nodes.computeIfAbsent(step.getName(), Factory::node);
+    String label = getLabel(step);
+    Node node = nodes.computeIfAbsent(label, Factory::node);
     if (step instanceof Scanner) {
       node = node.with(Color.BLUE, Style.lineWidth(3));
-      nodes.replace(step.getName(), node);
+      nodes.replace(label, node);
     }
-    knownSteps.add(step.getName());
+    if (step.getProcessor().isIdempotent()) {
+      node = node.with(Color.PLUM, Style.lineWidth(3));
+      nodes.replace(label, node);
+    }
+    if (step.getNextSteps().isEmpty() || step.getProcessor().isPotent()) {
+      node = node.with(Color.RED, Style.lineWidth(3));
+      nodes.replace(label, node);
+    }
+
+    knownSteps.add(label);
     if (nextSteps.size() == 0) {
       return;
     }
     for (Step subsequentStep : nextSteps.values()) {
-      if (!knownSteps.contains(subsequentStep.getName())) {
+      String subsequentLabel = getLabel(subsequentStep);
+      if (!knownSteps.contains(subsequentLabel)) {
         // new node, need to recurse
         linkUp(nodes, knownSteps, (StepImpl) subsequentStep);  // yuck, but I don't really want to expose next steps in interface either
       }
-      Node nextNode = nodes.get(subsequentStep.getName());
+      Node nextNode = nodes.get(subsequentLabel);
       node = node.link(nextNode);
       // link returns an immutable copy of the node we just created, so we need
       // to throw out the original and keep the copy
-      nodes.put(step.getName(), node);
+      nodes.put(label, node);
     }
+  }
+
+  private static String getLabel(Step step) {
+    String label = step.getName();
+    if (step.getRouter() != null) {
+      label = String.format("%s\n(%s)",label, step.getRouter().getName());
+    }
+    return label;
   }
 
   @Override

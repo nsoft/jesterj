@@ -25,20 +25,19 @@ public abstract class RouterBase implements Router {
    * @param doc the document for which statuses need to be updated
    * @param dest the steps that the document *will* be routed to.
    */
-  void updateExcludedDestinations(Document doc, Step... dest) {
-    // find everywhere we might have went
-    List<Step> stepsExcluded = new ArrayList<>(Arrays.asList(getStep().geOutputSteps()));
-    Set<Step> stillDownStream = new HashSet<>();
+  public void updateExcludedDestinations(Document doc, Step... dest) {
+    // find everywhere we might have gone
+    List<String> stepsExcluded = new ArrayList<>(getStep().getOutputDestinationNames());
+    Set<String> stillDownStream = new HashSet<>();
     if (dest != null) {
       // find everywhere we are still going
       for (Step s : dest) {
-        Step[] downstreamOutputSteps = s.geOutputSteps();
-        List<Step> c = Arrays.asList(downstreamOutputSteps);
-        stillDownStream.addAll(c);
+        Set<String> downstreamOutputSteps = s.getOutputDestinationNames();
+        stillDownStream.addAll(downstreamOutputSteps);
       }
     }
     // remove places we are still going to
-    for (Step ps : stillDownStream) {
+    for (String ps : stillDownStream) {
       stepsExcluded.remove(ps);
     }
 
@@ -46,15 +45,15 @@ public abstract class RouterBase implements Router {
 
     // now remove any step to which the document was not targeted (possibly because it has partially completed
     // and is now re-running due to FTI
-    stepsExcluded.removeIf((s) -> !doc.isPlanOutput(s.getName()));
+    stepsExcluded.removeIf((s) -> !doc.isPlanOutput(s));
 
     // Now if anything remains in stepsExcluded, then it was a valid target that has become invalid due to the
     // router's routing decision
 
-    for (Step step : stepsExcluded) {
+    for (String step : stepsExcluded) {
       // drop anything that is not the current step.
-      doc.setStatus(Status.DROPPED,  step.getName(),"Document routed down path not leading to {} by {}", step.getName(), getName());
-      doc.removeDownStreamOutputStep(this,step);
+      doc.setStatus(Status.DROPPED,  step,"Document routed down path not leading to {} by {}", step, getName());
+      doc.removeDownStreamOutputStep(this, step);
     }
   }
 

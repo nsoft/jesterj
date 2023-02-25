@@ -296,10 +296,10 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     if (isRemembering() & !shouldIndex) {
       id = doc.getId();
       CqlSession session = getCassandra().getSession();
-      Step[] downstreamOutputSteps = geOutputSteps();
-      for (int i = 0; i < downstreamOutputSteps.length && !shouldIndex; i++) {
-        Step outputStep = downstreamOutputSteps[i];
-        Status status = doc.getStatus(outputStep.getName());
+      Set<String> outputDestinationNames = getOutputDestinationNames();
+      List<String> downstreamOutputSteps = new ArrayList<>(outputDestinationNames);
+      for (int i = 0; i < downstreamOutputSteps.size() && !shouldIndex; i++) {
+        Status status = doc.getStatus(downstreamOutputSteps.get(i));
         // Typically these statuses already have forceReprocess set, but just in case.
         if (status == FORCE || status == RESTART) {
           shouldIndex = true;
@@ -330,8 +330,8 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         // This was a document found by the scanner during a scan and either we are not hashing, not remembering
         // or a new hash (i.e. new content) was found, so ALL downstream steps should be eligible
         HashMap<String, DocDestinationStatus> steps = new HashMap<>();
-        for (Step downStream : geOutputSteps()) {
-          steps.put(downStream.getName(), new DocDestinationStatus(PROCESSING, downStream.getName(), NEW_CONTENT_FOUND_MSG, getName()));
+        for (String downStream : getOutputDestinationNames()) {
+          steps.put(downStream, new DocDestinationStatus(PROCESSING, downStream, NEW_CONTENT_FOUND_MSG, getName()));
         }
         doc.setIncompleteOutputSteps(steps);
       }
@@ -342,7 +342,8 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   }
 
   boolean seenPreviously(String scannerName, String id, CqlSession session) {
-    String anyStep = geOutputSteps()[0].getName();
+    // never legal for getOutputDestinationNames to have no elements...
+    String anyStep = getOutputDestinationNames().iterator().next();
     String keySpace = keySpace(anyStep);
     String actualQuery = String.format(FIND_LATEST_STATUS, keySpace);
     PreparedStatement seenDocQuery = getCassandra().getPreparedQuery(FIND_LATEST_STATUS_Q + "_" + keySpace(anyStep), actualQuery);
@@ -441,8 +442,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     CqlSession session = cStar.getSession();
     Map<String, List<LatestStatus>> needToProcess = new HashMap<>();
     Map<String, LatestStatus> statusCheckCache = new HashMap<>();
-    for (Step outputStep : geOutputSteps()) {
-      String stepName = outputStep.getName();
+    for (String stepName : getOutputDestinationNames()) {
       String keySpace = keySpace(stepName);
       for (Status status : statusesToProcess) {
         String actualQuery = String.format(FIND_STRANDED_STATUS, keySpace);
@@ -543,7 +543,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       log.error("{} appeared in {} but not in {}", docId, priorQuery, histQuery);
       latestStatus = new LatestStatus("NO PRIOR STATUS FOUND", Instant.now().toString(), outputStepName);
     } else {
-      latestStatus = new LatestStatus(one.getString(1),String.valueOf(one.getInstant(2)), outputStepName);
+      latestStatus = new LatestStatus(one.getString(1), String.valueOf(one.getInstant(2)), outputStepName);
     }
     cache.put(docId + outputStepName, latestStatus);
     return latestStatus;
@@ -553,8 +553,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     if (!this.persistenceCreated) {
       // no need for synchronization should ony be one thread, and if exists is safe anyway.
       CqlSession session = cassandra.getSession();
-      for (Step outputStep : geOutputSteps()) {
-        String name = outputStep.getName();
+      for (String name : getOutputDestinationNames()) {
         session.execute(String.format(CREATE_FT_KEYSPACE, keySpace(name)));
         session.execute(String.format(CREATE_FT_TABLE, keySpace(name)));
         session.execute(String.format(CREATE_INDEX_STATUS, keySpace(name)));
@@ -569,11 +568,10 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     log.info("Processing Errors");
     Set<DocumentImpl> deadDocs = new HashSet<>();
     Map<String, List<LatestStatus>> forceReprocess = new HashMap<>();
-    for (Step outputStep : geOutputSteps()) {
+    for (String outputStepName : getOutputDestinationNames()) {
       ResultSet rs;
       PreparedStatement pq;
       BoundStatement bs;
-      String outputStepName = outputStep.getName();
       String actualQuery = String.format(FIND_ERRORS, keySpace(outputStepName));
       pq = getCassandra().getPreparedQuery(FIND_ERROR_DOCS + "_" + keySpace(outputStepName), actualQuery);
       bs = pq.bind();

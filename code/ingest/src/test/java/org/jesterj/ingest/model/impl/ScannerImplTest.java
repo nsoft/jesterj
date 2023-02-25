@@ -97,12 +97,16 @@ public class ScannerImplTest {
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.removeAll("id")).andReturn(null);
     expect(docMock.put("id", "42")).andReturn(true);
-    expect(scanner.geOutputSteps()).andReturn(new Step[]{stepMock1}).anyTimes();
+    Set<Step> steps = new HashSet<>();
+    steps.add(stepMock1);
+    expect(scanner.getDownstreamOutputSteps()).andReturn(steps).anyTimes();
     expect(docMock.alreadyHasIncompleteStepList()).andReturn(false); //<< key test case
     expect(docMock.getStatus("fooStep")).andReturn(null);  //<< key test case
-    expect(stepMock1.getName()).andReturn("fooStep").anyTimes();
     Capture<? extends Map<String, DocDestinationStatus>> c = newCapture();
     docMock.setIncompleteOutputSteps(capture(c));
+    Set<String> dests = new HashSet<>();
+    dests.add("fooStep");
+    expect(scanner.getOutputDestinationNames()).andReturn(dests).anyTimes();
 
     scanner.sendToNext(docMock);
 
@@ -137,13 +141,18 @@ public class ScannerImplTest {
     expect(docMock.put("id", "42")).andReturn(true);
     expect(docMock.removeAll("id")).andReturn(null);
 
-    expect(scanner.geOutputSteps()).andReturn(new Step[]{stepMock1,stepMock2});
-    expect(stepMock1.getName()).andReturn("dest1");
-    expect(stepMock2.getName()).andReturn("dest2");
+    Set<Step> steps = new HashSet<>();
+    steps.add(stepMock1);
+    expect(scanner.getDownstreamOutputSteps()).andReturn(steps).anyTimes();
+
     expect(docMock.getStatus("dest1")).andReturn(DIRTY);
     expect(docMock.getStatus("dest2")).andReturn(DIRTY);
     expect(scanner.seenPreviously(scannerName,"42",sessionMock)).andReturn(false);
     expect(docMock.alreadyHasIncompleteStepList()).andReturn(true);
+    Set<String> dests = new HashSet<>();
+    dests.add("dest1");
+    dests.add("dest2");
+    expect(scanner.getOutputDestinationNames()).andReturn(dests);
 
     scanner.sendToNext(docMock);
     replay();
@@ -169,9 +178,13 @@ public class ScannerImplTest {
     expect(docMock.removeAll("id")).andReturn(null);
     expect(scanner.seenPreviously(scannerName,"42",sessionMock)).andReturn(true);
     expect(scanner.isHeuristicallyDirty(docMock)).andReturn(false);
+    Set<String> dests = new HashSet<>();
+    dests.add("fooStep");
+    expect(scanner.getOutputDestinationNames()).andReturn(dests);
 
-    expect(scanner.geOutputSteps()).andReturn(new Step[]{stepMock1});
-    expect(stepMock1.getName()).andReturn("fooStep");
+    Set<Step> steps = new HashSet<>();
+    steps.add(stepMock1);
+    expect(scanner.getDownstreamOutputSteps()).andReturn(steps).anyTimes();
     expect(docMock.getStatus("fooStep")).andReturn(PROCESSING);
     replay();
     scanner.docFound(docMock);
@@ -195,10 +208,14 @@ public class ScannerImplTest {
     scanner.sendToNext(docMock);
     expect(scanner.seenPreviously(scannerName,"42",sessionMock)).andReturn(true);
 
-    expect(scanner.geOutputSteps()).andReturn(new Step[]{stepMock1});
-    expect(docMock.alreadyHasIncompleteStepList()).andReturn(true); //<< (if processing already set)
-    expect(stepMock1.getName()).andReturn("fooStep");
+    Set<Step> steps = new HashSet<>();
+    steps.add(stepMock1);
+    expect(scanner.getDownstreamOutputSteps()).andReturn(steps).anyTimes();    expect(docMock.alreadyHasIncompleteStepList()).andReturn(true); //<< (if processing already set)
     expect(docMock.getStatus("fooStep")).andReturn(PROCESSING);
+    Set<String> dests = new HashSet<>();
+    dests.add("fooStep");
+    expect(scanner.getOutputDestinationNames()).andReturn(dests);
+
     replay();
     scanner.docFound(docMock);
   }
@@ -215,11 +232,15 @@ public class ScannerImplTest {
     expect(docMock.removeAll("id")).andReturn(null);
     expect(docMock.put("id", "42")).andReturn(true);
     expect(docMock.isForceReprocess()).andReturn(false);
-    expect(scanner.geOutputSteps()).andReturn(new Step[]{stepMock1});
-    expect(stepMock1.getName()).andReturn("fooStep").anyTimes();
+    Set<Step> steps = new HashSet<>();
+    steps.add(stepMock1);
+    expect(scanner.getDownstreamOutputSteps()).andReturn(steps).anyTimes();    expect(stepMock1.getName()).andReturn("fooStep").anyTimes();
     Capture<? extends Map<String, DocDestinationStatus>> c = newCapture();
     docMock.setIncompleteOutputSteps(capture(c));
     scanner.sendToNext(docMock);
+    Set<String> dests = new HashSet<>();
+    dests.add("fooStep");
+    expect(scanner.getOutputDestinationNames()).andReturn(dests);
 
     replay();
     scanner.docFound(docMock);
@@ -250,11 +271,15 @@ public class ScannerImplTest {
     expect(docMock.put("id", "42")).andReturn(true);
     scanner.sendToNext(docMock);
 
-    expect(scanner.geOutputSteps()).andReturn(new Step[]{stepMock1});
+    Set<Step> steps = new HashSet<>();
+    steps.add(stepMock1);
+    expect(scanner.getDownstreamOutputSteps()).andReturn(steps).anyTimes();
     expect(docMock.alreadyHasIncompleteStepList()).andReturn(true); //<< (if processing already set)
-    expect(stepMock1.getName()).andReturn("fooStep");
-    expect(docMock.getStatus("fooStep")).andReturn(PROCESSING);
 
+    expect(docMock.getStatus("fooStep")).andReturn(PROCESSING);
+    Set<String> dests = new HashSet<>();
+    dests.add("fooStep");
+    expect(scanner.getOutputDestinationNames()).andReturn(dests);
 
     replay();
     scanner.docFound(docMock);
@@ -277,9 +302,15 @@ public class ScannerImplTest {
     expect(docMock.put("id", "42")).andReturn(true);
     expect(docMock.removeAll("id")).andReturn(null);
     expect(scanner.isHeuristicallyDirty(docMock)).andReturn(false);
-    expect(scanner.geOutputSteps()).andReturn(new Step[]{stepMock1});
-    expect(stepMock1.getName()).andReturn("fooStep");
+    Set<Step> steps = new HashSet<>();
+    steps.add(stepMock1);
+    expect(scanner.getDownstreamOutputSteps()).andReturn(steps).anyTimes();
     expect(docMock.getStatus("fooStep")).andReturn(PROCESSING);
+
+    Set<String> dests = new HashSet<>();
+    dests.add("fooStep");
+    expect(scanner.getOutputDestinationNames()).andReturn(dests);
+
     replay();
     scanner.docFound(docMock);
   }
@@ -300,10 +331,15 @@ public class ScannerImplTest {
     expect(docMock.getIdField()).andReturn("id");
     expect(docMock.removeAll("id")).andReturn(null);
     expect(docMock.put("id", "42")).andReturn(true);
-    expect(scanner.geOutputSteps()).andReturn(new Step[]{stepMock1});
+    Set<Step> steps = new HashSet<>();
+    steps.add(stepMock1);
+    expect(scanner.getDownstreamOutputSteps()).andReturn(steps).anyTimes();
     expect(docMock.alreadyHasIncompleteStepList()).andReturn(true); //<< (if processing already set)
-    expect(stepMock1.getName()).andReturn("fooStep");
+
     expect(docMock.getStatus("fooStep")).andReturn(PROCESSING);
+    Set<String> dests = new HashSet<>();
+    dests.add("fooStep");
+    expect(scanner.getOutputDestinationNames()).andReturn(dests);
 
     scanner.sendToNext(docMock);
     replay();
@@ -369,13 +405,17 @@ public class ScannerImplTest {
     expect(scanner.findLatestSatus(findStrandedDocs, "foobarId","outputStepName", cache)).andReturn(lstatMock);
     expect(lstatMock.getStatus()).andReturn(PROCESSING.toString()).times(4);
 
-    Step[] steps = new Step[]{stepMock1};
-    expect(scanner.geOutputSteps()).andReturn(steps);
-    expect(stepMock1.getName()).andReturn("outputStepName");
+    Set<Step> steps = new HashSet<>();
+    steps.add(stepMock1);
+    expect(scanner.getDownstreamOutputSteps()).andReturn(steps).anyTimes();
     Set<String> sentAlready = new HashSet<>();
     Capture<Map.Entry<String, List<LatestStatus>>> c = newCapture();
     //noinspection DataFlowIssue
     scanner.process(eq(true),eq(sentAlready),capture(c), eq(FTI_ORIGIN));
+    Set<String> dests = new HashSet<>();
+    dests.add("outputStepName");
+    expect(scanner.getOutputDestinationNames()).andReturn(dests);
+
     replay();
     FTIQueryContext src = new FTIQueryContext(sentAlready);
     scanner.processPendingDocs(src, List.of(PROCESSING, BATCHED, RESTART, FORCE), true);
