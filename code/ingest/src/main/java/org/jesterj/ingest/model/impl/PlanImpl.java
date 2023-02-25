@@ -33,6 +33,7 @@ import org.jesterj.ingest.model.Configurable;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
 import org.jesterj.ingest.model.Step;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -121,18 +122,10 @@ public class PlanImpl implements Plan {
     LinkedHashMap<String, Step> nextSteps = step.getNextSteps();
     String label = getLabel(step);
     Node node = nodes.computeIfAbsent(label, Factory::node);
-    if (step instanceof Scanner) {
-      node = node.with(Color.BLUE, Style.lineWidth(3));
+    node = node.with(
+        nodeColor(step), Style.lineWidth(2),
+        Style.FILLED, nodeFillColor(step).fill());
       nodes.replace(label, node);
-    }
-    if (step.getProcessor().isIdempotent()) {
-      node = node.with(Color.PLUM, Style.lineWidth(3));
-      nodes.replace(label, node);
-    }
-    if (step.getNextSteps().isEmpty() || step.getProcessor().isPotent()) {
-      node = node.with(Color.RED, Style.lineWidth(3));
-      nodes.replace(label, node);
-    }
 
     knownSteps.add(label);
     if (nextSteps.size() == 0) {
@@ -150,6 +143,31 @@ public class PlanImpl implements Plan {
       // to throw out the original and keep the copy
       nodes.put(label, node);
     }
+  }
+
+  @NotNull
+  private static Color nodeFillColor(StepImpl step) {
+    if (step.getRouter() != null && !step.getRouter().isDeterministic()) {
+      return Color.hsv(.7, .3, 1.0);
+    }
+    if (step.getRouter() != null && step.getRouter().isDeterministic()) {
+      return Color.rgb("#AAFFAA");
+    }
+    return Color.WHITE;
+  }
+
+  @NotNull
+  private static Color nodeColor(StepImpl step) {
+    if (step instanceof Scanner) {
+      return Color.BLUE;
+    }
+    if (step.getProcessor().isIdempotent()) {
+      return Color.PLUM;
+    }
+    if (step.getNextSteps().isEmpty() || step.getProcessor().isPotent()) {
+      return Color.RED;
+    }
+    return Color.BLACK;
   }
 
   private static String getLabel(Step step) {
