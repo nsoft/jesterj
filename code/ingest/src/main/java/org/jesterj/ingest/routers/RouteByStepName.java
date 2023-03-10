@@ -72,7 +72,6 @@ public class RouteByStepName extends RouterBase {
 
     NextSteps nextSteps = dest == null ? null : new NextSteps(doc, dest);
     log.trace("Document {} Routed to {}, with statuses:{}", doc::getId, () -> nextSteps, doc::dumpStatus);
-    doc.reportDocStatus();
     return nextSteps;
   }
 

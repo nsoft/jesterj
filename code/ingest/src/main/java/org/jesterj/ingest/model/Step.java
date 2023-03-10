@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.regex.Pattern;
 
 /**
  * A <code>Step</code> is a {@link BlockingQueue} with a capacity equal to its concurrency level.
@@ -109,4 +110,10 @@ public interface Step extends Active, BlockingQueue<Document>, Runnable, Deferre
   void addPredecessor(StepImpl obj);
 
   Router getRouter();
+
+  default boolean isOutputDestinationThisStep(String destinationPath) {
+    String name = getName();
+    Pattern patternForStep = StepImpl.getPatternForStep(name);
+    return patternForStep.matcher(destinationPath).matches();
+  }
 }

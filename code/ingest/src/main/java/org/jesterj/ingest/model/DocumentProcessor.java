@@ -30,7 +30,7 @@ public interface DocumentProcessor extends Configurable {
    * good idea to hold resources that require an explicit release or "return". "Check then write" is of course a
    * performance anti-pattern with respect to external networked or disk resources since network and disk io are
    * typically slow to access. Processors should feel free to set the status of a document and add a status message via
-   * {@link Document#setStatusAll(Status,String,Object...)}  however the easiest way to communicate a failure (for
+   * {@link Document#setStatus(Status, String, java.io.Serializable...)}  however the easiest way to communicate a failure (for
    * which all further processing is in error) is to simply throw a runtime exception. The document processor has
    * no need to add the document to the next step in the plan as this will be handled by the infrastructure in
    * {@link StepImpl} based on the status of the document so long as the document is emitted via the return value

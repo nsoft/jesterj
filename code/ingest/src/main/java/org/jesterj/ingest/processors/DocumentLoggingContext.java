@@ -71,15 +71,13 @@ public class DocumentLoggingContext implements Closeable {
     JJ_OUTPUT_STEP_CHANGES {
       @Override
       String fromDoc(Document d) {
-        return String.join(",", d.getStatusChanges().keySet()); // , not allowed in step name
+        return String.join(",", d.listChangingDestinations()); // , not allowed in step name
       }
     },
     JJ_STATUS_CHANGES {
       @Override
       String fromDoc(Document d) {
-        return d.getStatusChanges().values()
-            .stream()
-            .map(dds -> dds.getStatus().toString())
+        return d.listChangingDestinations().stream().map(dest -> d.getStatusChange().getStatus().toString())
             .collect(Collectors.joining(",")); // statuses won't have commas
       }
     };

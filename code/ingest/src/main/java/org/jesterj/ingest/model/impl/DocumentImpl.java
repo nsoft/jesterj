@@ -41,6 +41,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.jesterj.ingest.model.Status.PROCESSING;
+import static org.jesterj.ingest.model.impl.ScannerImpl.NEW_CONTENT_FOUND_MSG;
+import static org.jesterj.ingest.model.impl.StepImpl.VIA;
+
 
 /**
  * A container for the file data and associated metadata. MetaData for which the key and the value
@@ -53,8 +57,15 @@ import java.util.stream.Collectors;
  */
 public class DocumentImpl implements Document {
 
+  // NOTE: it is very important that this class never gain a non-transient reference to any of our infrastructure.
+  // it is cloned via serialize/deserialize, and we do NOT want to create duplicate copies of steps,
+  // plans, routers or even cassandra!  (likely this will fail anyway since those classes do not attempt to maintain
+  // Serializable status, but let's not rely on that.)
+
   public static final String CHILD_SEP = "⇛";
   public static final Pattern DEFAULT_TO_STRING = Pattern.compile("([A-Za-z_.0-9]+=\\[[^=]*[0-9_a-z.]+\\.[0-9_A-Za-z.]+@[0-9A-F]+)]}?,");
+
+
   // document id field.
   private final String idField;
 
@@ -71,9 +82,15 @@ public class DocumentImpl implements Document {
   private final String originalParentId;
   private String docHash;
   private boolean forceReprocess;
-  private final Map<String, DocDestinationStatus> statusChanges = new ConcurrentHashMap<>();
-  private final Map<String, DocDestinationStatus> incompleteOutputSteps = new ConcurrentHashMap<>();
+  private DocStatusChange statusChange;
+  private final Map<String, DocDestinationStatus> incompleteOutputDestinations = new ConcurrentHashMap<>();
   private final String origination;
+
+  //This must be transient so that we don't try to serialize the step it references.
+  private transient StatusReporter statusReporter;
+
+  // Transient so that if we clone we are new.
+  private transient boolean newDocAllowedToSetProcessingStatus = true;
 
 
   public DocumentImpl(byte[] rawData, String id, Plan plan, Operation operation, Scanner source, String origination) {
@@ -91,26 +108,26 @@ public class DocumentImpl implements Document {
     if (this.rawData != null) {
       this.delegate.put(DOC_RAW_SIZE, String.valueOf(this.rawData.length));
     }
-    this.origination =origination;
+    this.origination = origination;
   }
 
   public DocumentImpl(byte[] rawData, String id, Operation oper, DocumentImpl parent) {
-    this.rawData =rawData;
+    this.rawData = rawData;
     if (this.rawData != null) {
       this.delegate.put(DOC_RAW_SIZE, String.valueOf(this.rawData.length));
     }
     this.operation = oper;
 
     this.idField = parent.idField;
-    this.delegate.put(idField,id);
+    this.delegate.put(idField, id);
     this.sourceScannerName = parent.sourceScannerName;
     this.parentId = parent.getId();
     this.originalParentId = parent.originalParentId;
     this.origination = parent.origination;
     Cloner<DocDestinationStatus> cloner = new Cloner<>();
-    for (Map.Entry<String, DocDestinationStatus> step : parent.incompleteOutputSteps.entrySet()) {
+    for (Map.Entry<String, DocDestinationStatus> step : parent.incompleteOutputDestinations.entrySet()) {
       try {
-        this.incompleteOutputSteps.put(step.getKey(), cloner.cloneObj(step.getValue()));
+        this.incompleteOutputDestinations.put(step.getKey(), cloner.cloneObj(step.getValue()));
       } catch (IOException | ClassNotFoundException e) {
         throw new RuntimeException(e);
       }
@@ -129,7 +146,7 @@ public class DocumentImpl implements Document {
    */
   @SuppressWarnings("unused")
   Document makeChild(byte[] rawData, Operation operation, int childId) {
-    return new DocumentImpl(rawData, getId() + CHILD_SEP + childId, operation,this);
+    return new DocumentImpl(rawData, getId() + CHILD_SEP + childId, operation, this);
   }
 
   @Override
@@ -240,25 +257,46 @@ public class DocumentImpl implements Document {
   }
 
   @Override
-  public Status getStatus(String outputStep) {
-    DocDestinationStatus result = incompleteOutputSteps.get(outputStep);
+  public Status getStatus(String outputDestination) {
+    if (statusChange != null) {
+      Collection<String> specificSteps = statusChange.getSpecificSteps();
+      if (specificSteps != null && specificSteps.contains(outputDestination)) {
+        return statusChange.getStatus();
+      }
+    }
+    DocDestinationStatus result = incompleteOutputDestinations.get(outputDestination);
     return result == null ? null : result.getStatus();
   }
 
   @Override
-  public String getStatusMessage(String outputStep) {
-    return incompleteOutputSteps.get(outputStep).getMessage();
+  public String getStatusMessage(String outputDestination) {
+    if (statusChange != null) {
+      if (statusChange.getSpecificSteps().contains(outputDestination)) {
+        return statusChange.getMessage();
+      }
+    }
+    return incompleteOutputDestinations.get(outputDestination).getMessage();
   }
 
-  @Override
-  public void setStatus(Status status, String outputStep, String statusMessage, Serializable... messageArgs) {
-    if (!incompleteOutputSteps.containsKey(outputStep)) {
-      throw new UnsupportedOperationException("Do not add new downstream steps via setStatus");
+
+  public void setStatusForDestinations(Status status, Collection<String> destinations, String statusMessage, Serializable... messageArgs) {
+    if (!destinations.stream().allMatch(incompleteOutputDestinations::containsKey)) {
+      throw new UnsupportedOperationException("Do not add new downstream steps via setStatus. Tried to add:" + destinations + " existing:" + incompleteOutputDestinations);
     }
-    @SuppressWarnings("RedundantCast")
-    DocDestinationStatus docStat = new DocDestinationStatus(status, outputStep, statusMessage, (Serializable[]) messageArgs);
-    incompleteOutputSteps.put(outputStep, docStat);
-    statusChanges.put(outputStep, docStat);
+
+    // Here we need to replicate the message and args for each destination
+    List<String> tmp = new ArrayList<>();
+    List<Serializable[]> argTmp = new ArrayList<>();
+    for (String ignored : destinations) {
+      tmp.add(statusMessage);
+      argTmp.add(messageArgs);
+    }
+    statusMessage = String.join(VIA, tmp);
+    messageArgs = argTmp.stream().flatMap(Arrays::stream).collect(Collectors.toList()).toArray(new Serializable[]{});
+
+    //noinspection RedundantCast
+    statusChange = new DocStatusChange(status, statusMessage, (Collection<String>) destinations, (Serializable[]) messageArgs);
+
   }
 
   @Override
@@ -340,7 +378,7 @@ public class DocumentImpl implements Document {
     return "DocumentImpl{" +
         "id=" + getId() +
         ", delegate=" + delegate +
-        ", status=" + incompleteOutputSteps +
+        ", status=" + incompleteOutputDestinations +
         ", operation=" + operation +
         ", sourceScannerName='" + sourceScannerName + '\'' +
         ", idField='" + idField + '\'' +
@@ -351,33 +389,89 @@ public class DocumentImpl implements Document {
 
   @Override
   public boolean isStatusChanged() {
-    return statusChanges.size() != 0;
+    return statusChange != null;
   }
 
   @Override
   public void reportDocStatus() {
-    if (!isStatusChanged()) {
-      return;
-    }
-    String message = statusChanges.values().stream().map(DocDestinationStatus::getMessage).collect(Collectors.joining("#,#"));
-    Object[] params = statusChanges.values().stream().flatMap(d -> Arrays.stream(d.getMessageParams())).toArray();
-    try (DocumentLoggingContext dc = new DocumentLoggingContext(this)) {
-      dc.run(() -> log.info(Markers.FTI_MARKER, message, params));
-    } catch (AppenderLoggingException e) {
-      if (Main.isNotShuttingDown()) {
-        log.error("Could not contact our internal Cassandra!!!", e);
-      } else {
-        log.info("Shutdown prevented update {} ==> {}", getId(), getStatusChanges());
-      }
-    }
-    for (DocDestinationStatus value : statusChanges.values()) {
-      if (value.getStatus() != Status.PROCESSING) {
-        incompleteOutputSteps.remove(value.getOutputStep());
-      }
-    }
-    statusChanges.clear();
+    this.statusReporter.reportStatus(this);
+
   }
 
+  void stepStarted(Step step) {
+    this.statusReporter = new StatusReporterImpl(step);
+  }
+
+  public void initDestinations(Set<String> outputDestinationNames, String scannerName) {
+    for (String downStream : outputDestinationNames) {
+      this.incompleteOutputDestinations.put(downStream, new DocDestinationStatus(PROCESSING, downStream, "ignore"));
+    }
+    this.statusChange = new DocStatusChange(PROCESSING, NEW_CONTENT_FOUND_MSG, scannerName);
+  }
+
+  private class StatusReporterImpl implements StatusReporter {
+
+    private final Step step;
+
+    private StatusReporterImpl(Step step) {
+      this.step = step;
+    }
+
+    @Override
+    public void reportStatus(Document doc) {
+      if (!isStatusChanged()) {
+        return;
+      }
+      DocStatusChange statusChange = DocumentImpl.this.getStatusChange();
+
+      List<DocDestinationStatus> destinationChanges = getChangedDestinations(statusChange);
+
+      if (!newDocAllowedToSetProcessingStatus && destinationChanges.stream().anyMatch(d -> d.getStatus() == Status.PROCESSING)) {
+        throw new IllegalStateException("Attempted to change a document to processing status. " +
+            "This is only set when the document object is created");
+      }
+      newDocAllowedToSetProcessingStatus = false;
+      String message = destinationChanges.stream().map(DocDestinationStatus::getMessage).collect(Collectors.joining("#,#"));
+      Object[] params = destinationChanges.stream().flatMap(d -> Arrays.stream(d.getMessageParams())).toArray();
+      try (DocumentLoggingContext dc = new DocumentLoggingContext(DocumentImpl.this)) {
+        dc.run(() -> log.info(Markers.FTI_MARKER, message, params));
+      } catch (AppenderLoggingException e) {
+        if (Main.isNotShuttingDown()) {
+          log.error("Could not contact our internal Cassandra!!!", e);
+        } else {
+          log.info("Shutdown prevented update {} ==> {}", getId(), getStatusChange());
+        }
+      }
+      // Now that we've written the status it needs to be removed. only processing status can move onto the next step.
+      for (DocDestinationStatus changed : destinationChanges) {
+        if (changed.getStatus() != Status.PROCESSING) {
+          incompleteOutputDestinations.remove(changed.getOutputDestination());
+        }
+      }
+      DocumentImpl.this.statusChange = null;
+    }
+
+    @SuppressWarnings("UnnecessaryLocalVariable")
+    @Override
+    public List<DocDestinationStatus> getChangedDestinations(DocStatusChange statusChange) {
+      Collection<DocDestinationStatus> values = incompleteOutputDestinations.values();
+      List<DocDestinationStatus> destinationChanges = values.stream()
+          .filter(v -> !statusChange.getStatus().isStepSpecific() ||
+              (statusChange.getStatus().isStepSpecific() && step.isOutputDestinationThisStep(v.getOutputDestination())))
+          .filter(v -> statusChange.getSpecificSteps() == null ||
+              statusChange.getSpecificSteps().size() == 0 ||
+              statusChange.getSpecificSteps().contains(v.getOutputDestination()))
+          .map(v -> new DocDestinationStatus(
+              statusChange.getStatus(),
+              v.getOutputDestination(),
+              statusChange.getMessage(),
+              (Serializable[]) statusChange.getMessageParams()))
+          .collect(Collectors.toList());
+      return destinationChanges;
+    }
+
+
+  }
 
   @Override
   public void setForceReprocess(boolean b) {
@@ -395,56 +489,69 @@ public class DocumentImpl implements Document {
   //
 
   @Override
-  public void setIncompleteOutputSteps(Map<String, DocDestinationStatus> value) {
-    this.incompleteOutputSteps.clear();
-    this.incompleteOutputSteps.putAll(value);
-    this.statusChanges.clear();
-    this.statusChanges.putAll(value);
+  public void setIncompleteOutputDestinations(Map<String, DocDestinationStatus> value) {
+    this.incompleteOutputDestinations.clear();
+    this.incompleteOutputDestinations.putAll(value);
+    this.statusChange = null;
   }
 
   @Override
   public boolean alreadyHasIncompleteStepList() {
-    return this.incompleteOutputSteps.size() > 0;
+    return this.incompleteOutputDestinations.size() > 0;
   }
 
   @Override
   public boolean isPlanOutput(String stepName) {
-    return incompleteOutputSteps.containsKey(stepName);
+    return incompleteOutputDestinations.containsKey(stepName);
   }
 
   @Override
   public String listIncompleteOutputSteps() {
-    return String.join(",", incompleteOutputSteps.keySet());
+    return String.join(",", incompleteOutputDestinations.keySet());
   }
 
   @Override
-  public Map<String, DocDestinationStatus> getStatusChanges() {
-    return statusChanges;
+  public DocStatusChange getStatusChange() {
+    return statusChange;
   }
 
   @Override
-  public String[] getIncompleteOutputSteps() {
-    return incompleteOutputSteps.keySet().toArray(String[]::new);
+  public List<String> listChangingDestinations() {
+    return statusReporter.getChangedDestinations(statusChange).stream().map(DocDestinationStatus::getOutputDestination).collect(Collectors.toList());
   }
 
   @Override
-  public void setStatusAll(Status status, String message, Object... args) {
-    for (String step : incompleteOutputSteps.keySet()) {
-      setStatus(status, step, message, args);
-    }
+  public String[] getIncompleteOutputDestinations() {
+    return incompleteOutputDestinations.keySet().toArray(String[]::new);
+  }
+
+  @SuppressWarnings("RedundantCast")
+  @Override
+  public void setStatus(Status status, String message, Serializable... args) {
+    statusChange = new DocStatusChange(status, message, (Serializable[]) args);
   }
 
   @Override
   public void removeDownStreamOutputStep(Router router, String name) {
+    if (router.getStep() == null || router.getStep().getPlan() == null) {
+      Plan p = router.getStep().getPlan();
+      Step step = p.findStep(getSourceScannerName());
+      if (step == null) {
+        throw new IllegalArgumentException("Nice try, you aren't supposed to call this from processors or other " +
+            "places that don't have access to a router that is actually part of the plan. Don't do this. If you " +
+            "persist and work around this exception, anything you break is your own problem, and NOT supported." +
+            "You have been warned.");
+      }
+    }
     log.trace("Removing destination step {} from {} after processing with {}", name, getId(), router.getStep().getName());
-    if (incompleteOutputSteps.remove(name) == null) {
+    if (incompleteOutputDestinations.remove(name) == null) {
       throw new RuntimeException("Tried to remove non-existent destination step! Router:" + router.getClass().getSimpleName() + " Step:" + name);
     }
   }
 
   @Override
   public String dumpStatus() {
-    return String.valueOf(incompleteOutputSteps);
+    return String.valueOf(incompleteOutputDestinations);
   }
 
   @Override
@@ -454,15 +561,15 @@ public class DocumentImpl implements Document {
 
   @Override
   public void removeAllOtherDestinationsQuietly(Set<String> outputDestinationNames) {
-    Map<String,DocDestinationStatus> removed = new HashMap<>();
-    synchronized (this.incompleteOutputSteps) {
-      for (Map.Entry<String, DocDestinationStatus> destStat : incompleteOutputSteps.entrySet()) {
+    Map<String, DocDestinationStatus> removed = new HashMap<>();
+    synchronized (this.incompleteOutputDestinations) {
+      for (Map.Entry<String, DocDestinationStatus> destStat : incompleteOutputDestinations.entrySet()) {
         if (!outputDestinationNames.contains(destStat.getKey())) {
           removed.put(destStat.getKey(), destStat.getValue());
         }
       }
       for (String dest : removed.keySet()) {
-        incompleteOutputSteps.remove(dest);
+        incompleteOutputDestinations.remove(dest);
       }
     }
   }

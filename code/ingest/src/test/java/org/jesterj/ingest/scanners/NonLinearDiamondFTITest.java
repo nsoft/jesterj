@@ -35,7 +35,7 @@ public class NonLinearDiamondFTITest extends ScannerImplTest {
   // incorrect paths or statuses are set multiple times we can still see it). Been working fine on my local
   // machine (1950x processor), but overshooting on GitHub, presumably due to the main test thread not resuming
   // promptly and allowing more pause periods to expire before shutting down the plan. Thus, this ugly hack...
-  public static final long PAUSE_MILLIS = 3000L;
+  public static final long PAUSE_MILLIS = 6000L;
   public static final String PAUSE_STEP_DB = "pauseStepDb";
   public static final String PAUSE_STEP_FILE = "pauseStepFile";
   public static final String PAUSE_STEP_COMEDY = "pauseStepComedy";
@@ -70,6 +70,8 @@ public class NonLinearDiamondFTITest extends ScannerImplTest {
 
     File tempDir = getUniqueTempDir();
     Cassandra.start(tempDir, "127.0.0.1");
+    CassandraSupport support = new CassandraSupport();
+
     try {
       Plan plan = getDiamondPlan();
       System.out.println(plan.visualize(Format.DOT).toString());
@@ -84,7 +86,6 @@ public class NonLinearDiamondFTITest extends ScannerImplTest {
       plan.deactivate();
       Thread.sleep(PAUSE_MILLIS);
 
-      CassandraSupport support = new CassandraSupport();
 
       ResultSet tables = support.getSession().execute("SELECT table_name, keyspace_name from system_schema.tables");
       int rowsBothScanners = 0;
@@ -105,7 +106,7 @@ public class NonLinearDiamondFTITest extends ScannerImplTest {
           @SuppressWarnings("DataFlowIssue")
           String stepName = example.one().getString(0);
           if (rowCount != 44+44) {
-            assertTrue("Found " + rowCount + " for " + stepName,
+            assertTrue("Found " + rowCount + " for " + stepName + " but it was not one of "+ COUNT_STEP_COMEDY + VIA + NO_OP_A_STEP + " or " + COUNT_STEP_COMEDY + VIA + NO_OP_B_STEP ,
                 (COUNT_STEP_COMEDY + VIA + NO_OP_A_STEP).equals(stepName) ||
                     (COUNT_STEP_COMEDY + VIA + NO_OP_B_STEP).equals(stepName) );
             // we can get errors for docs from either scanner
@@ -150,24 +151,18 @@ public class NonLinearDiamondFTITest extends ScannerImplTest {
         }
       }
       assertEquals( 2,tablesWithErrors.size());
-    } catch (Exception e) {
+    } catch (Throwable e) {
       e.printStackTrace();
       log.error(e);
-      throw  e;
+      dumpTables(support);
+      throw e;
+
     }finally {
       //Thread.sleep(5000000);
       Cassandra.stop();
     }
   }
 
-
-  private static void showTable(CassandraSupport support, String tableName) {
-    ResultSet showMe = support.getSession().execute("select * from " + tableName);
-    int rowNum = 1;
-    for (Row row : showMe) {
-      System.out.println(rowNum++ +") " + row.getFormattedContents());
-    }
-  }
 
   private Plan getDiamondPlan() {
 

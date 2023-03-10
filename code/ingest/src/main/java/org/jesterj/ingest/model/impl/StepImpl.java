@@ -28,17 +28,14 @@ import org.jesterj.ingest.routers.RouterBase;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 9/28/14
- */
 
 /**
  * The class that is used to run {@link DocumentProcessor}s. This class takes care of the handling of the document
@@ -53,6 +50,8 @@ public class StepImpl implements Step {
   private static final Logger log = LogManager.getLogger();
   public static final String VIA = "<-via->"; // note: must contain characters disallowed for step names.
 
+  private static final Map<String, Pattern> stepNameInDestinationPatterns = new ConcurrentHashMap<>();
+
   DocumentConsumer documentConsumer = new DocumentConsumer(); // stateless bean
   private LinkedBlockingQueue<Document> queue;
   private int batchSize; // no concurrency by default
@@ -64,7 +63,6 @@ public class StepImpl implements Step {
   private volatile Thread worker;
   private final Object WORKER_LOCK = new Object();
   private Plan plan;
-
   private final List<Runnable> deferred = new ArrayList<>();
   private final Object OUTPUT_STEP_LIST_LOCK = new Object();
   private volatile Set<Step> outputSteps;
@@ -73,6 +71,11 @@ public class StepImpl implements Step {
   private Set<String> outputDestinationNames;
 
   StepImpl() {
+  }
+
+  public static Pattern getPatternForStep(String name) {
+    return stepNameInDestinationPatterns
+        .computeIfAbsent(name, k -> Pattern.compile("^" + name + "($|" + VIA + ".*$)"));
   }
 
   public Spliterator<Document> spliterator() {
@@ -426,10 +429,18 @@ public class StepImpl implements Step {
   }
 
   void pushToNextIfOk(Document document) {
+    pushToNextIfOk(document, false);
+  }
+  void pushToNextIfOk(Document document, boolean processorSkipped) {
     try {
       log.trace("starting push to next if ok {} for {}", getName(), document.getId());
       NextSteps next = getNextSteps(document);
       log.trace("Found {} next steps", next == null ? "(null)" : next.size());
+      if (document.getIncompleteOutputDestinations().length < 1 && nextSteps.isEmpty()) {
+        throw new RuntimeException("Critical failure! No down stream step on Document after routing. This is likely to be a bug " +
+            "in JesterJ, please report an issue in the project issue tracker. Current Step:" + getName() +
+            " Document:" + document + " Router class:" + (getRouter() == null ? "(no router)": getRouter().getClass()));
+      }
       if (next == null) {
 
         // Here we check for sanity before declaring a document indexed by virtue of no remaining steps.
@@ -446,19 +457,13 @@ public class StepImpl implements Step {
                 getName() + " Document:" + document);
           }
         }
-        if (document.getIncompleteOutputSteps().length < 1 && nextSteps.isEmpty()) {
-          throw new RuntimeException("Critical failure! No down stream step on Document on arrival at a final output " +
-              "step. This is likely to be a bug in JesterJ, please report an issue in the project " +
-              "issue tracker. Remaining incomplete steps:" + document.listIncompleteOutputSteps() + " Current Step:" +
-              getName() + " Document:" + document);
-        }
-        if (document.getIncompleteOutputSteps().length > 1 && nextSteps.isEmpty()) {
+        if (document.getIncompleteOutputDestinations().length > 1 && nextSteps.isEmpty()) {
           throw new RuntimeException("Critical failure! JesterJ calculated more than one down stream step on a document " +
               "at a final step. This is likely to be a bug in JesterJ, please report an issue in the project " +
               "issue tracker. Remaining incomplete steps:" + document.listIncompleteOutputSteps() + " Current Step:" +
               getName() + " Document:" + document);
         }
-        String incompleteOutputStep = document.getIncompleteOutputSteps()[0];
+        String incompleteOutputStep = document.getIncompleteOutputDestinations()[0];
         if (!(getProcessor().isPotent() || getProcessor().isIdempotent())) {
           throw new RuntimeException("Somehow we have a destination output step, at the last step, but the last step" +
               "is not POTENT or IDEMPOTENT, or the name doesn't match the current step! Our Name:" + getName() +
@@ -470,12 +475,12 @@ public class StepImpl implements Step {
               + getOutputDestinationNames() + " Name expected:" + incompleteOutputStep);
         }
         // we have a single step, we are the right type of step, and this is the expected step. Our work is done here!
-        markIndexed(document, incompleteOutputStep);
+        markIndexed((DocumentImpl) document);
       } else {
         // this is the case for non-terminal steps that have outputs.
         // todo: plan configuration option to allow the idempotent steps to be repeated if desired.
-        if (this.getProcessor().isPotent() || this.getProcessor().isIdempotent()) {
-          markIndexed(document, this.getName());
+        if (!processorSkipped && (this.getProcessor().isPotent() || this.getProcessor().isIdempotent())) {
+          markIndexed((DocumentImpl) document);
         }
         document.reportDocStatus();
         pushToNext(next);
@@ -494,11 +499,10 @@ public class StepImpl implements Step {
     return this.router;
   }
 
-  void markIndexed(Document document, String outputStep) {
-    if (document.getStatus(outputStep) == Status.PROCESSING) {
-      log.trace("{} finished processing {}, for {}", getName(), document.getId(), outputStep);
-      document.setStatus(Status.INDEXED, outputStep, "Last available step {} completed OK,", getName());
-    }
+  void markIndexed(DocumentImpl document) {
+    log.trace("{} finished processing {}", getName(), document.getId());
+    // relies on status update logic to only update destinations that pertain to this step.
+    document.setStatus(Status.INDEXED, "Last available step {} completed OK,", getName());
   }
 
   void pushToNext(NextSteps next) {
@@ -563,16 +567,26 @@ public class StepImpl implements Step {
           log.trace("active: {}", getName());
           Document document = queue.poll(10, TimeUnit.MILLISECONDS);
           if (document != null) {
+            if (document.getIncompleteOutputDestinations().length < 1 ) {
+              throw new RuntimeException("Critical failure! No down stream step on Document. This is likely to be a bug " +
+                  "in JesterJ, please report an issue in the project issue tracker. Current Step:" + getName() +
+                  " Document:" + document);
+            }
             log.trace("{} took {} from queue", getName(), document.getId());
             boolean potent = this.getProcessor().isPotent();
-            boolean thisStepNotRequired = !document.isPlanOutput(this.getName());
+            List<String> relevantDestinations = Arrays.stream(document.getIncompleteOutputDestinations())
+                .filter(StepImpl.this::isOutputDestinationThisStep)
+                .collect(Collectors.toList());
+            boolean thisStepNotRequired = relevantDestinations.isEmpty();
             if (potent && thisStepNotRequired) {
               // FTI determined that this step was not required, so skip processing
-              log.trace("Skipping processing for {} at {}", document.getId(), getName());
-              pushToNextIfOk(document);
+              log.info("Skipping processing for {} at {}", document.getId(), getName());
+              pushToNextIfOk(document, true);
               continue;
             }
-            documentConsumer.accept(document);
+            DocumentImpl di = (DocumentImpl) document;
+            di.stepStarted(this);
+            documentConsumer.accept(di);
           }
         } catch (InterruptedException e) {
           this.deactivate();
@@ -582,11 +596,14 @@ public class StepImpl implements Step {
     } catch (Throwable t) {
       t.printStackTrace();
       log.error(t);
-      System.out.println("Thread for " + getName() + " died. This should not happen and is always a bug in JesterJ " +
-          "unless you killed the process with Ctrl-C or similar. This node is Shutting down. If the process was not " +
-          "killed, and you got this message during normal running, please open a bug report at http://www.jesterj.org");
+      String message = "Thread for " + getName() + " died. This should not happen and is always a bug in JesterJ " +
+          "unless you killed the process with Ctrl-C or similar. This plan is Shutting down for safety. If the " +
+          "process was not killed, and you got this message during normal running, please open a bug report at " +
+          "http://www.jesterj.org";
+      log.error(message);
+      System.out.println(message);
       System.out.flush();
-      System.exit(2);
+      this.plan.deactivate();
     }
   }
 
@@ -610,17 +627,14 @@ public class StepImpl implements Step {
   }
 
   @SuppressWarnings("WeakerAccess")
-  protected void reportException( Map.Entry<Step, NextSteps.StepStatusHolder> entry, String message, Object... params) {
-    Document doc = entry.getValue().getDoc();
+  protected void reportException(Map.Entry<Step, NextSteps.StepStatusHolder> entry, String message, Object... params) {
+    DocumentImpl doc = (DocumentImpl) entry.getValue().getDoc();
     StringWriter buff = new StringWriter();
     Exception e = entry.getValue().getException();
     e.printStackTrace(new PrintWriter(buff));
     String errorMsg = message + " " + e.getMessage() + "\n" + buff;
-    Set<String> downstreamForStep = entry.getKey().getOutputDestinationNames();
 
-    for (String incompleteOutputStep : downstreamForStep) {
-      doc.setStatus(Status.ERROR, incompleteOutputStep, errorMsg, params);
-    }
+    doc.setStatus(Status.ERROR, errorMsg, params);
     doc.reportDocStatus();
     if (e instanceof InterruptedException) {
       log.debug("Step interrupted!", e);
@@ -644,15 +658,16 @@ public class StepImpl implements Step {
   }
 
 
-  private class DocumentConsumer implements Consumer<Document> {
+  private class DocumentConsumer implements Consumer<DocumentImpl> {
 
     @Override
-    public void accept(Document document) {
+    public void accept(DocumentImpl document) {
       Document[] documents;
       try {
         log.trace("DOC CONSUMER START");
         // by definition these statuses should never be processed.
-        String[] incompleteOutputSteps = document.getIncompleteOutputSteps();
+        String[] incompleteOutputSteps = document.getIncompleteOutputDestinations();
+
         for (String incompleteOutputStep : incompleteOutputSteps) {
           if (document.getStatus(incompleteOutputStep) == Status.ERROR ||
               document.getStatus(incompleteOutputStep) == Status.DROPPED ||
@@ -672,14 +687,14 @@ public class StepImpl implements Step {
         log.trace("finished {}({}), was sent to {} in {}", document.getId(), document.getOrigination(), p1, StepImpl.this.getName());
       } catch (Exception e) {
         log.warn("Exception processing step", e);
-        for (String cantReach : document.getIncompleteOutputSteps()) {
-          document.setStatus(Status.ERROR, cantReach, "Exception while processing document in {}. Message:{}", getName(), e.getMessage());
-        }
+        document.stepStarted(StepImpl.this);
+        document.setStatus(Status.ERROR,"Exception while processing document in {}. Message:{}", getName(), e.getMessage());
         document.reportDocStatus();
         return;
       }
       if (documents != null) {
         for (Document documentResult : documents) {
+          ((DocumentImpl) documentResult).stepStarted(StepImpl.this); // cloned docs need an introduction to the step.
           pushToNextIfOk(documentResult);
         }
       }

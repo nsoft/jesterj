@@ -67,7 +67,7 @@ public class LogAndDropTest {
     mock.log(eq(Level.INFO), isA(String.class));
     expect(obj.getLevel()).andReturn(Level.INFO);
     expect(obj.getName()).andReturn("foo");
-    mockDocument.setStatusAll(Status.DROPPED, "Intentional drop by LogAndDrop processor {}","foo");
+    mockDocument.setStatus(Status.DROPPED, "Intentional drop by LogAndDrop processor {}","foo");
     replay();
     obj.processDocument(mockDocument);
   }

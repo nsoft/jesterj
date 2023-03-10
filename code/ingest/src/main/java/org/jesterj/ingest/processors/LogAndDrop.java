@@ -24,12 +24,6 @@ import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 3/18/16
- */
-
 /**
  * Simply write to the log file and then drop the document on the floor
  */
@@ -47,7 +41,7 @@ public class LogAndDrop implements DocumentProcessor {
   @Override
   public Document[] processDocument(Document document) {
     log.log(getLevel(), document.toString());
-    document.setStatusAll(Status.DROPPED, "Intentional drop by LogAndDrop processor {}", getName());
+    document.setStatus(Status.DROPPED, "Intentional drop by LogAndDrop processor {}", getName());
     return new Document[]{document};
   }
 

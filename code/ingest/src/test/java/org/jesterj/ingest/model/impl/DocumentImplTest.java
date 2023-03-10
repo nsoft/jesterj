@@ -29,7 +29,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.copyright.easiertest.EasierMocks.prepareMocks;
@@ -114,7 +116,7 @@ public class DocumentImplTest {
     Map<String, DocDestinationStatus> foo = new HashMap<>();
     foo.put("destination1",new DocDestinationStatus(PROCESSING,"destination1","Found by scanner"));
     foo.put("destination2",new DocDestinationStatus(PROCESSING,"destination2","Found by scanner"));
-    impl.setIncompleteOutputSteps(foo);
+    impl.setIncompleteOutputDestinations(foo);
 
     assertEquals(Document.Operation.NEW, impl.getOperation());
 
@@ -157,42 +159,49 @@ public class DocumentImplTest {
     assertEquals(PROCESSING, impl.getStatus("destination1"));
     assertEquals(PROCESSING, impl.getStatus("destination2"));
 
-    impl.setStatus(DROPPED,"destination1", "Just because...");
+    List<String> strings = new ArrayList<>();
+    strings.add("destination1");
+    impl.setStatusForDestinations(DROPPED, strings, "Just because...");
     assertEquals(DROPPED, impl.getStatus("destination1"));
     assertEquals("Just because...", impl.getStatusMessage("destination1"));
 
-    impl.setStatus(ERROR,"destination2", "It was bad, {} bad", "real");
+    strings = new ArrayList<>();
+    strings.add("destination2");
+    impl.setStatusForDestinations(ERROR, strings, "It was bad, {} bad", "real");
     assertEquals(ERROR, impl.getStatus("destination2"));
     assertEquals("It was bad, {} bad", impl.getStatusMessage("destination2"));
 
+    System.out.println(impl);
+    // note: the purpose of this assert is to get the test writer/updater to "see' the document and
+    // possibly spot strangeness when updating this part of the test. It's meant to be a bit brittle.
     assertEquals("" +
         "DocumentImpl{" +
-            "id=fooId, " +
-            "delegate={" +
-              "doc_raw_size=[2], " +
-              "foo=[baz], " +
-              "fizz=[buzz], " +
-              "nullthing=[null], " +
-              "id=[fooId]" +
+          "id=fooId, " +
+          "delegate={" +
+            "doc_raw_size=[2], " +
+            "foo=[baz], " +
+            "fizz=[buzz], " +
+            "nullthing=[null], " +
+            "id=[fooId]" +
+          "}, " +
+          "status={" +
+            "destination1=DocDestinationStatus{" +
+              "status=PROCESSING, " +
+              "message='Found by scanner', " +
+              "outputStep='destination1', " +
+              "messageArgs=[]" +
             "}, " +
-            "status={" +
-              "destination1=DocDestinationStatus{" +
-                "status=DROPPED, " +
-                "message='Just because...', " +
-                "outputStep='destination1', " +
-                "messageArgs=[]" +
-              "}, " +
-              "destination2=DocDestinationStatus{" +
-                "status=ERROR, " +
-                "message='It was bad, {} bad', " +
-                "outputStep='destination2', " +
-                "messageArgs=[real]" +
-              "}" +
-            "}, " +
-            "operation=NEW, " +
-            "sourceScannerName='scannerFoo', " +
-            "idField='id', " +
-            "origin=SCAN" +
+            "destination2=DocDestinationStatus{" +
+              "status=PROCESSING, " +
+              "message='Found by scanner', " +
+              "outputStep='destination2', " +
+              "messageArgs=[]" +
+            "}" +
+          "}, " +
+          "operation=NEW, " +
+          "sourceScannerName='scannerFoo', " +
+          "idField='id', " +
+          "origin=SCAN" +
         "}", impl.toString());
 
     assertFalse(impl.isEmpty());

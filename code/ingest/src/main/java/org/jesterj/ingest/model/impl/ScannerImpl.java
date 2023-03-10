@@ -17,10 +17,7 @@
 package org.jesterj.ingest.model.impl;
 
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.cql.BoundStatement;
-import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.datastax.oss.driver.api.core.cql.ResultSet;
-import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.*;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,6 +34,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -62,6 +60,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   static final String FIND_ERROR_DOCS = "find_error_docs";
   static final String FIND_HISTORY = "find_error_history";
   public static final String NEW_CONTENT_FOUND_MSG = "New content found by {}.";
+  public static final int DDL_TIMEOUT = 30;
 
   private boolean hashing;
   private long interval;
@@ -97,6 +96,8 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
 
               originalTask.run();
 
+            } catch (Throwable t) {
+              t.printStackTrace();
             } finally {
               ThreadContext.remove(JJ_PLAN_NAME);
               ThreadContext.remove(JJ_PLAN_VERSION);
@@ -258,6 +259,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     } catch (Exception e) {
       log.error("Scan operation for {} failed.", getName());
       log.error(e);
+      e.printStackTrace();
     }
     return scanner;
   }
@@ -282,8 +284,10 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
    * @param doc The document to be processed
    */
   public void docFound(Document doc) {
+    ((DocumentImpl)doc).stepStarted(this);
     String scannerName = getName();
     log.trace("{} found doc: {}", scannerName, doc.getId());
+    doc.setStatus(PROCESSING,"{} found doc:{}",scannerName,doc.getId());
     String id = doc.getId();
     Function<String, String> idFunction = getIdFunction();
     String result = idFunction.apply(id);
@@ -329,11 +333,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       if (!isRemembering() || !doc.alreadyHasIncompleteStepList()) {
         // This was a document found by the scanner during a scan and either we are not hashing, not remembering
         // or a new hash (i.e. new content) was found, so ALL downstream steps should be eligible
-        HashMap<String, DocDestinationStatus> steps = new HashMap<>();
-        for (String downStream : getOutputDestinationNames()) {
-          steps.put(downStream, new DocDestinationStatus(PROCESSING, downStream, NEW_CONTENT_FOUND_MSG, getName()));
-        }
-        doc.setIncompleteOutputSteps(steps);
+        ((DocumentImpl)doc).initDestinations(getOutputDestinationNames(), getName());
       }
       sendToNext(doc);
     } else {
@@ -489,7 +489,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
               new DocDestinationStatus(PROCESSING, status.getoutputStepName(),
                   "Prior status:" + status.getoutputStepName() + ">" + status.getStatus() + "@" + status.getTimestamp()
               )));
-          d.setIncompleteOutputSteps(downstream);
+          d.setIncompleteOutputDestinations(downstream);
           docFound(d);
         },
         () -> log.error("Unable to load previously scanned (stranded) document {}", docId));
@@ -553,15 +553,23 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     if (!this.persistenceCreated) {
       // no need for synchronization should ony be one thread, and if exists is safe anyway.
       CqlSession session = cassandra.getSession();
+
       for (String name : getOutputDestinationNames()) {
-        session.execute(String.format(CREATE_FT_KEYSPACE, keySpace(name)));
-        session.execute(String.format(CREATE_FT_TABLE, keySpace(name)));
-        session.execute(String.format(CREATE_INDEX_STATUS, keySpace(name)));
+        executeWithTimoutSecs(session, CREATE_FT_KEYSPACE, name, DDL_TIMEOUT);
+        executeWithTimoutSecs(session, CREATE_FT_TABLE, name, DDL_TIMEOUT);
+        executeWithTimoutSecs(session, CREATE_INDEX_STATUS, name, DDL_TIMEOUT);
       }
-      session.execute(String.format(CREATE_FT_KEYSPACE, keySpace(null)));
-      session.execute(String.format(CREATE_DOC_HASH, keySpace(null)));
+      executeWithTimoutSecs(session, CREATE_FT_KEYSPACE, null, DDL_TIMEOUT);
+      executeWithTimoutSecs(session, CREATE_DOC_HASH, null, DDL_TIMEOUT);
       this.persistenceCreated = true;
     }
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private void executeWithTimoutSecs(CqlSession session, String cqlTemplate, String destinationName, int seconds) {
+    String format = String.format(cqlTemplate, keySpace(destinationName));
+    SimpleStatement simpleStatement = SimpleStatement.builder(format).setTimeout(Duration.of(seconds, ChronoUnit.SECONDS)).build();
+    session.execute(simpleStatement);
   }
 
   void processErrors(FTIQueryContext scanContext) {
@@ -634,7 +642,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         } else {
           if (!alreadyDropped && errorCount >= retryErrors) {
             log.warn("Dropping document {} due to too many error retries ({})", id, errorCount);
-            tempDoc.setStatus(DEAD, outputStepName, "Retry limit of {} exceeded", retryErrors);
+            tempDoc.setStatus(DEAD, "Retry limit of {} exceeded", retryErrors);
             deadDocs.add(tempDoc);
           } else {
             log.trace("Ignoring {} because errorMostRecent = {} and errorCount = {}", id, errorMostRecent, errorCount);

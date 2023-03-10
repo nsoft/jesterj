@@ -19,9 +19,15 @@ package org.jesterj.ingest.model;
 import com.google.common.collect.ListMultimap;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * The publicly usable methods on a document. This interface is not meant to have multiple implementations. It mostly
+ * exists to document the methods that authors of processors should interact with. There are multiple places where this
+ * will get cast to DocumentImpl, but doing so inside a processor may be dangerous.
+ */
 public interface Document extends ListMultimap<String, String>, Serializable {
 
   /**
@@ -48,29 +54,14 @@ public interface Document extends ListMultimap<String, String>, Serializable {
 
 
   /**
-   * The current processing status of the item. Each {@link DocumentProcessor}
-   * is responsible for releasing the item with a correct status.
+   * The current processing status of the document relative to a given destinagion.
    *
+   * @param outputDestination A destination for which the status is to be reported.
    * @return An enumeration value indicating whether the item is processing, errored out or complete.
    * @throws java.lang.IllegalStateException if the plan has not been set.
    */
-  Status getStatus(String outputStep);
+  Status getStatus(String outputDestination);
 
-  /**
-   * Set a status for a specific downstream destination. The status message may contain '{}' and additional
-   * arguments which will be substituted in the same manner as log4j logging messages. Since document objects must
-   * remain serializable, these arguments should typically be reduced to strings if they are not already serializable.
-   * <p>&nbsp;</p>
-   * <p><strong>WARNING: this method has no persistent effect until {@link Document#reportDocStatus()} is called. If
-   * the system is killed (power cord, whatever) before reportStatus() is completed this status change will not be
-   * retained when JesterJ restarts.</strong></p>
-   *
-   * @param status The status to set for the destination step
-   * @param outputStep The destination step
-   * @param statusMessage The user readable message explaining the status change
-   * @param messageArgs values to be substituted into the message
-   */
-  void setStatus(Status status, String outputStep, String statusMessage, Serializable... messageArgs);
 
   /**
    * Get a message relating to the processing status. This will typically be used to print the name of
@@ -128,30 +119,60 @@ public interface Document extends ListMultimap<String, String>, Serializable {
 
   boolean isForceReprocess();
 
-  void setIncompleteOutputSteps(Map<String, DocDestinationStatus> value);
+  void setIncompleteOutputDestinations(Map<String, DocDestinationStatus> value);
 
   boolean alreadyHasIncompleteStepList();
 
   boolean isPlanOutput(String stepName);
   String listIncompleteOutputSteps();
 
-  Map<String, DocDestinationStatus> getStatusChanges();
+  /**
+   * Get the statuses that will be altered if reportDocStatus is invoked.
+   *
+   * @return a map of status changes.
+   */
+  DocStatusChange getStatusChange();
 
-  String[] getIncompleteOutputSteps();
+  List<String> listChangingDestinations();
 
-  void setStatusAll(Status status, String message, Object... args);
+  String[] getIncompleteOutputDestinations();
+
+  /**
+   * Set a status for the current down stream steps. The status message may contain '{}' and additional
+   * arguments which will be substituted in the same manner as log4j logging messages. Since document objects must
+   * remain serializable, these arguments should typically be reduced to strings if they are not already serializable.
+   * <p>&nbsp;</p>
+   * <p><strong>WARNING: this method has no persistent effect until {@link Document#reportDocStatus()} is called. If
+   * the system is killed (power cord, whatever) before reportStatus() is completed this status change will not be
+   * retained when JesterJ restarts.</strong></p>
+   *
+   * @param status The status to set for the destination step
+   * @param message The user readable message explaining the status change
+   * @param args values to be substituted into the message
+   */
+  void setStatus(Status status, String message, Serializable... args);
 
   /**
    * Remove a downstream potent step. This should only be performed by routers and step infrastructure, hence the
-   * router argument.
+   * router argument. If you found a way to call this from your processor, please report a bug in our issue tracker.
    *
    * @param routerBase The router for the step in which the removal takes place.
    * @param name the name of the step to remove
    */
   void removeDownStreamOutputStep(Router routerBase, String name);
 
+  /**
+   * Get a string representation of the current status information. For debugging only.
+   *
+   * @return status information in string form.
+   */
   String dumpStatus();
 
+  /**
+   * Identify if the document originated from Fault tolerance or a scan.
+   *
+   * @return the source type for the document for debugging.
+   */
   String getOrigination();
 
   /**

@@ -49,7 +49,7 @@ import static org.junit.Assert.assertNotNull;
 public class ScannerImplTest {
 
   @ObjectUnderTest ScannerImpl scanner;
-  @Mock private Document docMock;
+  @Mock private DocumentImpl docMock;
   @Mock private BoundStatement bsMock;
   @Mock private CqlSession sessionMock;
   @Mock private ResultSet rsMock;
@@ -83,9 +83,15 @@ public class ScannerImplTest {
 
   @Test
   public void testDocFoundNoStatus() {
+    String scannerName = "Dent, Aurthur Dent";
+    docMock.stepStarted(scanner);
+    docMock.setStatus(PROCESSING,"{} found doc:{}", scannerName, "42" );
+    Set<String> dests = new HashSet<>();
+    dests.add("fooStep");
+    docMock.initDestinations(dests, scannerName);
+
     expect(scanner.isHashing()).andReturn(true).anyTimes();
     expect(docMock.isForceReprocess()).andReturn(false);
-    String scannerName = "Dent, Aurthur Dent";
     expect(scanner.isFreshContent(docMock,scannerName,"42",sessionMock)).andReturn(true);
     expect(scanner.getName()).andReturn(scannerName).anyTimes();
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
@@ -102,31 +108,22 @@ public class ScannerImplTest {
     expect(scanner.getDownstreamOutputSteps()).andReturn(steps).anyTimes();
     expect(docMock.alreadyHasIncompleteStepList()).andReturn(false); //<< key test case
     expect(docMock.getStatus("fooStep")).andReturn(null);  //<< key test case
-    Capture<? extends Map<String, DocDestinationStatus>> c = newCapture();
-    docMock.setIncompleteOutputSteps(capture(c));
-    Set<String> dests = new HashSet<>();
-    dests.add("fooStep");
+
     expect(scanner.getOutputDestinationNames()).andReturn(dests).anyTimes();
 
     scanner.sendToNext(docMock);
 
     replay();
     scanner.docFound(docMock);
-    Map<String, DocDestinationStatus> value = c.getValue();
-    assertEquals(1,value.size());
-    assertEquals("fooStep",value.keySet().iterator().next());
-    DocDestinationStatus stat = value.values().iterator().next();
-    assertEquals("fooStep", stat.getOutputStep());
-    assertEquals(NEW_CONTENT_FOUND_MSG, stat.getMessage());
-    assertEquals(scannerName, stat.getMessageParams()[0]);
-    assertEquals(PROCESSING,stat.getStatus());
   }
 
   // FTI finds a doc marked dirty remembering but not hashing
   @Test
   public void testDocFoundDirtyStatus() {
-    expect(docMock.isForceReprocess()).andReturn(false);
     String scannerName = "Dent, Aurthur Dent";
+    docMock.stepStarted(scanner);
+    docMock.setStatus(PROCESSING,"{} found doc:{}", scannerName, "42" );
+    expect(docMock.isForceReprocess()).andReturn(false);
     expect(scanner.seenPreviously(scannerName,"42",sessionMock)).andReturn(true);
 
     expect(scanner.getName()).andReturn(scannerName).anyTimes();
@@ -163,9 +160,12 @@ public class ScannerImplTest {
   // hashing is not turned on, and somehow forceReprocess is not set
   @Test
   public void testDocFoundProcessingStatusPreviouslySeen() {
-    // Note: this is an atypical case normally this would be set if processing status was found by FTI
-    expect(docMock.isForceReprocess()).andReturn(false);
     String scannerName = "Dent, Aurthur Dent";
+    // Note: this is an atypical case normally this would be set if processing status was found by FTI
+    docMock.stepStarted(scanner);
+    docMock.setStatus(PROCESSING,"{} found doc:{}", scannerName, "42" );
+    expect(docMock.isForceReprocess()).andReturn(false);
+
     expect(scanner.getName()).andReturn(scannerName).anyTimes();
     expect(scanner.isRemembering()).andReturn(true).anyTimes();   // remembering
     expect(scanner.isHashing()).andReturn(false).anyTimes();      // but not hashing
@@ -194,6 +194,8 @@ public class ScannerImplTest {
   public void testDocFoundProcessingStatusButHeuristicDirty() {
     expect(docMock.isForceReprocess()).andReturn(false);
     String scannerName = "Dent, Aurthur Dent";
+    docMock.stepStarted(scanner);
+    docMock.setStatus(PROCESSING,"{} found doc:{}", scannerName, "42" );
     expect(scanner.getName()).andReturn(scannerName).anyTimes();
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
     expect(scanner.isHashing()).andReturn(false).anyTimes();
@@ -224,6 +226,11 @@ public class ScannerImplTest {
   @Test
   public void testDocFoundNoMemory() {
     String scannerName = "Dent, Aurthur Dent";
+    docMock.stepStarted(scanner);
+    docMock.setStatus(PROCESSING,"{} found doc:{}", scannerName, "42" );
+    Set<String> dests = new HashSet<>();
+    dests.add("fooStep");
+    docMock.initDestinations(dests, scannerName);
     expect(scanner.getName()).andReturn(scannerName).anyTimes();
     expect(scanner.isRemembering()).andReturn(false).anyTimes();  // << key test case
     expect(docMock.getId()).andReturn("42").anyTimes();
@@ -234,31 +241,24 @@ public class ScannerImplTest {
     expect(docMock.isForceReprocess()).andReturn(false);
     Set<Step> steps = new HashSet<>();
     steps.add(stepMock1);
-    expect(scanner.getDownstreamOutputSteps()).andReturn(steps).anyTimes();    expect(stepMock1.getName()).andReturn("fooStep").anyTimes();
-    Capture<? extends Map<String, DocDestinationStatus>> c = newCapture();
-    docMock.setIncompleteOutputSteps(capture(c));
+    expect(scanner.getDownstreamOutputSteps()).andReturn(steps).anyTimes();
+    expect(stepMock1.getName()).andReturn("fooStep").anyTimes();
+
     scanner.sendToNext(docMock);
-    Set<String> dests = new HashSet<>();
-    dests.add("fooStep");
+
     expect(scanner.getOutputDestinationNames()).andReturn(dests);
 
     replay();
     scanner.docFound(docMock);
-    Map<String, DocDestinationStatus> value = c.getValue();
-    assertEquals(1,value.size());
-    assertEquals("fooStep",value.keySet().iterator().next());
-    DocDestinationStatus stat = value.values().iterator().next();
-    assertEquals("fooStep", stat.getOutputStep());
-    assertEquals(NEW_CONTENT_FOUND_MSG, stat.getMessage());
-    assertEquals(scannerName, stat.getMessageParams()[0]);
-    assertEquals(PROCESSING,stat.getStatus());
   }
 
   @Test
   public void testDocFoundProcessingStatusButHashChange() {
+    String scannerName = "Dent, Aurthur Dent";
+    docMock.stepStarted(scanner);
+    docMock.setStatus(PROCESSING,"{} found doc:{}", scannerName, "42" );
     expect(scanner.isHashing()).andReturn(true).anyTimes();
     expect(docMock.isForceReprocess()).andReturn(false);
-    String scannerName = "Dent, Aurthur Dent";
     expect(scanner.isFreshContent(docMock,scannerName,"42",sessionMock)).andReturn(true);
     expect(scanner.getName()).andReturn("Dent, Aurthur Dent").anyTimes();
     expect(scanner.isRemembering()).andReturn(true).anyTimes();
@@ -289,6 +289,8 @@ public class ScannerImplTest {
   public void testDocFoundProcessingStatusButNoHashChange() {
     expect(docMock.isForceReprocess()).andReturn(false);
     String scannerName = "Dent, Aurthur Dent";
+    docMock.stepStarted(scanner);
+    docMock.setStatus(PROCESSING,"{} found doc:{}", scannerName, "42" );
     expect(scanner.isFreshContent(docMock,scannerName,"42",sessionMock)).andReturn(false);
 
     expect(scanner.getName()).andReturn("Dent, Aurthur Dent").anyTimes();
@@ -319,6 +321,8 @@ public class ScannerImplTest {
   public void testDocFoundProcessingStatusButNoHash() {
     expect(docMock.isForceReprocess()).andReturn(false);
     String scannerName = "Dent, Aurthur Dent";
+    docMock.stepStarted(scanner);
+    docMock.setStatus(PROCESSING,"{} found doc:{}", scannerName, "42" );
     expect(scanner.isFreshContent(docMock,scannerName,"42",sessionMock)).andReturn(true);
 
     expect(scanner.getName()).andReturn("Dent, Aurthur Dent").anyTimes();
@@ -434,7 +438,7 @@ public class ScannerImplTest {
     expect(scanner.fetchById("fooId",FTI_ORIGIN)).andReturn(Optional.of(docMock));
     docMock.setForceReprocess(true);
     Capture<Map<String, DocDestinationStatus>> downstream = newCapture();
-    docMock.setIncompleteOutputSteps(capture(downstream));
+    docMock.setIncompleteOutputDestinations(capture(downstream));
     List<LatestStatus> stats = new ArrayList<>();
     stats.add(lstatMock);
     stats.add(lstatMock2);

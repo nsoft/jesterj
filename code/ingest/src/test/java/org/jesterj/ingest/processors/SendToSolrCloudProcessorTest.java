@@ -30,6 +30,7 @@ import org.apache.solr.common.util.NamedList;
 import org.easymock.Capture;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Status;
+import org.jesterj.ingest.model.impl.DocumentImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,7 +57,7 @@ public class SendToSolrCloudProcessorTest {
   @ObjectUnderTest
   SendToSolrCloudProcessor proc;
   @Mock private ConcurrentBiMap<Document, SolrInputDocument> batchMock;
-  @Mock private Document docMock;
+  @Mock private DocumentImpl docMock;
   @Mock private Logger logMock;
   @Mock private SolrInputDocument inputDocMock;
   @Mock private SolrInputDocument inputDocMock2;
@@ -100,8 +101,7 @@ public class SendToSolrCloudProcessorTest {
     RuntimeException e = new RuntimeException("TEST EXCEPTION");
     expect(proc.log()).andReturn(logMock).anyTimes();
     expect(docMock.getId()).andReturn("42");
-    expect(proc.getStepName()).andReturn("stepFoo");
-    docMock.setStatus(Status.ERROR, "stepFoo", "{} could not be sent to solr because of {}", "42", "TEST EXCEPTION");
+    docMock.setStatus(Status.ERROR,  "{} could not be sent to solr because of {}", "42", "TEST EXCEPTION");
     docMock.reportDocStatus();
     logMock.error("Error communicating with solr!", e);
     replay();

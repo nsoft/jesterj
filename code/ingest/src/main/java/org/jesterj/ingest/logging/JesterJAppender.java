@@ -30,6 +30,7 @@ import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginElement;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
 import org.apache.logging.log4j.core.layout.PatternLayout;
+import org.apache.tika.utils.StringUtils;
 import org.jesterj.ingest.Main;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
@@ -234,6 +235,15 @@ public class JesterJAppender extends AbstractAppender {
       if (changedStatuses.length != numberOfChanges || changeMessages.length != numberOfChanges ) {
         throw new IllegalStateException("Cannot process document status update when the number of statuses, changes, " +
             "messages and arg lists does ot match. This is always a bug in JesterJ");
+      }
+
+      if (Arrays.stream(changedSteps).anyMatch(StringUtils::isBlank)) {
+        throw new IllegalStateException("Blank Step name detected! Info --> " +
+            "\n\toutputStepNames:" + outputStepNames +
+            "\n\tstatuses:" + statuses +
+            "\n\tmessages:" + messages +
+            "\n\tplanName:" + planName +
+            "");
       }
 
       for (int i = 0; i < changedSteps.length; i++) {

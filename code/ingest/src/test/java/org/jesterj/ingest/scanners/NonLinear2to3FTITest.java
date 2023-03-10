@@ -46,7 +46,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
   // incorrect paths or statuses are set multiple times we can still see it). Been working fine on my local
   // machine (1950x processor), but overshooting on GitHub, presumably due to the main test thread not resuming
   // promptly and allowing more pause periods to expire before shutting down the plan. Thus, this ugly hack...
-  public static final long PAUSE_MILLIS = 3000L;
+  public static final long PAUSE_MILLIS = 6000L;
   public static final String PAUSE_STEP_DB = "pauseStepDb";
   public static final String PAUSE_STEP_FILE = "pauseStepFile";
   public static final String PAUSE_STEP_COMEDY = "pauseStepComedy";
@@ -73,7 +73,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
   public void testScanWithMemoryTwoIntoThree() throws Exception {
     // GitHub: "I want the threads!"
     // Me: "You can't handle the threads!"
-    if((System.getenv("GITHUB_ACTION") != null)) return;
+    if ((System.getenv("GITHUB_ACTION") != null)) return;
 
     // works great on my 16 core 32 thread 1950x, I expect it probably works fine on 4 or more cores, GitHub gives us 2
     // which means threads in the plan just keep doing their thing after they were supposed to have shut down, and so
@@ -81,32 +81,48 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
     loadShakespeareToHSQL();
     File tempDir = getUniqueTempDir();
     Cassandra.start(tempDir, "127.0.0.1");
+    CassandraSupport support = new CassandraSupport();
     try {
 
       Plan plan = getTwoIntoThreePlan("testScan");
       System.out.println(plan.visualize(Format.DOT).toString());
       // http://magjac.com/graphviz-visual-editor/?dot=digraph%20%22visualize%22%20%7B%0A%22fileScanner%22%20%5B%22color%22%3D%22blue%22%2C%22penwidth%22%3D%223.0%22%5D%0A%22jdbcScanner%22%20%5B%22color%22%3D%22blue%22%2C%22penwidth%22%3D%223.0%22%5D%0A%22fileScanner%22%20-%3E%20%22pauseStepFile%22%0A%22pauseStepFile%22%20-%3E%20%22errorStepFile%22%0A%22errorStepFile%22%20-%3E%20%22copyFileNameToCategoryStep%22%0A%22copyFileNameToCategoryStep%22%20-%3E%20%22copyIdToCategoryStep%22%0A%22copyIdToCategoryStep%22%20-%3E%20%22editCategory%22%0A%22editCategory%22%20-%3E%20%22defaultCategoryToOtherStep%22%0A%22defaultCategoryToOtherStep%22%20-%3E%20%22categoryCounterStep%22%0A%22categoryCounterStep%22%20-%3E%20%22pauseStepComedy%22%0A%22categoryCounterStep%22%20-%3E%20%22pauseStepTragedy%22%0A%22categoryCounterStep%22%20-%3E%20%22pauseStepOther%22%0A%22pauseStepComedy%22%20-%3E%20%22errorStepComedy%22%0A%22errorStepComedy%22%20-%3E%20%22countStepComedy%22%0A%22pauseStepTragedy%22%20-%3E%20%22errorStepTragedy%22%0A%22errorStepTragedy%22%20-%3E%20%22countStepTragedy%22%0A%22pauseStepOther%22%20-%3E%20%22errorStepOther%22%0A%22errorStepOther%22%20-%3E%20%22countStepOther%22%0A%22jdbcScanner%22%20-%3E%20%22pauseStepDb%22%0A%22pauseStepDb%22%20-%3E%20%22errorStepDb%22%0A%22errorStepDb%22%20-%3E%20%22copyFileNameToCategoryStep%22%0A%7D
 
+      // in this test we are throttling the scanners
+      longPauses(plan,PAUSE_STEP_DB,(int)PAUSE_MILLIS);
+      longPauses(plan,PAUSE_STEP_FILE,(int)PAUSE_MILLIS);
+
+      // But the downstream flows are not throttled
       shortPauses(plan, PAUSE_STEP_COMEDY);
       shortPauses(plan, PAUSE_STEP_TRAGEDY);
       shortPauses(plan, PAUSE_STEP_OTHER);
+
       plan.activate();
       // now scanner should find all docs, attempt to index them, all marked
       // as processing...
-      Thread.sleep(PAUSE_MILLIS / 3 + 2L * PAUSE_MILLIS);
+      Thread.sleep((PAUSE_MILLIS / 3) + (2 * PAUSE_MILLIS));  //
+      // the pause every 5 should have:
+      //   paused for 3 sec and then
+      //   let 5 through and then
+      //   paused for 3 sec and then
+      //   let 5 more through and then
+      //   paused for 3 sec
+
+      // During the third pause, the test thread wakes up and blocks further progress
+      // deactivation can be slow so be sure nothing gets counted while deactivation is in progress
       blockCounters(plan, true);
-      // the pause ever 5 should have let 5 through and then paused for 30 sec
+
       plan.deactivate();
       assertEquals(getCountForCategory(plan, CATEGORY_COUNTER_STEP, "other"), getDocCount(plan, COUNT_STEP_OTHER));
       assertEquals(getCountForCategory(plan, CATEGORY_COUNTER_STEP, "tragedies"), getDocCount(plan, COUNT_STEP_TRAGEDY));
       assertEquals(getCountForCategory(plan, CATEGORY_COUNTER_STEP, "comedies"), getDocCount(plan, COUNT_STEP_COMEDY));
 
+      // which types made it through can vary, so we only can assert the net total. Two bursts of 5 documents for 3
+      // destinations should yield 30 total documents making it to the final counter steps.
       int actualIndexed = sizeForCounter(plan, COUNT_STEP_OTHER) +
           sizeForCounter(plan, COUNT_STEP_TRAGEDY) +
           sizeForCounter(plan, COUNT_STEP_COMEDY);
       assertEquals(30, actualIndexed);
-
-      CassandraSupport support = new CassandraSupport();
 
       ResultSet tables = support.getSession().execute("SELECT table_name, keyspace_name from system_schema.tables");
       for (Row table : tables) {
@@ -120,17 +136,17 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
         @SuppressWarnings("DataFlowIssue")
         long rowCount = count.one().getLong(0);
         if (tableName.endsWith("_hash")) {
-          assertEquals(44,rowCount); // one entry for each file or DB row
+          assertEquals(44, rowCount); // one entry for each file or DB row
         }
         if (tableName.endsWith("_status")) {
-          assertEquals(44 + 15, rowCount ); // initial processing, and 15 of them got to indexed
+          assertEquals("Wrong count for " +tableName,44 + 15, rowCount); // initial processing, and 15 of them got to indexed
         }
         System.out.print(rowCount + " --> ");
 
         support.getSession().execute("truncate table " + tableName);
         count = support.getSession().execute("select count(*) from " + tableName);
         //noinspection DataFlowIssue
-        System.out.println(count.one().getLong(0) );
+        System.out.println(count.one().getLong(0));
       }
 
       ///// NOW for a full uninterrupted run as a baseline
@@ -144,7 +160,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
 
       // Now let it run to completion and index everything.
       plan.activate();
-      Thread.sleep(3*PAUSE_MILLIS);
+      Thread.sleep(3 * PAUSE_MILLIS);
       plan.deactivate();
       Thread.sleep(PAUSE_MILLIS);
 
@@ -159,10 +175,10 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
         @SuppressWarnings("DataFlowIssue")
         long rowCount = count.one().getLong(0);
         if (tableName.endsWith("_hash")) {
-          assertEquals(44,rowCount); // one entry for each file or DB row
+          assertEquals(44, rowCount); // one entry for each file or DB row
         } else if (tableName.endsWith("_status")) {
           System.out.println("Testing table:" + tableName);
-          assertEquals(44 + 44, rowCount ); // initial processing, and all of them got to indexed
+          assertEquals(44 + 44, rowCount); // initial processing, and all of them got to indexed
         } else {
           assertEquals("Found unexpected table" + tableName, "jj_logging.regular", tableName);
         }
@@ -173,7 +189,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
 
       // NOW start up and run again, no new content to index so nothing should change
       plan.activate();
-      Thread.sleep(3*PAUSE_MILLIS );
+      Thread.sleep(3 * PAUSE_MILLIS);
       plan.deactivate();
       Thread.sleep(PAUSE_MILLIS);
 
@@ -188,16 +204,16 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
         @SuppressWarnings("DataFlowIssue")
         long rowCount = count.one().getLong(0);
         if (tableName.endsWith("_hash")) {
-          assertEquals(44,rowCount); // one entry for each file or DB row
+          assertEquals(44, rowCount); // one entry for each file or DB row
         } else if (tableName.endsWith("_status")) {
-          assertEquals(44 + 44, rowCount ); // initial processing, and all of them got to indexed
+          assertEquals(44 + 44, rowCount); // initial processing, and all of them got to indexed
         } else {
           assertEquals("Found unexpected table" + tableName, "jj_logging.regular", tableName);
         }
         support.getSession().execute("truncate table " + tableName);
         count = support.getSession().execute("select count(*) from " + tableName);
         //noinspection DataFlowIssue
-        assertEquals(0L,count.one().getLong(0));
+        assertEquals(0L, count.one().getLong(0));
       }
 
       // NOW turn on errors for Comedies, and we expect only the table for the comedies output step to
@@ -206,7 +222,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
 
       startErrors(plan, ERROR_STEP_COMEDY);
       plan.activate();
-      Thread.sleep(3*PAUSE_MILLIS);
+      Thread.sleep(3 * PAUSE_MILLIS);
       plan.deactivate();
       Thread.sleep(PAUSE_MILLIS);
 
@@ -223,13 +239,13 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
         @SuppressWarnings("DataFlowIssue")
         long rowCount = count.one().getLong(0);
         if (tableName.endsWith("_hash")) {
-          assertEquals(44,rowCount); // one entry for each file or DB row
+          assertEquals(44, rowCount); // one entry for each file or DB row
         } else if (tableName.endsWith("_status")) {
           ResultSet example = support.getSession().execute("select outputStepName from " + tableName + " LIMIT 1");
           @SuppressWarnings("DataFlowIssue")
           String stepName = example.one().getString(0);
-          if (rowCount != 44+44) {
-            assertEquals("Found " + rowCount + " for " + stepName,COUNT_STEP_COMEDY, stepName);
+          if (rowCount != 44 + 44) {
+            assertEquals("Found " + rowCount + " for " + stepName, COUNT_STEP_COMEDY, stepName);
             // we can get errors for docs from either scanner
             tablesWithErrors.add(tableName);
             ///////////////////////////////////////////////////////////////////////////////////////
@@ -259,7 +275,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
                   showTable(support, tableWithErrors);
                 }
               }
-              assertEquals(expected, rowsBothScanners);
+              assertEquals("Wrong number of errors for " + tablesWithErrors,expected, rowsBothScanners);
             }
             System.out.println(stepName + " has " + rowCount);
           } else {
@@ -267,33 +283,28 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
             if (COUNT_STEP_COMEDY.equals(stepName)) {
               showTable(support, tableName);
             }
-            assertNotEquals("But my errors... what happened to my errors?", COUNT_STEP_COMEDY, stepName);
+            assertNotEquals("But the errors... why are the errors gone?", COUNT_STEP_COMEDY, stepName);
             System.out.println(stepName + " has " + rowCount);
           }
         } else {
           assertEquals("Found unexpected table" + tableName, "jj_logging.regular", tableName);
         }
       }
-      assertEquals( 2,tablesWithErrors.size());
-    } catch (Exception e) {
+      assertEquals(2, tablesWithErrors.size());
+    } catch (Throwable e) {
       e.printStackTrace();
       log.error(e);
-    }finally {
+      dumpTables(support);
+      throw e;
+    } finally {
       Thread.sleep(100);
       System.out.println("sleeping in finally");
       System.out.flush();
+      //dumpTables(support);
       //Thread.sleep(5000000);
       Cassandra.stop();
     }
 
-  }
-
-  private static void showTable(CassandraSupport support, String tableName) {
-    ResultSet showMe = support.getSession().execute("select * from " + tableName);
-    int rowNum = 1;
-    for (Row row : showMe) {
-      System.out.println(rowNum++ +") " + row.getFormattedContents());
-    }
   }
 
   Map<String, DocumentFieldMatchCounter.DocCounted> getScannedDocsForCategory(Plan plan, String stepName, String category) {

@@ -2,9 +2,7 @@ package org.jesterj.ingest.processors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jesterj.ingest.model.ConfiguredBuildable;
-import org.jesterj.ingest.model.Document;
-import org.jesterj.ingest.model.DocumentProcessor;
+import org.jesterj.ingest.model.*;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 
 import java.util.HashMap;
@@ -47,6 +45,7 @@ public class DocumentFieldMatchCounter implements DocumentProcessor {
     Map<String, DocCounted> valueMap = getScannedDocsByValue().computeIfAbsent(firstValue, (fValue) -> new HashMap<>());
     valueMap.computeIfAbsent(document.getId(), (id) -> new DocCounted(document)).timesSeen.incrementAndGet();
     log.info("Recording {} for value {}", document.getId(), firstValue);
+    document.setStatus(Status.INDEXED,"Document counted for value of {}", firstValue);
     return new Document[]{document};
   }
 

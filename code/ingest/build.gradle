@@ -1,4 +1,5 @@
 import java.text.SimpleDateFormat
+import java.time.Instant
 
 /*
  * Copyright 2013-2018 Needham Software LLC
@@ -182,6 +183,7 @@ dependencies {
     exclude group:'org.easymock'
     exclude group:'junit'
   }
+  testImplementation 'com.opencsv:opencsv:4.1'
 
   // this shouldn't be necessary but there's something dodgy going on with jacocoTestReport's classpath
   // using testImplementation so we don't package these...
@@ -214,6 +216,7 @@ test {
 
   doFirst {
     jvmArgs += [
+        '-Djesterj.build.start=' + String.valueOf(Instant.now().toEpochMilli()),
         '--add-modules', 'ALL-MODULE-PATH',
         '--add-opens', 'java.base/java.lang.module=ALL-UNNAMED',
         '--add-opens', 'java.base/jdk.internal.loader=ALL-UNNAMED',

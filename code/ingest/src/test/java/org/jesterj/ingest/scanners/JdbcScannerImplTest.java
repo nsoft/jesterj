@@ -50,7 +50,7 @@ public class JdbcScannerImplTest extends ScannerImplTest {
 
   @Test
   public void testBuild() {
-    JdbcScanner.Builder builder = build (true);
+    JdbcScanner.Builder builder = createBuilder(true);
     JdbcScanner built = (JdbcScanner) builder.build();
 
     assertEquals("JDBC_Scanner", built.getName());
@@ -66,7 +66,7 @@ public class JdbcScannerImplTest extends ScannerImplTest {
     assertEquals(SQL_1, built.getSqlStatement());
   }
 
-  private JdbcScanner.Builder build(boolean contentCol) {
+  private JdbcScanner.Builder createBuilder(boolean contentCol) {
     JdbcScanner.Builder builder = new JdbcScanner.Builder();
 
     builder
@@ -104,7 +104,7 @@ public class JdbcScannerImplTest extends ScannerImplTest {
     insertRow2.execute();
     NamedBuilder<? extends DocumentProcessor> scannedDocRecorder = getScannedDocRecorder("RECORDER");
     StepImpl.Builder capture = new StepImpl.Builder().named("capture").withProcessor(scannedDocRecorder);
-    JdbcScanner.Builder scanStep = build(false);
+    JdbcScanner.Builder scanStep = createBuilder(false);
     Plan plan = new PlanImpl.Builder().named("testScan").withIdField("ID")
         .addStep(scanStep)
         .addStep(capture,"JDBC_Scanner").build();

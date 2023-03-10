@@ -36,7 +36,7 @@ public class NextSteps {
       try {
         Document tmp = CLONER.cloneObj(doc);
         tmp.removeAllOtherDestinationsQuietly(step.getOutputDestinationNames());
-        if (tmp.getIncompleteOutputSteps().length > 0) {
+        if (tmp.getIncompleteOutputDestinations().length > 0) {
           // ONLY keep things that have a destination.
           steps.put(step, new StepStatusHolder(TRY, tmp));
         }

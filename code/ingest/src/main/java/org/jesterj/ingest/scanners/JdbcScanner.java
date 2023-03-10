@@ -103,7 +103,7 @@ public class JdbcScanner extends ScannerImpl {
 
   @Override
   public synchronized void deactivate() {
-    ready = false;
+    setReady(false);
     super.deactivate();
     try {
       if (isConnected()) {
@@ -159,8 +159,8 @@ public class JdbcScanner extends ScannerImpl {
           log.error("JDBC operation for {} failed.", getName());
           log.error(e);
         } finally {
-          this.ready = true;
           log.debug("{} Database rows queued by {}", count, getName());
+          setReady(true);
         }
       }
     }, this);
