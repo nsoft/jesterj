@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
+import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
@@ -14,6 +15,7 @@ import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.persistence.CassandraSupport;
 import org.jesterj.ingest.processors.*;
 import org.jesterj.ingest.routers.RouteByStepName;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import java.io.File;
@@ -26,11 +28,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -41,6 +41,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
   private static final Logger log = LogManager.getLogger();
 
   // GitHub actions run on VERY slow machines, need to give lots of time for sleeping threads to resume.
+  // Crave.io machines are better, but this test still has trouble.
   // Sleeping is a test only behavior meant to give the plan time to process a clearly defined number of documents
   // before turning it off again without hard coding that limit into the plan (so that if documents do flow down
   // incorrect paths or statuses are set multiple times we can still see it). Been working fine on my local
@@ -89,8 +90,8 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
       // http://magjac.com/graphviz-visual-editor/?dot=digraph%20%22visualize%22%20%7B%0A%22fileScanner%22%20%5B%22color%22%3D%22blue%22%2C%22penwidth%22%3D%223.0%22%5D%0A%22jdbcScanner%22%20%5B%22color%22%3D%22blue%22%2C%22penwidth%22%3D%223.0%22%5D%0A%22fileScanner%22%20-%3E%20%22pauseStepFile%22%0A%22pauseStepFile%22%20-%3E%20%22errorStepFile%22%0A%22errorStepFile%22%20-%3E%20%22copyFileNameToCategoryStep%22%0A%22copyFileNameToCategoryStep%22%20-%3E%20%22copyIdToCategoryStep%22%0A%22copyIdToCategoryStep%22%20-%3E%20%22editCategory%22%0A%22editCategory%22%20-%3E%20%22defaultCategoryToOtherStep%22%0A%22defaultCategoryToOtherStep%22%20-%3E%20%22categoryCounterStep%22%0A%22categoryCounterStep%22%20-%3E%20%22pauseStepComedy%22%0A%22categoryCounterStep%22%20-%3E%20%22pauseStepTragedy%22%0A%22categoryCounterStep%22%20-%3E%20%22pauseStepOther%22%0A%22pauseStepComedy%22%20-%3E%20%22errorStepComedy%22%0A%22errorStepComedy%22%20-%3E%20%22countStepComedy%22%0A%22pauseStepTragedy%22%20-%3E%20%22errorStepTragedy%22%0A%22errorStepTragedy%22%20-%3E%20%22countStepTragedy%22%0A%22pauseStepOther%22%20-%3E%20%22errorStepOther%22%0A%22errorStepOther%22%20-%3E%20%22countStepOther%22%0A%22jdbcScanner%22%20-%3E%20%22pauseStepDb%22%0A%22pauseStepDb%22%20-%3E%20%22errorStepDb%22%0A%22errorStepDb%22%20-%3E%20%22copyFileNameToCategoryStep%22%0A%7D
 
       // in this test we are throttling the scanners
-      longPauses(plan,PAUSE_STEP_DB,(int)PAUSE_MILLIS);
-      longPauses(plan,PAUSE_STEP_FILE,(int)PAUSE_MILLIS);
+      longPauses(plan, PAUSE_STEP_DB, (int) PAUSE_MILLIS);
+      longPauses(plan, PAUSE_STEP_FILE, (int) PAUSE_MILLIS);
 
       // But the downstream flows are not throttled
       shortPauses(plan, PAUSE_STEP_COMEDY);
@@ -124,31 +125,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
           sizeForCounter(plan, COUNT_STEP_COMEDY);
       assertEquals(30, actualIndexed);
 
-      ResultSet tables = support.getSession().execute("SELECT table_name, keyspace_name from system_schema.tables");
-      for (Row table : tables) {
-        String keyspaceName = table.getString("keyspace_name");
-        if (keyspaceName == null || !keyspaceName.startsWith("jj_")) {
-          continue;
-        }
-        String tableName = keyspaceName + "." + table.getString("table_name");
-        System.out.print(tableName + " ");
-        ResultSet count = support.getSession().execute("select count(*) from " + tableName);
-        @SuppressWarnings("DataFlowIssue")
-        long rowCount = count.one().getLong(0);
-        if (tableName.endsWith("_hash")) {
-          assertEquals(44, rowCount); // one entry for each file or DB row
-        }
-        if (tableName.endsWith("_status")) {
-          assertEquals("Wrong count for " +tableName,44 + 15, rowCount); // initial processing, and 15 of them got to indexed
-        }
-        System.out.print(rowCount + " --> ");
-
-        support.getSession().execute("truncate table " + tableName);
-        count = support.getSession().execute("select count(*) from " + tableName);
-        //noinspection DataFlowIssue
-        System.out.println(count.one().getLong(0));
-      }
-
+      checkAndClearTables(support, 15);
       ///// NOW for a full uninterrupted run as a baseline
 
       blockCounters(plan, false);
@@ -160,61 +137,21 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
 
       // Now let it run to completion and index everything.
       plan.activate();
-      Thread.sleep(3 * PAUSE_MILLIS);
+      Thread.sleep(PAUSE_MILLIS);
       plan.deactivate();
       Thread.sleep(PAUSE_MILLIS);
 
-      tables = support.getSession().execute("SELECT table_name, keyspace_name from system_schema.tables");
-      for (Row table : tables) {
-        String keyspaceName = table.getString("keyspace_name");
-        if (keyspaceName == null || !keyspaceName.startsWith("jj_")) {
-          continue;
-        }
-        String tableName = keyspaceName + "." + table.getString("table_name");
-        ResultSet count = support.getSession().execute("select count(*) from " + tableName);
-        @SuppressWarnings("DataFlowIssue")
-        long rowCount = count.one().getLong(0);
-        if (tableName.endsWith("_hash")) {
-          assertEquals(44, rowCount); // one entry for each file or DB row
-        } else if (tableName.endsWith("_status")) {
-          System.out.println("Testing table:" + tableName);
-          assertEquals(44 + 44, rowCount); // initial processing, and all of them got to indexed
-        } else {
-          assertEquals("Found unexpected table" + tableName, "jj_logging.regular", tableName);
-        }
-
-        // NOTE intentionally NOT truncating tables this time
-
-      }
+      // table by docid by status (count of status occurrences)
+      checkFullRun(support, plan);
+      ResultSet tables;
 
       // NOW start up and run again, no new content to index so nothing should change
       plan.activate();
-      Thread.sleep(3 * PAUSE_MILLIS);
+      Thread.sleep(PAUSE_MILLIS);
       plan.deactivate();
       Thread.sleep(PAUSE_MILLIS);
 
-      tables = support.getSession().execute("SELECT table_name, keyspace_name from system_schema.tables");
-      for (Row table : tables) {
-        String keyspaceName = table.getString("keyspace_name");
-        if (keyspaceName == null || !keyspaceName.startsWith("jj_")) {
-          continue;
-        }
-        String tableName = keyspaceName + "." + table.getString("table_name");
-        ResultSet count = support.getSession().execute("select count(*) from " + tableName);
-        @SuppressWarnings("DataFlowIssue")
-        long rowCount = count.one().getLong(0);
-        if (tableName.endsWith("_hash")) {
-          assertEquals(44, rowCount); // one entry for each file or DB row
-        } else if (tableName.endsWith("_status")) {
-          assertEquals(44 + 44, rowCount); // initial processing, and all of them got to indexed
-        } else {
-          assertEquals("Found unexpected table" + tableName, "jj_logging.regular", tableName);
-        }
-        support.getSession().execute("truncate table " + tableName);
-        count = support.getSession().execute("select count(*) from " + tableName);
-        //noinspection DataFlowIssue
-        assertEquals(0L, count.one().getLong(0));
-      }
+      checkAndClearTables(support, 44);
 
       // NOW turn on errors for Comedies, and we expect only the table for the comedies output step to
       // have an increase. This should be enough time that the comedies all process and all the errors are successfully
@@ -222,10 +159,11 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
 
       startErrors(plan, ERROR_STEP_COMEDY);
       plan.activate();
-      Thread.sleep(3 * PAUSE_MILLIS);
+      Thread.sleep(PAUSE_MILLIS);
       plan.deactivate();
       Thread.sleep(PAUSE_MILLIS);
 
+      checkFullRun(support, plan);
       tables = support.getSession().execute("SELECT table_name, keyspace_name from system_schema.tables");
       int rowsBothScanners = 0;
       Set<String> tablesWithErrors = new HashSet<>();
@@ -254,12 +192,15 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
             // sent them to the output steps that didn't get them the first time.
             //
             // There are 44 documents total, 3 of 17 comedies from 2 scanners should error out, for a total
-            // of 6 errors on the first pass and the second pass will feed the 6 errors, one of which will
-            // error a second time so these 3 cases are events per document:
+            // of 7 errors on the 4th, 9th, 14th, 19th, 24th, 29th, 34th documents first pass and the second
+            // pass will feed the 7 errors taking the count to 51 and erroring the 49th document. Finally a third
+            // pass will feed one error doc and as the 52nd document to arrive at the ErrorForthTestProcessor it will
+            // safely pass, and be indexed.
+            // so these 3 cases are events per document:
             //   - PROCESSING,INDEXED (41 * 2 * 2 events = 164 events)
-            //   - PROCESSING,ERROR,PROCESSING,INDEXED (5 of 6 * 4 events = 20 events)
+            //   - PROCESSING,ERROR,PROCESSING,INDEXED (5 of 7 * 4 events = 22 events)
             //   - PROCESSING,ERROR,PROCESSING,ERROR,PROCESSING,INDEXED (1 * 6 events = 6 events)
-            // So across 2 tables we should get a total of 164 + 20 + 6 = 190 events
+            // So across 2 tables we should get a total of 164 + 22 + 6 = 192 events
             // It is not possible to predict which table will get hit with the second error.
             // This test has a minuscule chance of failing which would require thread scheduling to completely
             // pause one scanner and all the errors show up for the other scanner type. The build output will have
@@ -268,14 +209,14 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
             //
             rowsBothScanners += rowCount;
             if (tablesWithErrors.size() == 2) {
-              int expected = 190;
+              int expected = 192;
               if (expected != rowsBothScanners) {
                 for (String tableWithErrors : tablesWithErrors) {
                   System.out.println(tableWithErrors);
                   showTable(support, tableWithErrors);
                 }
               }
-              assertEquals("Wrong number of errors for " + tablesWithErrors,expected, rowsBothScanners);
+              assertEquals("Wrong number of errors for " + tablesWithErrors, expected, rowsBothScanners);
             }
             System.out.println(stepName + " has " + rowCount);
           } else {
@@ -305,6 +246,162 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
       Cassandra.stop();
     }
 
+  }
+
+  private static void checkFullRun(CassandraSupport support, Plan plan) {
+    Map<String, Map<String, Map<String, AtomicInteger>>> docStatusSummaryCassandra = new HashMap<>();
+    countsFromCassandra(support, docStatusSummaryCassandra);
+
+    DocumentCounter otherCount = findCounter(plan, COUNT_STEP_OTHER);
+    DocumentCounter comedyCount = findCounter(plan, COUNT_STEP_COMEDY);
+    DocumentCounter tragedyCount = findCounter(plan, COUNT_STEP_TRAGEDY);
+
+    DocumentFieldMatchCounter fieldMatchCounter = findFieldMatchCounter(plan, CATEGORY_COUNTER_STEP);
+    Map<String, Map<String, DocumentFieldMatchCounter.DocCounted>> scannedDocsByValue = fieldMatchCounter.getScannedDocsByValue();
+    int othersCatCount = scannedDocsByValue.get("other").keySet().size();
+    int comedyCatCount = scannedDocsByValue.get("comedies").keySet().size();
+    int tragedyCatCount = scannedDocsByValue.get("tragedies").keySet().size();
+
+    // we should have seen 17 comedies 10 tragedies and 17 other files from two sources for a total of 88
+    int others = otherCount.getScannedDocs().size();
+    int tragedies = tragedyCount.getScannedDocs().size();
+    int comedies = comedyCount.getScannedDocs().size();
+
+    int othersJdbcIndexedC = statusCountInTable(docStatusSummaryCassandra, "jdbc_countStepOther", Status.INDEXED);
+    int comedyJdbcIndexedC = statusCountInTable(docStatusSummaryCassandra, "jdbc_countStepComedy", Status.INDEXED);
+    int tragedyJdbcIndexedC = statusCountInTable(docStatusSummaryCassandra, "jdbc_countStepTragedy", Status.INDEXED);
+    int othersFileIndexedC = statusCountInTable(docStatusSummaryCassandra, "file_countStepOther", Status.INDEXED);
+    int comedyFileIndexedC = statusCountInTable(docStatusSummaryCassandra, "file_countStepComedy", Status.INDEXED);
+    int tragedyFileIndexedC = statusCountInTable(docStatusSummaryCassandra, "file_countStepTragedy", Status.INDEXED);
+
+    // this should turn up empty since we let it run to completion and there aren't enough errors to cause anything
+    // to error 3 times (and thus become DEAD status)!
+    Map<String, List<String>> filesWithoutIndexedStatus = filesWithoutStats(docStatusSummaryCassandra, List.of(Status.INDEXED.toString(), Status.DROPPED.toString()));
+    Map<String, List<String>> filesMultipleIndexedStatus = filesWithoutMoreThanNofStat(docStatusSummaryCassandra, Status.INDEXED, 1);
+
+    String message = String.format("" +
+            "\nSC_OJI:%s" +
+            "\nC_CJI:%s" +
+            "\nC_TJI:%s" +
+            "\nC_OFI:%s" +
+            "\nC_CFI:%s" +
+            "\nC_TFI:%s" +
+            "\nJO_CC:%s" +
+            "\nJC_CC:%s" +
+            "\nJT_CC:%s" +
+            "\nJO:%s" +
+            "\nJC:%s" +
+            "\nJT:%s" +
+            "\nNo Index Stat C*:%s" +
+            "\nMultiple Index Stat C*:%s"
+        ,
+        othersJdbcIndexedC, comedyJdbcIndexedC, tragedyJdbcIndexedC, othersFileIndexedC, comedyFileIndexedC,
+        tragedyFileIndexedC, othersCatCount, comedyCatCount, tragedyCatCount, others, comedies, tragedies,
+        filesWithoutIndexedStatus, filesMultipleIndexedStatus
+    );
+
+    assertEquals("Should only have one indexed status event per document!" + message, 0,filesMultipleIndexedStatus.values().stream().mapToInt(List::size).sum());
+    assertEquals("Should have at least one indexed status event per file!" + message, 0,filesWithoutIndexedStatus.values().stream().mapToInt(List::size).sum());
+
+    assertEquals("Incorrect Java Others!" + message, 34, others);
+    assertEquals("Incorrect Java Tragedies!" + message, 20, tragedies);
+    assertEquals("Incorrect Java Comedies!" + message, 34, comedies);
+    assertEquals("Incorrect categoryCount other!" + message,34,othersCatCount);
+    assertEquals("Incorrect categoryCount tragedies!" + message,20,tragedyCatCount);
+    assertEquals("Incorrect categoryCount comedies!" + message,34,comedyCatCount);
+  }
+
+  @NotNull
+  private static Map<String, List<String>> filesWithoutStats(Map<String, Map<String, Map<String, AtomicInteger>>> docStatusSummaryCassandra, List<String> statuses) {
+    Map<String, List<String>> filesWithoutIndexedStatus = new HashMap<>();
+    for (String s : docStatusSummaryCassandra.keySet()) {
+      List<String> noIndexStatus = docStatusSummaryCassandra.get(s)
+          .entrySet().stream()
+          .filter(e -> e.getValue().entrySet().stream().
+              noneMatch(ent -> statuses.contains(ent.getKey())))
+          .map(Map.Entry::getKey)
+          .collect(Collectors.toList());
+      filesWithoutIndexedStatus.put(s, noIndexStatus);
+    }
+    return filesWithoutIndexedStatus;
+  }
+
+  @NotNull
+  private static Map<String, List<String>> filesWithoutMoreThanNofStat(Map<String, Map<String, Map<String, AtomicInteger>>> docStatusSummaryCassandra, Status indexed, int maxAllowed) {
+    Map<String, List<String>> filesWithoutIndexedStatus = new HashMap<>();
+    for (String s : docStatusSummaryCassandra.keySet()) {
+      List<String> noIndexStatus = docStatusSummaryCassandra.get(s)
+          .entrySet().stream()
+          .filter(e -> e.getValue().entrySet().stream().
+              anyMatch(ent -> ent.getKey().equals(String.valueOf(indexed)) && ent.getValue().intValue() > maxAllowed))
+          .map(Map.Entry::getKey)
+          .collect(Collectors.toList());
+      filesWithoutIndexedStatus.put(s, noIndexStatus);
+    }
+    return filesWithoutIndexedStatus;
+  }
+
+  private static int statusCountInTable(Map<String, Map<String, Map<String, AtomicInteger>>> docStatusSummaryCassandra, String table, Status status) {
+
+    Map<String, Map<String, AtomicInteger>> stringMapMap = docStatusSummaryCassandra.get(table);
+    System.out.println( table);
+    System.out.println(stringMapMap);
+    return stringMapMap
+        .entrySet().stream()
+        .flatMap(e -> e.getValue().entrySet().stream()
+            .filter(ent -> ent.getKey().equals(String.valueOf(status))))
+        .map(Map.Entry::getValue)
+        .mapToInt(AtomicInteger::intValue)
+        .sum();
+  }
+
+  private static void countsFromCassandra(CassandraSupport support, Map<String, Map<String, Map<String, AtomicInteger>>> docStatusSummary) {
+    ResultSet tables = support.getSession().execute("SELECT table_name, keyspace_name from system_schema.tables");
+    for (Row table : tables) {
+      String keyspaceName = table.getString("keyspace_name");
+      if (keyspaceName == null || !keyspaceName.startsWith("jj_") ) {
+        continue;
+      }
+      String tableName = keyspaceName + "." + table.getString("table_name");
+      if (tableName.endsWith("_hash") || tableName.endsWith("regular")) {
+        continue;
+      }
+      ResultSet rows = support.getSession().execute("select docid,status,outputStepName from " + tableName);
+
+      for (Row row : rows) {
+        String id = row.getString(0);
+        String status = row.getString(1);
+        String outputStep = row.getString(2);
+        String tableDecoded = (id.startsWith("file") ? "file_" : "jdbc_") + outputStep;
+        docStatusSummary.computeIfAbsent(tableDecoded, k -> new HashMap<>()).computeIfAbsent(id, k -> new HashMap<>()).computeIfAbsent(status, k -> new AtomicInteger(0)).incrementAndGet();
+      }
+    }
+  }
+
+  private static void checkAndClearTables(CassandraSupport support, int numCountedExpected) {
+    ResultSet tables;
+    tables = support.getSession().execute("SELECT table_name, keyspace_name from system_schema.tables");
+    for (Row table : tables) {
+      String keyspaceName = table.getString("keyspace_name");
+      if (keyspaceName == null || !keyspaceName.startsWith("jj_")) {
+        continue;
+      }
+      String tableName = keyspaceName + "." + table.getString("table_name");
+      ResultSet count = support.getSession().execute("select count(*) from " + tableName);
+      @SuppressWarnings("DataFlowIssue")
+      long rowCount = count.one().getLong(0);
+      if (tableName.endsWith("_hash")) {
+        assertEquals(44, rowCount); // one entry for each file or DB row
+      } else if (tableName.endsWith("_status")) {
+        assertEquals(44 + numCountedExpected, rowCount); // initial processing, and all of them got to indexed
+      } else {
+        assertEquals("Found unexpected table" + tableName, "jj_logging.regular", tableName);
+      }
+      support.getSession().execute("truncate table " + tableName);
+      count = support.getSession().execute("select count(*) from " + tableName);
+      //noinspection DataFlowIssue
+      assertEquals(0L, count.one().getLong(0));
+    }
   }
 
   Map<String, DocumentFieldMatchCounter.DocCounted> getScannedDocsForCategory(Plan plan, String stepName, String category) {

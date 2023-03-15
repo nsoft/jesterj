@@ -217,7 +217,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   }
 
   public void run() {
-    nanoInterval = interval * 1000000;
+    nanoInterval = interval * 1_000_000;
     Future<?> scanner = null;
     long last = System.nanoTime() - 1; // minus 1 in case we get to the next call really fast.
     if (isActive()) {
@@ -228,9 +228,12 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       while (this.isActive()) {
         try {
           boolean timeForNextScan = longerAgoThanInterval(last);
-          if (!isScanning() && timeForNextScan) {
+          boolean scanning = isScanning();
+          if (!scanning && timeForNextScan) {
             scanner = safeSubmit();
             last = System.nanoTime();
+          } else {
+            log.trace("{}:Scan skipped, still scanning:{}; msSinceLast:{}",getName(),scanning, msSinceNanoTime(last) );
           }
           //noinspection BusyWait
           Thread.sleep(25);
@@ -254,14 +257,23 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
 
   Future<?> safeSubmit() {
     Future<?> scanner = null;
+    Instant now = Instant.now();
+    long start = System.nanoTime();
     try {
+      log.trace("Submitting scan for {} (Scan interval = {} ms)", getName(),getInterval());
       scanner = exec.submit(getScanOperation());
     } catch (Exception e) {
       log.error("Scan operation for {} failed.", getName());
       log.error(e);
       e.printStackTrace();
+    } finally {
+      log.trace("Scan Submitted for {} (Scan interval = {} ms), started at {}, elapsed:{}", getName(),getInterval(),now, msSinceNanoTime(start));
     }
     return scanner;
+  }
+
+  private static long msSinceNanoTime(long start) {
+    return System.nanoTime() - start  / 1_000_000;
   }
 
   boolean longerAgoThanInterval(long last) {
@@ -283,7 +295,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
    *
    * @param doc The document to be processed
    */
-  public void docFound(Document doc) {
+  public boolean docFound(Document doc) {
     ((DocumentImpl)doc).stepStarted(this);
     String scannerName = getName();
     log.trace("{} found doc: {}", scannerName, doc.getId());
@@ -339,6 +351,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     } else {
       log.trace("Did not need to index {}", id);
     }
+    return shouldIndex;
   }
 
   boolean seenPreviously(String scannerName, String id, CqlSession session) {
@@ -393,6 +406,10 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       log.trace("Found '{}' with hash {}, current hash is {}", id, previousHash, doc.getHash());
     }
     return previousHash;
+  }
+
+  protected void setInterval(long interval) {
+    this.interval = interval;
   }
 
 

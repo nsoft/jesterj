@@ -35,6 +35,7 @@ import java.util.Set;
  * The idea is to create a default config that can generically start up on most machines and do something
  * half way sensible.
  */
+@SuppressWarnings("unused")
 public class CassandraConfig {
 
 

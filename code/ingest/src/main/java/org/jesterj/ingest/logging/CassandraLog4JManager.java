@@ -44,7 +44,7 @@ public class CassandraLog4JManager extends AbstractManager {
 
   private final Future<Object> cassandraReady;
 
-  Executor executor = new ThreadPoolExecutor(1, 1, 100, TimeUnit.SECONDS, new SynchronousQueue<>());
+  final Executor executor = new ThreadPoolExecutor(1, 1, 100, TimeUnit.SECONDS, new SynchronousQueue<>());
 
 
   // This constructor is weird for a reason. It's critically important not to throw an exception or

@@ -127,6 +127,7 @@ public class JdbcScanner extends ScannerImpl {
         // Remainder of operation is implemented here instead of relying on DefaultOp to avoid spamming the DB with
         // queries for individual rows.
         int count = 0;
+        int reqIndexing = 0;
         try {
           log.info("{} connecting to database {}", getName(), jdbcUrl);
           if (!isConnected()) {
@@ -147,7 +148,9 @@ public class JdbcScanner extends ScannerImpl {
               String docId = rs.getString(docIdColumnIdx);
               docId = docIdFromPkVal(docId);
               Document doc = makeDoc(rs, columnNames, docId);
-              JdbcScanner.this.docFound(doc);
+              if (JdbcScanner.this.docFound(doc)) {
+                reqIndexing++;
+              }
               count++;
             }
 
@@ -159,7 +162,7 @@ public class JdbcScanner extends ScannerImpl {
           log.error("JDBC operation for {} failed.", getName());
           log.error(e);
         } finally {
-          log.debug("{} Database rows queued by {}", count, getName());
+          log.info("{} Database rows read by {}, of which {} resulted in documents submitted for processing", count, getName(), reqIndexing);
           setReady(true);
         }
       }
@@ -342,7 +345,7 @@ public class JdbcScanner extends ScannerImpl {
 
   @Override
   public boolean isScanning() {
-    return ready;
+    return !ready;
   }
 
   @Override
@@ -511,7 +514,7 @@ public class JdbcScanner extends ScannerImpl {
 
     @Override
     public JdbcScanner.Builder scanFreqMS(long interval) {
-      super.scanFreqMS(interval);
+      getObj().setInterval(interval);
       return this;
     }
 

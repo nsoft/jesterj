@@ -103,5 +103,13 @@ public class DocumentFieldMatchCounter implements DocumentProcessor {
     public DocCounted(Document document) {
       this.document = document;
     }
+
+    @Override
+    public String toString() {
+      return "DocCounted{" +
+          "document=" + document +
+          ", timesSeen=" + timesSeen +
+          '}';
+    }
   }
 }

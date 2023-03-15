@@ -150,6 +150,7 @@ public class CassandraSupport {
 
   public static class NonClosableSession implements CqlSession {
 
+    private final Session sessionRef = SessionHolder.INSTANCE;
 
     @Override
     public CompletionStage<Void> closeAsync() {
@@ -187,8 +188,6 @@ public class CassandraSupport {
       Thread.dumpStack();
       sessionRef.close();
     }
-
-    private final Session sessionRef = SessionHolder.INSTANCE;
 
     @NonNull
     @Override

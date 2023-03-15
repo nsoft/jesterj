@@ -449,7 +449,7 @@ public class ScannerImplTest {
     expect(lstatMock2.getStatus()).andReturn(ERROR.toString()).anyTimes();
     expect(lstatMock.getTimestamp()).andReturn("whenever");
     expect(lstatMock2.getTimestamp()).andReturn("slightly later");
-    scanner.docFound(docMock);
+    expect(scanner.docFound(docMock)).andReturn(true);
 
     replay();
     scanner.process(true, sentAlready, toProcess, FTI_ORIGIN);

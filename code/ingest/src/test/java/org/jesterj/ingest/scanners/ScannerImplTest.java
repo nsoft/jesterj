@@ -96,6 +96,13 @@ public class ScannerImplTest {
     return (DocumentCounter) processor;
   }
 
+  public static DocumentFieldMatchCounter findFieldMatchCounter(Plan plan, String name) {
+    Step counterStep = plan.findStep(name);
+    StepImpl csImpl = (StepImpl) counterStep;
+    DocumentProcessor processor = csImpl.getProcessor();
+    return (DocumentFieldMatchCounter) processor;
+  }
+
   public static File getUniqueTempDir() {
 
     Path base;
