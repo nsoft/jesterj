@@ -280,7 +280,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
     Map<String, List<String>> filesMultipleIndexedStatus = filesWithoutMoreThanNofStat(docStatusSummaryCassandra, Status.INDEXED, 1);
 
     String message = String.format("" +
-            "\nSC_OJI:%s" +
+            "\nC_OJI:%s" +
             "\nC_CJI:%s" +
             "\nC_TJI:%s" +
             "\nC_OFI:%s" +
@@ -300,7 +300,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
         filesWithoutIndexedStatus, filesMultipleIndexedStatus
     );
 
-    assertEquals("Should only have one indexed status event per document!" + message, 0,filesMultipleIndexedStatus.values().stream().mapToInt(List::size).sum());
+    assertEquals("Should only have one indexed or dropped status event per document!" + message, 0,filesMultipleIndexedStatus.values().stream().mapToInt(List::size).sum());
     assertEquals("Should have at least one indexed status event per file!" + message, 0,filesWithoutIndexedStatus.values().stream().mapToInt(List::size).sum());
 
     assertEquals("Incorrect Java Others!" + message, 34, others);

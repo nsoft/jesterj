@@ -55,7 +55,7 @@ public class JesterJAppender extends AbstractAppender {
 
   public static final int FTI_TTL = 60 * 60 * 24 * 90;
   public static final List<ContextNames> PER_EVENT_CONTEXT =
-      List.of(JJ_SCANNER_NAME, JJ_OUTPUT_STEP_CHANGES, JJ_STATUS_CHANGES) ;
+      List.of(JJ_SCANNER_NAME, JJ_OUTPUT_STEP_CHANGES, JJ_STATUS_CHANGES);
 
   private static final String INSERT_REG =
       "INSERT INTO jj_logging.regular " +
@@ -229,10 +229,10 @@ public class JesterJAppender extends AbstractAppender {
       String messages = e.getMessage().getFormattedMessage();
       String[] changeMessages = MESSAGE_DELIMITER.split(messages);
       String planName = contextData.get(Step.JJ_PLAN_NAME);
-      String scannerName= contextData.get(String.valueOf(JJ_SCANNER_NAME));
+      String scannerName = contextData.get(String.valueOf(JJ_SCANNER_NAME));
 
       int numberOfChanges = changedSteps.length;
-      if (changedStatuses.length != numberOfChanges || changeMessages.length != numberOfChanges ) {
+      if (changedStatuses.length != numberOfChanges || changeMessages.length != numberOfChanges) {
         throw new IllegalStateException("Cannot process document status update when the number of statuses, changes, " +
             "messages and arg lists does ot match. This is always a bug in JesterJ");
       }
@@ -251,7 +251,7 @@ public class JesterJAppender extends AbstractAppender {
         Plan plan = Main.locatePlan(planName).orElseThrow(); // will be caught by logging infra
         Scanner step = (Scanner) plan.findStep(scannerName);
         String keySpace = step.keySpace(changedStep);
-        String sq = String.format(INSERT_FTI,keySpace);
+        String sq = String.format(INSERT_FTI, keySpace);
         PreparedStatement update = cassandra.getPreparedQuery(FTI_INSERT_U + "_" + keySpace, sq);
         List<Object> params = new ArrayList<>(16);
 
@@ -280,11 +280,16 @@ public class JesterJAppender extends AbstractAppender {
         // and will not guarantee anything about order across JVMs or in JVMs with crappy time resolution
         // Windows time issues in particular (if we can restore support for it) would likely render this value
         // useless. Until someone thinks of something better, we will consider that 'acceptable' risk.
-        params.add((int)(System.nanoTime() % 1_000_000));
+        params.add((int) (System.nanoTime() % 1_000_000));
 
         // TTL: This event may disappear from cassandra after this number of milliseconds, 90 days by default
         params.add(FTI_TTL); // TODO: configurable TTL
 
+        // leave commented for debugging
+//        String stack = Arrays.stream(Thread.currentThread().getStackTrace())
+//            .map(StackTraceElement::toString)
+//            .collect(Collectors.joining("\n"));
+//        System.err.println("WRITE_EVENT:" + Instant.now() + "("+statuses+") thread: " + Thread.currentThread().getName() + " Params:" + params + "\n" +stack);
         try {
           s.execute(update.bind(params.toArray()));
         } catch (NoNodeAvailableException ex) {

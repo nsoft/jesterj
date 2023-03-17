@@ -476,6 +476,7 @@ public class StepImpl implements Step {
         }
         // we have a single step, we are the right type of step, and this is the expected step. Our work is done here!
         markIndexed((DocumentImpl) document);
+        document.reportDocStatus();
       } else {
         // this is the case for non-terminal steps that have outputs.
         // todo: plan configuration option to allow the idempotent steps to be repeated if desired.
@@ -484,8 +485,10 @@ public class StepImpl implements Step {
         }
         document.reportDocStatus();
         pushToNext(next);
+        // very important not to place code after pushToNext since that allows more than one step
+        // to be working on a document at the same time. Particularly, don't try to factor the report
+        // status down out of the if/else, since that causes a duplicate write about 0.034% of the time.
       }
-      document.reportDocStatus();
       log.trace("completing push to next if ok {} for {}", getName(), document.getId());
     } catch (
         Exception e) {
