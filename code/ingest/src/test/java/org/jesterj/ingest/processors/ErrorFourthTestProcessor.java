@@ -27,12 +27,14 @@ public class ErrorFourthTestProcessor implements DocumentProcessor {
 
   @Override
   public Document[] processDocument(Document document) {
-    int count = this.count.incrementAndGet();
-    if (count % 5 == 4 && shouldError) {
-      if (lastErrorId != null) {
-        lastErrorId[0] = document.getId();
+    if (shouldError) {
+      int count = this.count.incrementAndGet();
+      if (count % 5 == 4 ) {
+        if (lastErrorId != null) {
+          lastErrorId[0] = document.getId();
+        }
+        throw new RuntimeException("document #" + this.count.get() + " Intentional error by " + getName() + " for " + document.getId());
       }
-      throw new RuntimeException("Intentional error by " + getName() + " for " + document.getId());
     }
     log.info(getName() + " saw " + document.getId());
     return new Document[]{document};

@@ -193,7 +193,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
             //
             // There are 44 documents total, 3 of 17 comedies from 2 scanners should error out, for a total
             // of 7 errors on the 4th, 9th, 14th, 19th, 24th, 29th, 34th documents first pass and the second
-            // pass will feed the 7 errors taking the count to 51 and erroring the 49th document. Finally a third
+            // pass will feed the 7 errors taking the count to 51 and erroring the 49th document. Finally, a third
             // pass will feed one error doc and as the 52nd document to arrive at the ErrorForthTestProcessor it will
             // safely pass, and be indexed.
             // so these 3 cases are events per document:
@@ -241,8 +241,9 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
       Thread.sleep(100);
       System.out.println("sleeping in finally");
       System.out.flush();
-      //dumpTables(support);
-      //Thread.sleep(5000000);
+//      // keep these for debugging on crave.io
+//      dumpTables(support);
+//      Thread.sleep(5000000);
       Cassandra.stop();
     }
 
