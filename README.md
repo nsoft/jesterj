@@ -5,15 +5,15 @@ A highly flexible, scalable document ingestion system designed for search.
 [![License](https://img.shields.io/badge/license-Apache%202.0-B70E23.svg?style=plastic)](http://www.opensource.org/licenses/Apache-2.0)
 [![Build Status](https://github.com/nsoft/jesterj/actions/workflows/gradle.yml/badge.svg)](https://github.com/nsoft/jesterj/actions)
 
-Builds are run on infrastructure kindly donated by [Crave.io](https://crave.io/)
+Builds are run on infrastructure kindly donated by [<img style=" position:relative;top:8px" src="https://crave.io/wp-content/uploads/2022/09/Crave_logo_black_bg-e1663023213710.png" alt="" width="100px" height="26px">](https://crave.io/)
 
 
 ## The problem
 Frequently, search projects start by feeding a few documents manually to a search engine, often via the "just for testing" built in processing features of Solr such as [SolrCell](https://solr.apache.org/guide/6_6/uploading-data-with-solr-cell-using-apache-tika.html) or [post.jar](https://solr.apache.org/guide/6_6/post-tool.html#simpleposttool).
 These features are documented and included in order to help the user get a feel for what they can do with Solr with a minimum of painful setup.
-That's how it should be for first explorations. 
+That's how it should be for first explorations.
 
-All too often, users who don't know any better, and are perhaps mislead by the fact that these interfaces are documented in the reference manual (and assume anything documented must be "the right way" to do it) continue developing their search system by automating the use of those same interfaces. 
+All too often, users who don't know any better, and are perhaps mislead by the fact that these interfaces are documented in the reference manual (and assume anything documented must be "the right way" to do it) continue developing their search system by automating the use of those same interfaces.
 In fairness to those users, some older versions of the Solr Ref guide failed to identify the "just for testing" nature of the interface, sometimes because it took a while for the community to realize the pitfalls associated with it.
 
 Unfortunately, large scale ingestion of documents for search is non-trivial and those indexing interfaces not meant for production use.
