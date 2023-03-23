@@ -48,9 +48,10 @@ public class DocStatusChange implements Serializable {
 
   @Override
   public String toString() {
-    return "DocDestinationStatus{" +
+    return "DocStatusChange{" +
         "status=" + status +
         ", message='" + message + '\'' +
+        ", specificSteps=" + specificSteps +
         ", messageArgs=" + Arrays.toString(messageArgs) +
         '}';
   }

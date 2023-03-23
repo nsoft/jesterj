@@ -233,7 +233,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
             scanner = safeSubmit();
             last = System.nanoTime();
           } else {
-            log.trace("{}:Scan skipped, still scanning:{}; msSinceLast:{}",getName(),scanning, msSinceNanoTime(last) );
+            log.trace("{}:Scan skipped, still scanning:{}; msSinceLast:{}", getName(), scanning, msSinceNanoTime(last));
           }
           //noinspection BusyWait
           Thread.sleep(25);
@@ -260,20 +260,20 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     Instant now = Instant.now();
     long start = System.nanoTime();
     try {
-      log.trace("Submitting scan for {} (Scan interval = {} ms)", getName(),getInterval());
+      log.trace("Submitting scan for {} (Scan interval = {} ms)", getName(), getInterval());
       scanner = exec.submit(getScanOperation());
     } catch (Exception e) {
       log.error("Scan operation for {} failed.", getName());
       log.error(e);
       e.printStackTrace();
     } finally {
-      log.trace("Scan Submitted for {} (Scan interval = {} ms), started at {}, elapsed:{}", getName(),getInterval(),now, msSinceNanoTime(start));
+      log.trace("Scan Submitted for {} (Scan interval = {} ms), started at {}, elapsed:{}", getName(), getInterval(), now, msSinceNanoTime(start));
     }
     return scanner;
   }
 
   private static long msSinceNanoTime(long start) {
-    return System.nanoTime() - start  / 1_000_000;
+    return System.nanoTime() - start / 1_000_000;
   }
 
   boolean longerAgoThanInterval(long last) {
@@ -296,10 +296,10 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
    * @param doc The document to be processed
    */
   public boolean docFound(Document doc) {
-    ((DocumentImpl)doc).stepStarted(this);
+    ((DocumentImpl) doc).stepStarted(this);
     String scannerName = getName();
     log.trace("{} found doc: {}", scannerName, doc.getId());
-    doc.setStatus(PROCESSING,"{} found doc:{}",scannerName,doc.getId());
+    doc.setStatus(PROCESSING, "{} found doc:{}", scannerName, doc.getId());
     String id = doc.getId();
     Function<String, String> idFunction = getIdFunction();
     String result = idFunction.apply(id);
@@ -345,7 +345,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       if (!isRemembering() || !doc.alreadyHasIncompleteStepList()) {
         // This was a document found by the scanner during a scan and either we are not hashing, not remembering
         // or a new hash (i.e. new content) was found, so ALL downstream steps should be eligible
-        ((DocumentImpl)doc).initDestinations(getOutputDestinationNames(), getName());
+        ((DocumentImpl) doc).initDestinations(getOutputDestinationNames(), getName());
       }
       sendToNext(doc);
     } else {
@@ -615,7 +615,8 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         log.trace("Found Errored document:{}", id);
         String findErrorHistory = String.format(FIND_HIST, keySpace(outputStepName));
         PreparedStatement pq2 = cassandra.getPreparedQuery(FIND_HISTORY + "_" + keySpace(outputStepName), findErrorHistory);
-        ResultSet hist = cassandra.getSession().execute(pq2.bind(id, retryErrors));
+        // Need to allow for a PROCESSING event between each error
+        ResultSet hist = cassandra.getSession().execute(pq2.bind(id, 2 * retryErrors - 1));
 
         // In most cases the first row is an error because that's how we got a row in the previous
         // query that has partition limit = 1, but concurrency could bite us, so we double-check...
@@ -624,18 +625,22 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         boolean errorMostRecent = true;
         boolean alreadyDropped = false;
         Instant mostRecent = null;
+
+        // This becomes the vehicle for marking a document dead if necessary (without actually loading it from disk/db/whatever)
         DocumentImpl tempDoc = new DocumentImpl(new byte[]{}, id, this.getPlan(), Document.Operation.UPDATE, this, FTI_ORIGIN);
 
+        int loop = 0;
         for (Row row : hist) {
           String status = row.getString(1);
           if (mostRecent == null) {
             mostRecent = row.getInstant(2);
           }
-          log.trace("Observing status of {} for {}", status, id);
+          log.trace("Observing status of {} for {} on row {}", status, id, ++loop);
           switch (Status.valueOf(status)) {
             case ERROR:
               errorCount++;
               break;
+            case PROCESSING: if (!firstRow) break;
             case DROPPED:
               if (firstRow) {
                 alreadyDropped = true;
@@ -652,14 +657,17 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
             break;
           }
         }
+        log.trace("ERROR COUNT {} of {} for {}", errorCount, retryErrors, id);
         if (errorMostRecent && errorCount < retryErrors) {
           log.info("Re-feeding errored document {}", id);
           LatestStatus latestStatus = new LatestStatus(ERROR.toString(), String.valueOf(mostRecent), outputStepName);
           forceReprocess.computeIfAbsent(id, (k) -> new ArrayList<>()).add(latestStatus);
         } else {
           if (!alreadyDropped && errorCount >= retryErrors) {
-            log.warn("Dropping document {} due to too many error retries ({})", id, errorCount);
+            log.warn("Marking document dead id={} due to too many error retries ({})", id, errorCount);
+            tempDoc.initDestinations(Set.of(outputStepName),getName());
             tempDoc.setStatus(DEAD, "Retry limit of {} exceeded", retryErrors);
+            tempDoc.stepStarted(this);
             deadDocs.add(tempDoc);
           } else {
             log.trace("Ignoring {} because errorMostRecent = {} and errorCount = {}", id, errorMostRecent, errorCount);
@@ -668,11 +676,13 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       }
     }
 
+    for (DocumentImpl d : deadDocs) {
+      log.trace("REPORTING DEAD STATUS {}", d.getId());
+      d.reportDocStatus();
+    }
+
     for (Map.Entry<String, List<LatestStatus>> toReproc : forceReprocess.entrySet()) {
       process(true, null, toReproc, FTI_ORIGIN);
-    }
-    for (DocumentImpl d : deadDocs) {
-      d.reportDocStatus();
     }
   }
 

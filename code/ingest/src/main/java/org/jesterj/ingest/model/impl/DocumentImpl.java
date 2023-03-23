@@ -451,7 +451,6 @@ public class DocumentImpl implements Document {
       DocumentImpl.this.statusChange = null;
     }
 
-    @SuppressWarnings("UnnecessaryLocalVariable")
     @Override
     public List<DocDestinationStatus> getChangedDestinations(DocStatusChange statusChange) {
       Collection<DocDestinationStatus> values = incompleteOutputDestinations.values();
@@ -467,6 +466,7 @@ public class DocumentImpl implements Document {
               statusChange.getMessage(),
               (Serializable[]) statusChange.getMessageParams()))
           .collect(Collectors.toList());
+      log.trace("Changing destinations:{} from {}",destinationChanges, values);
       return destinationChanges;
     }
 
