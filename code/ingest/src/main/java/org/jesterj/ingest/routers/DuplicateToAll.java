@@ -43,9 +43,7 @@ public class DuplicateToAll extends RouterBase {
 
   @Override
   public NextSteps route(Document doc) {
-    NextSteps nextSteps = createNextSteps(doc);
-    updateExcludedDestinations(doc, nextSteps.list().toArray(new Step[0]));
-    return nextSteps;
+    return createNextSteps(doc);
   }
 
   @NotNull

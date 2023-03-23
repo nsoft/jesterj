@@ -129,8 +129,8 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
           "PRIMARY KEY (docId, created,createdNanos,outputStepName,antiCollision)) " +
           "WITH CLUSTERING ORDER BY (created DESC, createdNanos DESC);";
 
-  public static final String CREATE_INDEX_STATUS = "CREATE INDEX IF NOT EXISTS jj_ft_idx_step_status ON %s.jj_output_step_status (status);";
-
+  public static final String CREATE_INDEX_STATUS =
+      "CREATE INDEX IF NOT EXISTS jj_ft_idx_step_status ON %s.jj_output_step_status (status);";
 
   public static final String CREATE_DOC_HASH =
       "CREATE TABLE IF NOT EXISTS %s.jj_scanner_doc_hash (" +

@@ -10,9 +10,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import static com.copyright.easiertest.EasierMocks.replay;
 import static com.copyright.easiertest.EasierMocks.reset;
 import static com.copyright.easiertest.EasierMocks.verify;
@@ -46,12 +43,7 @@ public class DuplicateToAllTest {
 
   @Test
   public void testRoute() {
-    List<Step> stepList = new ArrayList<>();
-    stepList.add(stepMock1);
-    stepList.add(stepMock2);
     expect(router.createNextSteps(docMock)).andReturn(nextStepsMock);
-    expect(nextStepsMock.list()).andReturn(stepList);
-    router.updateExcludedDestinations(eq(docMock),isA(Step.class),isA(Step.class));
 
     replay();
     NextSteps steps = router.route(docMock);
