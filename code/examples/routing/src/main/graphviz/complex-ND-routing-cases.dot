@@ -1,0 +1,59 @@
+digraph G {
+
+    S1 [label = "S1 \n(Simple Case)" color = "blue" fontcolor = blue]
+    NDR1 [label = "NDR1\n(RoundRobinRouter)" style = "filled" fillcolor = "#aaaaff" shape="hexagon"]
+    L1 [label="L1" color = red fontcolor = red]
+    R1 [label="R1" color = red fontcolor = red]
+
+    S2 [label = "S2\n(Diamond BEFORE Case)" color = "blue" fontcolor = blue]
+    DAR2[label="DAR2\n(DistributeToAllRouter)" style="filled" fillcolor="#aaFFaa"]
+    DL2
+    DR2
+    NDR2 [label = "NDR2\n(RoundRobinRouter)" style = "filled" fillcolor = "#aaaaff" shape="hexagon"]
+    L2 [label="L2" color = red fontcolor = red]
+    R2 [label="R2" color = red fontcolor = red]
+
+    S3 [label = "S3\n(Diamond AFTER Case)" color = "blue" fontcolor = blue]
+    DAR3[label="DAR3\n(DistributeToAllRouter)" style="filled" fillcolor="#aaFFaa"]
+    DL3
+    DR3
+    NDR3 [label = "NDR3\n(RoundRobinRouter)" style = "filled" fillcolor = "#aaaaff" shape="hexagon"]
+    L3 [label="L3" color = red fontcolor = red]
+    R3 [label="R3" color = red fontcolor = red]
+
+    S4 [label = "S4\n(Diamond Non-Divergent Case)" color = "blue" fontcolor = blue]
+    DL4
+    DR4
+    NDR4 [label = "NDR4\n(RoundRobinRouter)" style = "filled" fillcolor = "#aaaaff" shape="hexagon"]
+    D4 [label="D4" color = red fontcolor = red]
+
+
+    S1 -> NDR1
+    NDR1 -> L1
+    NDR1 -> R1
+
+    S2 -> DAR2
+    DAR2->DL2
+    DAR2->DR2
+    DL2 ->NDR2
+    DR2 -> NDR2
+    NDR2 -> L2
+    NDR2 -> R2
+
+    S3 -> NDR3
+    DAR3->DL3
+    DAR3->DR3
+    DL3 ->R3
+    DR3 -> R3
+    NDR3 -> L3
+    NDR3 -> DAR3
+
+    S4 -> NDR4
+    NDR4->DL4
+    NDR4->DR4
+    DL4 ->D4
+    DR4 -> D4
+
+    key[shape=none label="Key\l-----------------------------------------------------------  \lBlue text/border = Scanner \lRed text/border = Potent step\l Elipse = Fully distributive router\lHexagon = Partially distributive router\lGreen fill = Deterministic router\l Blue fill = Nondeterministic router\lWhite fill = No router\l" ]
+
+}
