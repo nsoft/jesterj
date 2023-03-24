@@ -46,9 +46,9 @@ Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki
 
 # Project Status
 
-**Current release**: 1.0-beta2. (Very Stale, not reccomended)
+**Current release**: 1.0-beta2. (Very stale, very buggy, not reccomended)
 
-**Reccomended:** Build from `master` branch
+**Reccomended:** Build from `master` branch (Only waiting on documentation for release)
 
  - `cd /code/ingest; ./gradlew packageUnoJar`
  - use /code/ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar
