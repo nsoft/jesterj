@@ -117,22 +117,25 @@ public class SendToSolrCloudProcessorTest {
     Capture<List<String>> delCap = newCapture();
     expect(solrClientMock.add(capture(addCap))).andReturn(updateResponseMock);
     expect(solrClientMock.deleteById(capture(delCap))).andReturn(deleteResponseMock);
-    expectRunContexts();
+
+    for (Document document : biMap.keySet()) {
+      document.setStatus(Status.INDEXING, "Indexing started for a batch of 3 documents");
+      document.reportDocStatus();
+    }
+
+    docMock.setStatus(Status.INDEXED, "{} sent to solr successfully", "41");
+    docMock.reportDocStatus();
+    docMock2.setStatus(Status.INDEXED, "{} deleted from solr successfully", "42");
+    docMock2.reportDocStatus();
+    docMock3.setStatus(Status.INDEXED, "{} sent to solr successfully", "43");
+    docMock3.reportDocStatus();
+
     replay();
     proc.batchOperation(biMap);
     assertEquals("42", delCap.getValue().get(0));
     assertTrue(addCap.getValue().contains(inputDocMock));
     assertFalse(addCap.getValue().contains(inputDocMock2));
     assertTrue(addCap.getValue().contains(inputDocMock3));
-  }
-
-  private void expectRunContexts() {
-    expect(proc.createDocContext(docMock)).andReturn(docContextMock);
-    docContextMock.run(isA(Runnable.class));
-    expect(proc.createDocContext(docMock2)).andReturn(docContextMock);
-    docContextMock.run(isA(Runnable.class));
-    expect(proc.createDocContext(docMock3)).andReturn(docContextMock);
-    docContextMock.run(isA(Runnable.class));
   }
 
   @Test
@@ -150,7 +153,18 @@ public class SendToSolrCloudProcessorTest {
     expect(solrClientMock.request(capture(addCap), eq(null))).andReturn(namedListMock);
     expect(solrClientMock.deleteById(capture(delCap))).andReturn(deleteResponseMock);
 
-    expectRunContexts();
+    for (Document document : biMap.keySet()) {
+      document.setStatus(Status.INDEXING, "Indexing started for a batch of 3 documents");
+      document.reportDocStatus();
+    }
+
+    docMock.setStatus(Status.INDEXED, "{} sent to solr successfully", "41");
+    docMock.reportDocStatus();
+    docMock2.setStatus(Status.INDEXED, "{} deleted from solr successfully", "42");
+    docMock2.reportDocStatus();
+    docMock3.setStatus(Status.INDEXED, "{} sent to solr successfully", "43");
+    docMock3.reportDocStatus();
+
     replay();
     proc.batchOperation(biMap);
 

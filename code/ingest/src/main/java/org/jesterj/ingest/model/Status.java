@@ -106,6 +106,19 @@ public enum Status implements Serializable {
   },
 
   /**
+   * The document is in the process of indexing. If the system fails at this point it is unknown whether
+   * the document was received at the destination, so for "no more than once" delivery documents stranded in this
+   * status will NOT be re-sent on startup. If "at least once delivery" is desired, these documents should be
+   * re-sent on startup.
+   */
+  INDEXING {
+    @Override
+    public boolean isStepSpecific() {
+      return true;
+    }
+  },
+
+  /**
    * The document has been accepted by the destination (usually a search index), but may not be searchable until
    * the next commit.
    */

@@ -29,10 +29,7 @@ import org.jesterj.ingest.model.Status;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> implements DocumentProcessor {
@@ -74,9 +71,13 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
         try {
           SolrInputDocument doc = oldBatch.get(document);
           if (doc instanceof Delete) {
+            document.setStatus(Status.INDEXING,"{} is being deleted from solr", document.getId());
+            document.reportDocStatus();
             getSolrClient().deleteById(oldBatch.inverse().get(doc).getId());
             document.setStatus(Status.INDEXED,"{} deleted from solr successfully", document.getId());
           } else {
+            document.setStatus(Status.INDEXING,"{} is being sent to solr", document.getId());
+            document.reportDocStatus();
             getSolrClient().add(doc);
             document.setStatus(Status.INDEXED,"{} sent to solr successfully", document.getId());
           }
@@ -91,13 +92,15 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
 
   @Override
   protected void batchOperation(ConcurrentBiMap<Document, SolrInputDocument> oldBatch) throws SolrServerException, IOException {
-    List<SolrInputDocument> adds = oldBatch.keySet().stream()
-        .filter(doc -> doc.getOperation() != Document.Operation.DELETE)
+    List<Document> documentsToAdd = oldBatch.keySet().stream()
+        .filter(doc -> doc.getOperation() != Document.Operation.DELETE).collect(Collectors.toList());
+    List<SolrInputDocument> adds = documentsToAdd.stream()
         .map(oldBatch::get)
         .collect(Collectors.toList());
     if (adds.size() > 0) {
       Map<String, String> params = getParams();
       if (params == null) {
+        markIndexing(documentsToAdd, oldBatch.size()); // not factoring out to minimize delay before request to solr
         getSolrClient().add(adds);
       } else {
         UpdateRequest req = new UpdateRequest();
@@ -106,26 +109,33 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
         for (String s : params.keySet()) {
           req.setParam(s, params.get(s));
         }
+        markIndexing(documentsToAdd, oldBatch.size());
         getSolrClient().request(req);
       }
     }
-    List<String> deletes = oldBatch.keySet().stream()
+    List<Document> documentsToDelete = oldBatch.keySet().stream()
         .filter(doc -> doc.getOperation() == Document.Operation.DELETE)
-        .map(Document::getId)
         .collect(Collectors.toList());
-    if (deletes.size() > 0) {
-      getSolrClient().deleteById(deletes);
+    if (documentsToDelete.size() > 0) {
+      markIndexing(documentsToDelete, oldBatch.size());
+      getSolrClient().deleteById(documentsToDelete.stream().map(Document::getId)
+          .collect(Collectors.toList()));
     }
     for (Document document : oldBatch.keySet()) {
-      createDocContext(document).run(() -> {
-        // Note this runnable is being executed immediately in THIS thread.
-        if (document.getOperation() == Document.Operation.DELETE) {
-          document.setStatus(Status.INDEXED, "{} deleted from solr successfully", document.getId());
-        } else {
-          document.setStatus(Status.INDEXED, "{} sent to solr successfully", document.getId());
-        }
-        document.reportDocStatus();
-      });
+      // Note this runnable is being executed immediately in THIS thread.
+      if (document.getOperation() == Document.Operation.DELETE) {
+        document.setStatus(Status.INDEXED, "{} deleted from solr successfully", document.getId());
+      } else {
+        document.setStatus(Status.INDEXED, "{} sent to solr successfully", document.getId());
+      }
+      document.reportDocStatus();
+    }
+  }
+
+  private static void markIndexing(Collection<Document> documents, int size) {
+    for (Document document : documents) {
+      document.setStatus(Status.INDEXING, "Indexing started for a batch of " + size + " documents");
+      document.reportDocStatus();
     }
   }
 
