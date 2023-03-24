@@ -26,6 +26,7 @@ import org.docopt.Docopt;
 import org.jesterj.ingest.forkjoin.JesterJForkJoinThreadFactory;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.persistence.Cassandra;
+import org.jesterj.ingest.persistence.JJCassandraDaemon;
 import org.jesterj.ingest.utils.JesterJLoader;
 import org.jetbrains.annotations.NotNull;
 
@@ -46,12 +47,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
-
-/*
- * Created with IntelliJ IDEA.
- * User: gus
- * Date: 7/5/14
- */
 
 /**
  * Start a running instance. Each instance should have an id and a password (freely chosen
@@ -107,6 +102,9 @@ public class Main {
 
               // Next check our args and die if they are FUBAR
               Map<String, Object> parsedArgs = usage(args);
+
+              String secret = (String) parsedArgs.get("<secret>");
+              JJCassandraDaemon.defaultPassword(secret);
 
               String id = (String) parsedArgs.get("<id>");
               String ourHome = JJ_DIR + "/" + id;

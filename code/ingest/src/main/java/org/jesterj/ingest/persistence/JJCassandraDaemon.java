@@ -1,5 +1,6 @@
 package org.jesterj.ingest.persistence;
 
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.service.ActiveRepairService;
 import org.apache.cassandra.service.CassandraDaemon;
@@ -16,14 +17,28 @@ import static org.apache.cassandra.config.CassandraRelevantProperties.CASSANDRA_
 
 /**
  * A customized version of the cassandra class that does not use a logger and does a better job of
- * shutting down so that we can start it more than once in our tests.
+ * shutting down so that we can start it more than once in our tests. Also uses our custom role
+ * manager so that we can set the password for cassandra before logging in.
  */
-class JJCassandraDaemon extends CassandraDaemon {
+public class JJCassandraDaemon extends CassandraDaemon {
   public static final String MBEAN_NAME = "org.jesterj.cassandra.db:type=NativeAccess";
+  private static String PW_DEFAULT = "cassandra";
   private final boolean runManaged = true;
 
   public JJCassandraDaemon() {
     super(true);
+  }
+
+  public static void defaultPassword(String newDefault) {
+    PW_DEFAULT = PW_DEFAULT.equals("cassandra") ?  newDefault : throwOnSubsequentChange();
+  }
+
+  private static String throwOnSubsequentChange() {
+    throw new IllegalStateException("Default password can only be changed once");
+  }
+
+  static String getPwDefault() {
+    return PW_DEFAULT;
   }
 
   private void exitOrFail(String message, Throwable cause) {
@@ -48,6 +63,7 @@ class JJCassandraDaemon extends CassandraDaemon {
     // Do not put any references to DatabaseDescriptor above the forceStaticInitialization call.
     try {
       applyConfig();
+      DatabaseDescriptor.setRoleManager(new JJCassandraRoleManager(PW_DEFAULT));
 
       registerNativeAccess();
 

@@ -138,7 +138,7 @@ public class CassandraSupport {
         instance = CqlSession.builder()
             .addContactPoint(Cassandra.getSocketAddress())
             .withLocalDatacenter("datacenter1")
-            .withAuthCredentials("cassandra", "cassandra")
+            .withAuthCredentials("cassandra", JJCassandraDaemon.getPwDefault())
             .build();
       } catch (Throwable e) {
         e.printStackTrace();
