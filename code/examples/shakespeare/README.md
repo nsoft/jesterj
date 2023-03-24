@@ -10,7 +10,8 @@ Start JesterJ
 1. Clone https://github.com/nsoft/jesterj.git
 1. In /jesterj/code/ingest run `./gradlew  publishToMavenLocal` (to publish 1.0-SNAPSHOT required by this example)
 1. In /jesterj/code/example/shakespeare run `./gradlew build`
-1. In /jesterj/code/example/shakespeare run `java -jar ../../ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar build/libs/example-shakespeare-1.0-SNAPSHOT.jar foo bar`
+2. Ensure JDK 11 `export JAVA_HOME=~/gus/tools/java/zulu11.50.19-ca-jdk11.0.12-linux_x64/` (or similar)
+3. In /jesterj/code/example/shakespeare run `$JAVA_HOME/bin/java -jar ../../ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar build/libs/example-shakespeare-1.0-SNAPSHOT.jar shakespeare mysecret`
 
 Your search engine(s) should have indexed shakespeare's plays within a minute or so.
 
