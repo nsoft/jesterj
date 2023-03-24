@@ -3,7 +3,7 @@ To see JesterJ in action, you can run this example. (Java 11 required)
 **PLEASE DO use this project to bootstrap your own!**
 
 Setup Solr
-1. Set up a local Solr Cloud node with zookeeper on 9983  (or edit ShakespeareConfig.java to match your ports)
+1. Set up a local Solr Cloud node with zookeeper on 9983  (or edit ShakespeareConfig.java to match your ports[^1])
 1. Create a collection named jjtest using the _default configset
 
 Start JesterJ
@@ -63,3 +63,9 @@ Should yield
 
 
 If you edit or add files the changes will be re-indexed automatically. Happy Searching!
+
+[^1]: Since I tend to build solr frequently I use solr's [https://github.com/apache/solr/blob/main/dev-tools/scripts/cloud.sh](cloud.sh) for testing I typically modify it to have these lines:
+    ````
+                .withZookeeper("localhost:2181")
+                .zkChroot("/solr__home_gus_projects_apache_solr_testing_2023-02-02")
+    ````                
