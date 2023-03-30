@@ -11,7 +11,8 @@ Builds are run on infrastructure kindly donated by [<img align="top" src="https:
 ## The problem
 Frequently, search projects start by feeding a few documents manually to a search engine, often via the "just for testing" built in processing features of Solr such as [SolrCell](https://solr.apache.org/guide/6_6/uploading-data-with-solr-cell-using-apache-tika.html) or [post.jar](https://solr.apache.org/guide/6_6/post-tool.html#simpleposttool).
 These features are documented and included in order to help the user get a feel for what they can do with Solr with a minimum of painful setup.
-That's how it should be for first explorations.
+
+This is good and that's how it should be for first explorations. **Unfortunately it's also a potential trap.**
 
 All too often, users who don't know any better, and are perhaps mislead by the fact that these interfaces are documented in the reference manual (and assume anything documented must be "the right way" to do it) continue developing their search system by automating the use of those same interfaces.
 In fairness to those users, some older versions of the Solr Ref guide failed to identify the "just for testing" nature of the interface, sometimes because it took a while for the community to realize the pitfalls associated with it.
@@ -107,7 +108,6 @@ In this release we have the following features
 
 
 ## TODO for 1.0 final release
- * Doc updates
  * [Remaining issues](https://github.com/nsoft/jesterj/issues?q=is%3Aopen+is%3Aissue+milestone%3A1.0)
  * Beta release, testing.
 
