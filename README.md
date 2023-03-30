@@ -1,6 +1,6 @@
 JesterJ
 =======
-A highly flexible, scalable document ingestion system designed for search.
+A highly flexible, scalable, fault-tolerant document ingestion system designed for search.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-B70E23.svg?style=plastic)](http://www.opensource.org/licenses/Apache-2.0)
 [![Build Status](https://github.com/nsoft/jesterj/actions/workflows/gradle.yml/badge.svg)](https://github.com/nsoft/jesterj/actions)
