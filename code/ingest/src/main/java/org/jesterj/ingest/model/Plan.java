@@ -18,7 +18,6 @@ package org.jesterj.ingest.model;
 
 import guru.nidi.graphviz.engine.Format;
 import guru.nidi.graphviz.engine.Renderer;
-import org.jesterj.ingest.config.Transient;
 
 public interface Plan extends Active, Configurable {
 
@@ -35,7 +34,6 @@ public interface Plan extends Active, Configurable {
    *
    * @return an Array of steps in the plan that will be executed
    */
-  @Transient
   Step[] getExecutableSteps();
 
   /**

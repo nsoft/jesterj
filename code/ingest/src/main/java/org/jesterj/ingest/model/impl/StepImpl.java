@@ -20,7 +20,6 @@ package org.jesterj.ingest.model.impl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
-import org.jesterj.ingest.config.Transient;
 import org.jesterj.ingest.model.*;
 import org.jesterj.ingest.processors.NoOpProcessor;
 import org.jesterj.ingest.routers.RouterBase;
@@ -301,7 +300,6 @@ public class StepImpl implements Step {
    *
    * @return true if processing should continue false if the worker thread is trying to stop.
    */
-  @Transient
   @Override
   public boolean isActive() {
     return this.active;

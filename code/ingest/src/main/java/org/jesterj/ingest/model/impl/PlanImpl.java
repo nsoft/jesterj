@@ -28,7 +28,6 @@ import guru.nidi.graphviz.model.Node;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jesterj.ingest.Main;
-import org.jesterj.ingest.config.Transient;
 import org.jesterj.ingest.model.Configurable;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.Scanner;
@@ -238,7 +237,6 @@ public class PlanImpl implements Plan {
 
   }
 
-  @Transient
   @Override
   public synchronized boolean isActive() {
     return active;

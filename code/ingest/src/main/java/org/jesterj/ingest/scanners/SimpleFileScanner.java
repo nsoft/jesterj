@@ -18,7 +18,6 @@ package org.jesterj.ingest.scanners;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jesterj.ingest.config.Transient;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.impl.DocumentImpl;
@@ -66,7 +65,6 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     heapMemoryUsage = memoryMXBean.getHeapMemoryUsage();
   }
 
-  @Transient
   @Override
   public ScanOp getScanOperation() {
     return new ScanOp(() -> {
