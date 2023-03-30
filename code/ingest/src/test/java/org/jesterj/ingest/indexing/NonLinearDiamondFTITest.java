@@ -1,4 +1,4 @@
-package org.jesterj.ingest.scanners;
+package org.jesterj.ingest.indexing;
 
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
@@ -15,6 +15,8 @@ import org.jesterj.ingest.persistence.CassandraSupport;
 import org.jesterj.ingest.processors.*;
 import org.jesterj.ingest.routers.DuplicateToAll;
 import org.jesterj.ingest.routers.RouteByStepName;
+import org.jesterj.ingest.scanners.ScannerImplTest;
+import org.jesterj.ingest.scanners.SimpleFileScanner;
 import org.junit.Test;
 
 import java.io.File;

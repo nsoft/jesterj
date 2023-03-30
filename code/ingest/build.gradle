@@ -181,6 +181,37 @@ test {
   }
 }
 
+tasks.register('quickTest', Test) {
+  maxHeapSize = "4g"
+  //maxParallelForks = 6
+  exclude '**/Abstract*.class', '**/BulkTest.class', 'org/jesterj/ingest/indexing/**'
+  forkEvery 1 // temp until we can get FTI tests moved into a separate target.
+  systemProperty "java.security.egd", "file:/dev/./urandom"
+  systemProperty "jj.log.dir", "build"
+  testLogging {
+    events "passed", "skipped", "failed"
+    exceptionFormat "full"
+  }
+
+  println jvmArgs
+  jvmArgs += [
+      '-Djesterj.build.start=' + String.valueOf(Instant.now().toEpochMilli()),
+      '--add-modules', 'ALL-MODULE-PATH',
+      '--add-opens', 'java.base/java.lang.module=ALL-UNNAMED',
+      '--add-opens', 'java.base/jdk.internal.loader=ALL-UNNAMED',
+      '--add-opens', 'java.base/jdk.internal.ref=ALL-UNNAMED',
+      '--add-opens', 'java.base/jdk.internal.reflect=ALL-UNNAMED',
+      '--add-opens', 'java.base/jdk.internal.math=ALL-UNNAMED',
+      '--add-opens', 'java.base/jdk.internal.module=ALL-UNNAMED',
+      '--add-opens', 'java.base/jdk.internal.util.jar=ALL-UNNAMED',
+      '--add-opens', 'jdk.management/com.sun.management.internal=ALL-UNNAMED'
+  ]
+  println jvmArgs
+}
+
+quickTest.group = 'verification'
+quickTest.description = 'Run all tests except the FTI tests and other full integration tests that have long delays'
+
 jacocoTestReport {
   reports {
     xml.enabled true

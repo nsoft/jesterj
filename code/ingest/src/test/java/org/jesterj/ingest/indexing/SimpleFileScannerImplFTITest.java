@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest.scanners;
+package org.jesterj.ingest.indexing;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,6 +26,8 @@ import org.jesterj.ingest.model.impl.StepImpl;
 import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.processors.ErrorFourthTestProcessor;
 import org.jesterj.ingest.processors.PauseEveryFiveTestProcessor;
+import org.jesterj.ingest.scanners.ScannerImplTest;
+import org.jesterj.ingest.scanners.SimpleFileScanner;
 import org.junit.Before;
 import org.junit.Test;
 

@@ -75,11 +75,11 @@ public class ScannerImplTest {
     }
   }
 
-  static int getDocCount(Plan plan, String stepName) {
+  protected static int getDocCount(Plan plan, String stepName) {
    return ScannerImplTest.getScannedDocs(plan, stepName).size();
  }
 
-  static Map<String, DocumentCounter.DocCounted> getScannedDocs(Plan plan, String stepName) {
+  protected static Map<String, DocumentCounter.DocCounted> getScannedDocs(Plan plan, String stepName) {
     DocumentCounter counter = findCounter(plan, stepName);
     return counter.getScannedDocs();
  }

@@ -1,4 +1,4 @@
-package org.jesterj.ingest.scanners;
+package org.jesterj.ingest.indexing;
 
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
@@ -13,6 +13,8 @@ import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.persistence.CassandraSupport;
 import org.jesterj.ingest.processors.DocumentCounter;
 import org.jesterj.ingest.processors.ErrorPatternTestProcessor;
+import org.jesterj.ingest.scanners.ScannerImplTest;
+import org.jesterj.ingest.scanners.SimpleFileScanner;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 

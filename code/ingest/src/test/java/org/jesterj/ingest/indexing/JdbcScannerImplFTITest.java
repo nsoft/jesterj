@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.jesterj.ingest.scanners;
+package org.jesterj.ingest.indexing;
 
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Plan;
@@ -25,6 +25,8 @@ import org.jesterj.ingest.persistence.Cassandra;
 import org.jesterj.ingest.persistence.CassandraSupport;
 import org.jesterj.ingest.processors.ErrorFourthTestProcessor;
 import org.jesterj.ingest.processors.PauseEveryFiveTestProcessor;
+import org.jesterj.ingest.scanners.JdbcScanner;
+import org.jesterj.ingest.scanners.ScannerImplTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
