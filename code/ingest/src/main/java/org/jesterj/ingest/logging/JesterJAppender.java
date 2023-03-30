@@ -107,8 +107,6 @@ public class JesterJAppender extends AbstractAppender {
     JesterJAppender.manager = manager;
   }
 
-
-
   @PluginFactory
   public static JesterJAppender createAppender(@PluginAttribute("name") String name,
                                                @PluginAttribute("ignoreExceptions") boolean ignoreExceptions,
@@ -239,6 +237,14 @@ public class JesterJAppender extends AbstractAppender {
 
       if (Arrays.stream(changedSteps).anyMatch(StringUtils::isBlank)) {
         throw new IllegalStateException("Blank Step name detected! Info --> " +
+            "\n\toutputStepNames:" + outputStepNames +
+            "\n\tstatuses:" + statuses +
+            "\n\tmessages:" + messages +
+            "\n\tplanName:" + planName +
+            "");
+      }
+      if (planName == null) {
+        throw new IllegalStateException("Null Plan name name detected! Info --> " +
             "\n\toutputStepNames:" + outputStepNames +
             "\n\tstatuses:" + statuses +
             "\n\tmessages:" + messages +

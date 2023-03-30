@@ -229,6 +229,8 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         try {
           boolean timeForNextScan = longerAgoThanInterval(last);
           boolean scanning = isScanning();
+          long now = System.nanoTime();
+          log.trace("scanning:{} timeForNext:{} now:{}  - (last:{} + nanoInt:{}) = {}",scanning,timeForNextScan, now, last, nanoInterval, now - (last + nanoInterval));
           if (!scanning && timeForNextScan) {
             scanner = safeSubmit();
             last = System.nanoTime();
@@ -548,7 +550,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
 
   LatestStatus findLatestSatus(String priorQuery, String docId, String outputStepName, Map<String, LatestStatus> cache) {
     if (cache.containsKey(docId + outputStepName)) {
-      return cache.get(docId);
+      return cache.get(docId + outputStepName);
     }
     String histQuery = String.format(FIND_HIST, keySpace(outputStepName));
     PreparedStatement phq = getCassandra().getPreparedQuery(FIND_HISTORY + "_" + keySpace(outputStepName), histQuery);
@@ -590,7 +592,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   }
 
   void processErrors(FTIQueryContext scanContext) {
-    log.info("Processing Errors");
+    log.info("Checking for Errored docs");
     Set<DocumentImpl> deadDocs = new HashSet<>();
     Map<String, List<LatestStatus>> forceReprocess = new HashMap<>();
     for (String outputStepName : getOutputDestinationNames()) {
@@ -675,7 +677,11 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         }
       }
     }
-
+    if (forceReprocess.size() > 0 ||  deadDocs.size() > 0) {
+      log.info("Found Errored docs. Reprocess:{} Mark Dead:{}",forceReprocess.size(), deadDocs.size());
+    } else {
+      log.info("No errored documents found.");
+    }
     for (DocumentImpl d : deadDocs) {
       log.trace("REPORTING DEAD STATUS {}", d.getId());
       d.reportDocStatus();

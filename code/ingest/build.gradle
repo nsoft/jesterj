@@ -27,7 +27,7 @@ buildscript {
 }
 
 plugins {
-  id 'java'
+  id 'java-library'
   id 'idea'
   id 'jacoco'
   id 'signing'
@@ -38,46 +38,8 @@ plugins {
   id 'com.needhamsoftware.unojar' version '1.1.0'
 }
 
-allprojects {
-  apply plugin: "com.jfrog.artifactory"
-}
 
-artifactory {
-  contextUrl = "https://jesterj.jfrog.io/jesterj"   //The base Artifactory URL if not overridden by the publisher/resolver
-  publish {
-    repository {
-      repoKey = 'libs-snapshot-local'
-      /*
 
-        System env var is for Travis CI, add these to gradle.properties for local builds
-
-        jj_artifactory_user=anonymous
-        jj_artifactory_password=
-
-        Note that anonymous user will not be able to test out new versions of libraries. Use mavenLocal() for that.
-
-       */
-      username = project.hasProperty("jj_artifactory_user") ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
-      password = project.hasProperty("jj_artifactory_password") ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
-      maven = true
-
-    }
-    defaults {
-      publications('mavenJava')
-      publishArtifacts = true
-      publishPom = true
-    }
-  }
-  resolve {
-    repository {
-      repoKey = 'libs-release'
-      username = project.hasProperty("jj_artifactory_user") ? project.getProperty("jj_artifactory_user") : System.env.ARTIFACTORY_USER
-      password = project.hasProperty("jj_artifactory_password") ? project.getProperty("jj_artifactory_password") : System.env.ARTIFACTORY_PASSWORD
-      maven = true
-
-    }
-  }
-}
 
 idea {
   module {
@@ -88,18 +50,7 @@ idea {
 
 repositories {
   mavenLocal()
-  maven {
-    url 'https://clojars.org/repo'
-  }
-  maven {
-//    credentials {
-//      username = propOrDefault("jj_artifactory_user", System.env.ARTIFACTORY_USER)
-//      password = propOrDefault("jj_artifactory_password", System.env.ARTIFACTORY_PASSWORD)
-//    }
-    url 'https://jesterj.jfrog.io/jesterj/libs-release/'
-  }
   mavenCentral()
-
 }
 
 configurations {
@@ -131,13 +82,13 @@ def archiveName = 'jesterj-ingest'
 dependencies {
   implementation 'com.needhamsoftware.unojar:core:1.0.2'
   implementation 'io.github.classgraph:classgraph:4.8.147'
-  implementation 'org.apache.tika:tika-core:2.4.1'
+  api 'org.apache.tika:tika-core:2.4.1'
   implementation 'org.apache.tika:tika-parsers-standard-package:2.4.1'
 
-  implementation 'org.apache.solr:solr-core:9.1.0'
+  api 'org.apache.solr:solr-core:9.1.0'
 
   // until SOLR 9.1.1 (should be safe see https://issues.apache.org/jira/browse/SOLR-16568)
-  implementation 'com.fasterxml.woodstox:woodstox-core:6.4.0'
+  api 'com.fasterxml.woodstox:woodstox-core:6.4.0'
 
   implementation 'com.google.guava:guava:31.1-jre'
   implementation 'com.google.code.findbugs:jsr305:3.0.2'
@@ -152,16 +103,16 @@ dependencies {
   }
 
   // until https://issues.apache.org/jira/browse/CASSANDRA-17966 easy and likely safe way to make CVE-2022-42004 go away
-  implementation 'com.fasterxml.jackson.core:jackson-core:2.13.4'
-  implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.4.2'
+  api 'com.fasterxml.jackson.core:jackson-core:2.13.4'
+  api 'com.fasterxml.jackson.core:jackson-databind:2.13.4.2'
 
   // CVE-2021-24823 --> waiting for 4.15 to release.
   //noinspection VulnerableLibrariesLocal
   implementation 'com.datastax.oss:java-driver-core:4.14.1'
   implementation 'org.yaml:snakeyaml:1.33'
-  implementation 'org.apache.velocity:velocity-engine-core:2.3'
+  api 'org.apache.velocity:velocity-engine-core:2.3'
 
-  implementation 'org.apache.logging.log4j:log4j-core:2.17.2'
+  api 'org.apache.logging.log4j:log4j-core:2.17.2'
   implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.17.2'
   implementation 'org.apache.logging.log4j:log4j-jcl:2.17.2'
   implementation 'org.apache.logging.log4j:log4j-1.2-api:2.17.2'
@@ -177,7 +128,7 @@ dependencies {
   implementation 'com.fasterxml:aalto-xml:1.3.2'
   implementation 'xml-resolver:xml-resolver:1.2'
   testImplementation 'junit:junit:4.13.2'
-  implementation 'org.easymock:easymock:4.3'
+  testImplementation 'org.easymock:easymock:4.3'
   testImplementation 'org.hsqldb:hsqldb:2.6.1'
   testImplementation ('com.needhamsoftware:easier-mock:2.0') {
     exclude group:'org.easymock'
@@ -298,8 +249,6 @@ task generateNotices() {
 
 
 jacocoTestReport.dependsOn test
-
-artifactoryPublish.dependsOn packageUnoJar
 
 publishing {
   publications {

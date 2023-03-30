@@ -6,14 +6,19 @@ Setup Solr
 1. Set up a local Solr Cloud node with zookeeper on 9983  (or edit ShakespeareConfig.java to match your ports[^1])
 1. Create a collection named jjtest using the _default configset
 
+Set up JDK 11 for JesterJ
+1. For the commands below to work you will need to `export JAVA_HOME=~/gus/tools/java/zulu11.50.19-ca-jdk11.0.12-linux_x64/` (or similar)
+
 Start JesterJ
 1. Clone https://github.com/nsoft/jesterj.git
 1. In /jesterj/code/ingest run `./gradlew  publishToMavenLocal` (to publish 1.0-SNAPSHOT required by this example)
 1. In /jesterj/code/example/shakespeare run `./gradlew build`
-2. Ensure JDK 11 `export JAVA_HOME=~/gus/tools/java/zulu11.50.19-ca-jdk11.0.12-linux_x64/` (or similar)
-3. In /jesterj/code/example/shakespeare run `$JAVA_HOME/bin/java -jar ../../ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar build/libs/example-shakespeare-1.0-SNAPSHOT.jar shakespeare mysecret`
+1. In /jesterj/code/example/shakespeare run `$JAVA_HOME/bin/java -jar ../../ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar build/libs/example-shakespeare-1.0-SNAPSHOT.jar shakespeare mysecret`
 
-Your search engine(s) should have indexed shakespeare's plays within a minute or so.
+Once JesterJ goes throug it's startup, your search engine(s) should have indexed shakespeare's plays within a minute or so.
+Note that the example is set up for batches of 20 and partial batch sending every 20 seconds so for a brief moment you may see 40 documents, but in 20 seconds or less from that you should see all 44 documents in your index
+
+NOTE: if you are using unmodified _default config as suggested, you won't see anything until you send an explicit commit to solr.
 
 ```
 http://localhost:8983/solr/jjtest/update?commit=true
@@ -69,4 +74,4 @@ If you edit or add files the changes will be re-indexed automatically. Happy Sea
     ````
                 .withZookeeper("localhost:2181")
                 .zkChroot("/solr__home_gus_projects_apache_solr_testing_2023-02-02")
-    ````                
+    ````

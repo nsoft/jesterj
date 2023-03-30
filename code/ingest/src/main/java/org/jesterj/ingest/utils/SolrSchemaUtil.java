@@ -125,7 +125,8 @@ public class SolrSchemaUtil {
     return db.parse(resourceAsStream);
   }
 
-  private static <T> T create(final Class<T> classToMock) {
+  @SuppressWarnings("SameParameterValue")
+  private <T> T create(final Class<T> classToMock) {
     Objenesis objenesis = new ObjenesisStd();
     return objenesis.getInstantiatorOf(classToMock).newInstance();
   }

@@ -19,20 +19,19 @@ package org.jesterj.ingest.processors;
 import org.apache.cassandra.utils.ConcurrentBiMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.concurrent.*;
 
 abstract class BatchProcessor<T> implements DocumentProcessor {
   private static final Logger log = LogManager.getLogger();
 
-  private final ScheduledExecutorService sender = Executors.newScheduledThreadPool(1);
+  private volatile ScheduledExecutorService sender;
   private int batchSize = 100;
   private int sendPartialBatchAfterMs = 5000;
   private ScheduledFuture<?> scheduledSend;
@@ -50,27 +49,41 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
   }
 
   public Document[] processDocument(Document document) {
+    if (this.sender == null) {
+      synchronized (this) {
+        if (this.sender == null) {
+          sender = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+            @Override
+            public Thread newThread( Runnable r) {
+              return new Thread(r) {
+                final private Map<String, String> context = ThreadContext.getContext();
+
+                @Override
+                public void run() {
+                  ThreadContext.putAll(context);
+                  super.run();
+                }
+              };
+            }
+          });
+          schedulePartialBatch();
+        }
+      }
+    }
     T doc = convertDoc(document);
     ConcurrentBiMap<Document, T> oldBatch = null;
-    int size;
     synchronized (batchLock) {
       if (this.batch.size() >= batchSize) {
         oldBatch = takeBatch();
       }
-      size = this.batch.size();
       this.batch.put(document, doc);
-    }
+      document.setStatus(Status.BATCHED, "{} queued in position {} for sending to solr. " +
+          "Will be sent within {} milliseconds.", document.getId(), this.batch.size(), sendPartialBatchAfterMs);
+      document.reportDocStatus();    }
     if (oldBatch != null) {
       sendBatch(oldBatch);
     }
-    if (scheduledSend != null) {
-      scheduledSend.cancel(false);
-    }
-    scheduledSend = sender.schedule(() -> sendBatch(takeBatch()), sendPartialBatchAfterMs, TimeUnit.MILLISECONDS);
-
-    document.setStatus(Status.BATCHED, "{} queued in position {} for sending to solr. " +
-        "Will be sent within {} milliseconds.", document.getId(), size, sendPartialBatchAfterMs);
-    document.reportDocStatus();
+    log.info("Batch Processor ({}) processed {}", getName(), document.getId());
 
     return new Document[0];
   }
@@ -79,7 +92,7 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
     synchronized (batchLock) {
       ConcurrentBiMap<Document, T> oldBatch = this.batch;
       this.batch = new ConcurrentBiMap<>();
-      log.info("took batch {} with size {}",oldBatch.toString(), oldBatch.size());
+      log.trace("took batch {} with size {}", oldBatch.toString(), oldBatch.size());
       return oldBatch;
     }
   }
@@ -90,10 +103,10 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
     // before the second thread tries to send the same batch. We tolerate this because it means batches can fill up
     // while sending is in progress.
     synchronized (sendLock) {
-      if (oldBatch.size() == 0) {
-        return;
-      }
       try {
+        if (oldBatch.size() == 0) {
+          return;
+        }
         batchOperation(oldBatch);
       } catch (Exception e) {
         // we may have a single bad document...
@@ -104,9 +117,21 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
           perDocumentFailure(oldBatch, e);
         }
       } finally {
+        schedulePartialBatch();
         oldBatch.clear();
       }
     }
+  }
+
+  private void schedulePartialBatch() {
+    log.trace("Scheduling partial batch");
+    if (scheduledSend != null) {
+      scheduledSend.cancel(false);
+    }
+    scheduledSend = sender.schedule(() -> {
+      log.trace("Scheduled Send Activated");
+      sendBatch(takeBatch());
+    }, sendPartialBatchAfterMs, TimeUnit.MILLISECONDS);
   }
 
   protected void perDocumentFailure(ConcurrentBiMap<Document, ?> oldBatch, Exception e) {

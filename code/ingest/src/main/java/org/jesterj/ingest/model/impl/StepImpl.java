@@ -475,8 +475,11 @@ public class StepImpl implements Step {
               + getOutputDestinationNames() + " Name expected:" + incompleteOutputStep);
         }
         // we have a single step, we are the right type of step, and this is the expected step. Our work is done here!
-        markIndexed((DocumentImpl) document);
-        document.reportDocStatus();
+        Status currStat = document.getStatus(document.getIncompleteOutputDestinations()[0]);
+        if (!Status.BATCHED.equals(currStat) && !Status.INDEXING.equals(currStat) ) {
+          markIndexed((DocumentImpl) document);
+          document.reportDocStatus();
+        }
       } else {
         // this is the case for non-terminal steps that have outputs.
         // todo: plan configuration option to allow the idempotent steps to be repeated if desired.

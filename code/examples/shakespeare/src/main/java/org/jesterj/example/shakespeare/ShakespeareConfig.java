@@ -51,7 +51,9 @@ public class ShakespeareConfig implements PlanProvider {
     scanner
         .named(SHAKESPEARE) // everything should be given a unique name composed of alphanumerics and underscores only.
         .withRoot(testDocs)
-        .scanFreqMS(100);
+        .rememberScannedIds(true)
+        .detectChangesViaHashing(true)
+        .scanFreqMS(1000);
 
     // format the several dates produced by the scanner (to the default ISO output, solr wants)
     formatCreated
@@ -113,10 +115,13 @@ public class ShakespeareConfig implements PlanProvider {
         .named("solr_sender")
         .withProcessor(
             new SendToSolrCloudProcessor.Builder()
+                .named("solr_processor")
                 .withZookeeper("localhost:9983")
                 .usingCollection("jjtest")
                 .placingTextContentIn("_text_")
                 .withDocFieldsIn(".fields")
+                .sendingBatchesOf(20)
+                .sendingPartialBatchesAfterMs(20_000)
         );
 
     //

@@ -443,8 +443,12 @@ public class DocumentImpl implements Document {
         }
       }
       // Now that we've written the status it needs to be removed. only processing status can move onto the next step.
+      // Batched and indexing don't indicate progress to a new step.
       for (DocDestinationStatus changed : destinationChanges) {
-        if (changed.getStatus() != Status.PROCESSING) {
+        if (changed.getStatus() != Status.PROCESSING &&
+            changed.getStatus() != Status.INDEXING &&
+            changed.getStatus() != Status.BATCHED
+        ) {
           incompleteOutputDestinations.remove(changed.getOutputDestination());
         }
       }
