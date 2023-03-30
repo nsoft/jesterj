@@ -33,7 +33,7 @@ plugins {
   id 'signing'
 //  id 'maven'
   id 'maven-publish'
-  id 'com.github.jk1.dependency-license-report' version '2.0'
+  id 'com.github.jk1.dependency-license-report' version '2.1'
   id "com.github.onslip.gradle-one-jar" version "1.0.5"
   id 'com.needhamsoftware.unojar' version '1.1.0'
 }
@@ -60,6 +60,7 @@ configurations {
   unoJarPack.exclude group: 'org.easymock'        // test lib
   // Conflicting licenses...
   unoJarPack.exclude group: 'org.jboss.logging'
+  unoJarPack.exclude group: 'com.github.spotbugs'
   unoJarPack.exclude group: 'com.google.code.findbugs', module: 'annotations' // N.B. findbugs jsr305 is ok, thus module
   unoJarPack.exclude group: 'c3p0', module: 'c3p0'
   unoJarPack.extendsFrom implementation
@@ -141,6 +142,13 @@ dependencies {
   testImplementation (group: 'org.jacoco', name:'org.jacoco.report', version:'0.7.7.201606060606')
   testImplementation (group: 'org.jacoco', name:'org.jacoco.core', version:'0.7.7.201606060606')
   testImplementation 'org.apache.solr:solr-test-framework:9.1.0'
+}
+
+import com.github.jk1.license.render.*
+licenseReport {
+  configurations = ['unoJarPack']
+  renderers = [new InventoryHtmlReportRenderer()]
+  allowedLicensesFile = new File("$projectDir/licenses/allowed-licenses.json")
 }
 
 compileJava {
@@ -245,6 +253,7 @@ unojar {
 }
 
 def nodeFile = file("$buildDir/libs/" + tasks.getByName("packageUnoJar").getArchiveFileName())
+classes.dependsOn checkLicense
 packageUnoJar.dependsOn build
 packageUnoJar.doLast {
   def licDir = file('licenses').parent

@@ -1,0 +1,154 @@
+{
+  "allowedLicenses": [
+    {
+      "moduleLicense": "Apache License, Version 2.0",
+      "moduleName": ".*"
+    },
+    {
+      "moduleLicense": "The Apache Software License, Version 2.0",
+      "moduleName": ".*"
+    },
+    {
+      "moduleLicense": "Apache 2",
+      "moduleName": ".*"
+    },
+    {
+      "moduleLicense": "Apache License v2",
+      "moduleName": ".*"
+    },
+    {
+      "moduleLicense": "Apache 2.0",
+      "moduleName": ".*"
+    },
+    {
+      "moduleLicense": "Apache-2.0",
+      "moduleName": ".*"
+    },
+    {
+      "moduleLicense": "Apache License 2.0",
+      "moduleName": ".*"
+    },
+    {
+      "moduleLicense": "Apache License v2.0",
+      "moduleName": ".*"
+    },
+    {
+      "moduleLicense": "MIT License",
+      "moduleName": ".*"
+    },
+    {
+      "moduleLicense": "The MIT License",
+      "moduleName": ".*"
+    },
+    {
+      "moduleLicense": "MIT",
+      "moduleName": ".*"
+    },
+    {
+      "moduleLicense": "The MIT License (MIT)",
+      "moduleName": ".*"
+    },
+    {
+      "moduleLicense": "MIT/One-JAR",
+      "moduleName": ".*"
+    },
+    {
+      "moduleLicense": "BSD 2-Clause License",
+      "moduleVersion": ".*"
+    },
+    {
+      "moduleLicense": "BSD-2-Clause",
+      "moduleVersion": ".*"
+    },
+    {
+      "moduleLicense": "The BSD 3-Clause License (BSD3)",
+      "moduleVersion": ".*"
+    },
+    {
+      "moduleLicense": "BSD 3-clause License w/nuclear disclaimer",
+      "moduleVersion": ".*"
+    },
+    {
+      "moduleLicense": "BSD License",
+      "moduleVersion": ".*"
+    },
+    {
+      "moduleLicense": "BSD licence",
+      "moduleVersion": ".*"
+    },
+    {
+      "moduleLicense": "BSD",
+      "moduleVersion": ".*"
+    },
+    {
+      "moduleLicense": "The BSD License",
+      "moduleVersion": ".*"
+    },
+    {
+      "moduleLicense": "CUP Parser Generator Copyright Notice, License, and Disclaimer",
+      "moduleVersion": "11b-20160615",
+      "moduleName": "com.github.vbmacher:java-cup-runtime"
+    },
+    {
+      "moduleLicense": "COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.0",
+      "moduleVersion": ".*",
+      "moduleName": "javax.servlet:javax.servlet-api"
+    },
+    {
+      "moduleLicense": "Bouncy Castle Licence",
+      "moduleVersion": ".*",
+      "moduleName": "org.bouncycastle:.*"
+    },
+    {
+      "moduleLicense": "Eclipse Public License v. 2.0",
+      "moduleVersion": ".*"
+    },
+    {
+      "moduleLicense": "Eclipse Public License - v 2.0",
+      "moduleVersion": ".*"
+    },
+    {
+      "moduleLicense": "Eclipse Public License v1.0",
+      "moduleVersion": ".*"
+    },
+    {
+      "moduleLicense": "Mozilla Public License 1.1 (MPL 1.1)",
+      "moduleVersion": ".*"
+    },
+    {
+      "moduleLicense": "Public Domain",
+      "moduleVersion": "1.9",
+      "moduleName": "org.tukaani:xz"
+    },
+    {
+      "moduleLicense": "UnRar License",
+      "moduleVersion": "7.5.2",
+      "moduleName": "com.github.junrar:junrar"
+    },
+    {
+      "moduleLicense": "CDDL, v1.0",
+      "moduleVersion": "1.1.0",
+      "moduleName": "org.codelibs:jhighlight"
+    },
+    {
+      "moduleLicense": "Similar to Apache License but with the acknowledgment clause removed",
+      "moduleVersion": "2.0.6.1",
+      "moduleName": "org.jdom:jdom2"
+    },
+    {
+      "moduleLicense": null,
+      "moduleVersion": "2.13.4",
+      "moduleName": "com.fasterxml.jackson:jackson-bom"
+    },
+    {
+      "moduleLicense": "ISC",
+      "moduleVersion": "0.4",
+      "moduleName": "org.mindrot:jbcrypt"
+    },
+    {
+      "moduleLicense": "CC0",
+      "moduleVersion": "1.0.3",
+      "moduleName": "org.reactivestreams:reactive-streams"
+    }
+  ]
+}
