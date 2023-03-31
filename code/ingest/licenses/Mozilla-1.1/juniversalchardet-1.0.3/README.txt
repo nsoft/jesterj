@@ -31,3 +31,6 @@ Only applies to source distributions. Only executable binaries are distributed.
 
 The juniversalchardet project is archived here:
 https://code.google.com/archive/p/juniversalchardet/
+
+Sources seem to be available here:
+https://github.com/albfernandez/juniversalchardet/tree/v1.0.3

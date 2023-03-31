@@ -100,6 +100,14 @@
       "moduleName": "org.bouncycastle:.*"
     },
     {
+      "moduleLicense": "EDL 1.0",
+      "moduleVersion": ".*"
+    },
+    {
+      "moduleLicense": "Eclipse Distribution License - v 1.0",
+      "moduleVersion": ".*"
+    },
+    {
       "moduleLicense": "Eclipse Public License v. 2.0",
       "moduleVersion": ".*"
     },

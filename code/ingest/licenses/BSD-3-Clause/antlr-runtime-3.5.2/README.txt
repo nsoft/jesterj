@@ -1,13 +1,14 @@
 Copyright Declaration
 ---------------------
 
-Copyright (c) 2013 Terence Parr
-All rights reserved.
+Copyright (c) 2003-2008 Terence Parr. All rights reserved.
+
+Some parts of the ANTLR class:
+Copyright (c) 2008, Yahoo! Inc. All rights reserved.
 
 The above notice was found here:
 
-https://github.com/antlr/antlr3/blob/3.5.2/tool/LICENSE.txt
-
+https://github.com/antlr/antlr3/blob/3.5.3/runtime/JavaScript/build/license.txt
 
 Copy of License
 ---------------

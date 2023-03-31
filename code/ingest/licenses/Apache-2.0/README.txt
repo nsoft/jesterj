@@ -8,4 +8,4 @@ included in our node-jar distribution, and per this license each sub directory
 should contain:
 
 1. Copy of License
-2. Copy of NOTICE file for each dependent libarary if available.
+2. Copy of NOTICE file for each dependent library if available.

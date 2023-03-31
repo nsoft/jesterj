@@ -53,13 +53,11 @@ holding the respective license, and required notifications for each library.
 Please note that since there are no compliance requirements for Public Domain
 software, no separate directory needs to be maintained listing those libraries.
 
-This list was generated as shown at https://jsfiddle.net/cgy7s9z8/8/ using
-JFrog Artifactory's License Management and AQL plugins. These were kindly
-provided to JesterJ.org at no cost by JFrog as part of their program to support
-open source software projects. Many thanks to them for speeding this process
-up greatly.
+Public domain software used by JesterJ is redistributed to you under ASL 2.0, but
+we also attempt to identify a location where you may obtain the software
+directly as public domain software.
 
-HdrHistogram-2.1.6.jar                   === has license type ===>     Public Domain
+HdrHistogram-2.1.12.jar                  === has license type ===>     Apache-2.0 (Public Domain)
 ST4-4.0.8.jar                            === has license type ===>     BSD-3-Clause
 ant-1.7.0.jar                            === has license type ===>     Apache-2.0
 ant-launcher-1.7.0.jar                   === has license type ===>     Apache-2.0
