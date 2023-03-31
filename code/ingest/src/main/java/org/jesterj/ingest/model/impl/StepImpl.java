@@ -750,12 +750,7 @@ public class StepImpl implements Step {
 
     public Builder withProcessor(ConfiguredBuildable<? extends DocumentProcessor> processor) {
       StepImpl currObj = getObj(); // make sure that this can't change after build() called.
-      getObj().addDeferred(() -> {
-        currObj.processor = processor.build();
-        if (currObj.processor instanceof StepNameAware) {
-          ((StepNameAware) currObj.processor).setStepName(currObj.getName());
-        }
-      });
+      getObj().addDeferred(() -> currObj.processor = processor.build());
       return this;
     }
 
