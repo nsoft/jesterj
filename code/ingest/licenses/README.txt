@@ -57,6 +57,9 @@ Public domain software used by JesterJ is redistributed to you under ASL 2.0, bu
 we also attempt to identify a location where you may obtain the software
 directly as public domain software.
 
+NOTE: this table is currently out of date refer to the subfolders for more correct 
+information!
+
 HdrHistogram-2.1.12.jar                  === has license type ===>     Apache-2.0 (Public Domain)
 ST4-4.0.8.jar                            === has license type ===>     BSD-3-Clause
 ant-1.7.0.jar                            === has license type ===>     Apache-2.0
