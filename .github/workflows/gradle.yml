@@ -34,7 +34,7 @@ jobs:
       run: chmod +x gradlew
       working-directory: ${{env.working-directory}}
     - name: Build with Gradle
-      run: ./crave run --clean -- ./gradlew jacocoTestReport
+      run: ./crave run --clean -- ./gradlew clean jacocoTestReport
       working-directory: ${{env.working-directory}}
     - name: Get back the codecov report
       run: ./crave pull build/reports/jacoco/test/jacocoTestReport.xml
