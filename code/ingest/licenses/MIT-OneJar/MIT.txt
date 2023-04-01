@@ -1,0 +1,31 @@
+-------------------------------------------------------------------------------------------------------------
+
+Copyright 2019 Needham Software LLC
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+-------------------------------------------------------------------------------------------------------------
+
+The above license applies to all new work done under the name "uno-jar" but MUCH of the code remains from
+the original version of the software by Simon Tuffs. Please see the NOTICE.txt for additional terms for
+the use of Simon's code.
+
+NOTE: I had no desire to rename from One-JAR or change the package names, except Simon's license clearly states
+that his name and the One-JAR trade mark may not be used to endorse derived software. All re-naming is out
+of respect for the terms of his license. If I have missed a file, string constant or documentation and the
+One-JAR trademark or simon's name are found anywhere other than this file, NOTICE.txt, license attribution comments
+or comments referencing the history of when something was added, please file an issue
+in the github bug tracker so it can be removed. Simon does not endorse uno-jar in any way and my only
+interactions with him as of this writing can be seen in the source forge bug tracker.

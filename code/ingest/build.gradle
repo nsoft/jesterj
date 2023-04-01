@@ -144,12 +144,78 @@ dependencies {
   testImplementation 'org.apache.solr:solr-test-framework:9.1.0'
 }
 
+import com.github.jk1.license.filter.*
 import com.github.jk1.license.render.*
 licenseReport {
   configurations = ['unoJarPack']
-  renderers = [new InventoryHtmlReportRenderer()]
+  renderers = [new InventoryHtmlReportRenderer(), new JsonReportRenderer()]
   allowedLicensesFile = new File("$projectDir/licenses/allowed-licenses.json")
+  filters = [new LicenseBundleNormalizer(bundlePath: "$projectDir/licenses/license-normalizer-bundle.json", createDefaultTransformationRules:false)]
 }
+import groovy.json.JsonSlurper
+
+tasks.register("verifyLicenseDirs") {
+  // This task ensures that if we add a library and update the permitted licenses to add a new license type
+  // we don't forget to add a directory for it under /licenses
+  doLast {
+    def jsonReport = new File("$projectDir/build/reports/dependency-license/index.json").text
+    def jsonSlurper = new JsonSlurper()
+    def obj = jsonSlurper.parseText(jsonReport)
+    println "Found " + obj["dependencies"].size() + " dependencies"
+    def licenseTypes = new HashSet()
+    def licenseDirs = new HashSet()
+    obj["dependencies"].each {
+        def modLic = it["moduleLicense"]
+      if (modLic == null) {
+        // check special cases manually here so a new module with no licenses doesn't cause issues.
+        // see https://github.com/jk1/Gradle-License-Report/issues/263
+        if ("com.fasterxml.jackson:jackson-bom".equals(it["moduleName"]) && "2.13.4".equals(it["moduleVersion"])) {
+          licenseTypes.add("Apache-2.0")
+        } else {
+          ant.fail("New, unknown (null) license for dependency:" + it)
+        }
+      } else {
+        licenseTypes.add(modLic)
+      }
+    }
+    //println licenseTypes
+    def licDir = new File("$projectDir/licenses")
+    licDir.eachDir {
+      licenseDirs.add(it.getName())
+    }
+    //println licenseDirs
+    def fail = false
+    def possibleDisallowed = new HashSet()
+    licenseTypes.each {
+      if (licenseDirs.contains(it)) {
+        //println it + " OK (License Dir found)"
+      } else {
+        possibleDisallowed.add(it)
+      }
+    }
+    // The dependencyCheck target is used to flag libraries that ONLY have a disallowed license, so
+    // now we need to verify that none of the licenses that remain are listed as permitted since
+    // that would indicate a gap in our documenation (we don't have to document disallowed licenses we haven't
+    // elected to use)
+    def allowedLicFile = new File("$projectDir/licenses/allowed-licenses.json").text
+    def allowedLic = jsonSlurper.parseText(allowedLicFile)
+
+    def allowedNames = allowedLic["allowedLicenses"].collect() {
+      return it["moduleLicense"]
+    }
+    possibleDisallowed.each {
+      if (allowedNames.contains(it)) {
+        fail = true
+        println "FAIL:" + it + " (No directory, but listed as allowed)"
+      }
+    }
+    if(fail) {
+      ant.fail("One or more permitted license types do not have a directory in licenses (or are not recognized by the normalizer)")
+    }
+  }
+}
+
+verifyLicenseDirs.dependsOn generateLicenseReport
 
 compileJava {
   options.compilerArgs += ["--add-exports=java.base/jdk.internal.loader=ALL-UNNAMED"]
@@ -201,7 +267,6 @@ tasks.register('quickTest', Test) {
     exceptionFormat "full"
   }
 
-  println jvmArgs
   jvmArgs += [
       '-Djesterj.build.start=' + String.valueOf(Instant.now().toEpochMilli()),
       '--add-modules', 'ALL-MODULE-PATH',
@@ -214,7 +279,6 @@ tasks.register('quickTest', Test) {
       '--add-opens', 'java.base/jdk.internal.util.jar=ALL-UNNAMED',
       '--add-opens', 'jdk.management/com.sun.management.internal=ALL-UNNAMED'
   ]
-  println jvmArgs
 }
 
 quickTest.group = 'verification'
@@ -254,6 +318,7 @@ unojar {
 
 def nodeFile = file("$buildDir/libs/" + tasks.getByName("packageUnoJar").getArchiveFileName())
 classes.dependsOn checkLicense
+classes.dependsOn verifyLicenseDirs
 packageUnoJar.dependsOn build
 packageUnoJar.doLast {
   def licDir = file('licenses').parent
