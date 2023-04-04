@@ -10,4 +10,4 @@ Can be found in this directory (near this file)
 
 This file was originally found at:
 
-https://github.com/jahlborn/jackcess/blob/jackcess-4.0.4/NOTICE.txt
+https://github.com/jahlborn/jackcess/blob/jackcess-4.0.1/NOTICE.txt

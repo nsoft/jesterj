@@ -1,1 +1,1 @@
-No notice file is included with this version of lz4
+No notice file is included with this version of lz4-java

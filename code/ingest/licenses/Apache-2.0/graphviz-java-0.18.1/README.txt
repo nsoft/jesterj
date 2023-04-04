@@ -6,7 +6,7 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of gson
+There is no Notice file for this version of graphviz-java
 
 This was verified at:
 

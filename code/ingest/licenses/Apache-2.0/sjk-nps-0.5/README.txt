@@ -6,7 +6,7 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of rome-utils
+There is no Notice file for this version of sjk-nps
 
 This was verified at:
 

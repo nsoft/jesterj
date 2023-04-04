@@ -6,7 +6,8 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-This project does not provide a NOTICE file for this version, so we cannot
-replicate such here.
+There is no Notice file for this version of java-driver-core
+
+This was verified at:
 
 https://github.com/datastax/java-driver/tree/4.14.1

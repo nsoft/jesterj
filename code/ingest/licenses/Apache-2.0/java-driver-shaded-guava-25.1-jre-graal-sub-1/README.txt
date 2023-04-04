@@ -6,7 +6,7 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of ava-driver-shaded-guava
+There is no Notice file for this version of java-driver-shaded-guava
 
 This was verified at:
 

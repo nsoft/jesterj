@@ -6,7 +6,7 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of jctools
+There is no Notice file for this version of jcl-over-slf4j
 
 This was verified at:
 

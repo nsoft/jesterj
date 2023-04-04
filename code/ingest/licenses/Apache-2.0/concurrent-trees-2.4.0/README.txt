@@ -6,7 +6,7 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of compres-lzf
+There is no Notice file for this version of concurrent-trees
 
 This was verified at:
 

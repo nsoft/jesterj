@@ -6,7 +6,7 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of lz4
+There is no Notice file for this version of lz4-java
 
 This was verified at:
 

@@ -6,7 +6,7 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of metadata-extractor
+There is no Notice file for this version of metrics-core
 
 This was verified at:
 

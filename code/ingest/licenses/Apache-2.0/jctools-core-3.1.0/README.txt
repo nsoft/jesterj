@@ -6,7 +6,7 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of jctools
+There is no Notice file for this version of jctools-core
 
 This was verified at:
 

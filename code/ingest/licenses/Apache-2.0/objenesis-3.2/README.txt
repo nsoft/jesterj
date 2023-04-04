@@ -6,7 +6,7 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of rome
+There is no Notice file for this version of objenesis
 
 This was verified at:
 

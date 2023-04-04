@@ -6,7 +6,7 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of stream
+There is no Notice file for this version of woodstox-core
 
 This was verified at:
 

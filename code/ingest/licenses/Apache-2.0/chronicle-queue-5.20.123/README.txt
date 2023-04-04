@@ -6,7 +6,7 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of curvesapi
+There is no Notice file for this version of chronicle-queue
 
 This was verified at:
 

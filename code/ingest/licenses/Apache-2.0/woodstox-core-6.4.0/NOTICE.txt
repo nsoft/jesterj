@@ -1,1 +1,1 @@
-No notice file is included with this version of stream
+No notice file is included with this version of woodstox-core

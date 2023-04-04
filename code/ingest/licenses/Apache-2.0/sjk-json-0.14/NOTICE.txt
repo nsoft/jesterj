@@ -1,1 +1,1 @@
-No notice file is included with this version of curvesapi
+No notice file is included with this version of sjk-json
