@@ -36,7 +36,7 @@ plugins {
   id 'signing'
 //  id 'maven'
   id 'maven-publish'
-  id 'com.github.jk1.dependency-license-report'// version '2.1'  // fersion determined in buildSrc
+  id 'com.github.jk1.dependency-license-report' version '2.1'  // fersion determined in buildSrc
   id "com.github.onslip.gradle-one-jar" version "1.0.5"
   id 'com.needhamsoftware.unojar' version '1.1.0'
 }
@@ -150,7 +150,7 @@ dependencies {
 import com.github.jk1.license.filter.*
 import com.github.jk1.license.render.*
 licenseReport {
-  unionParentPomLicenses = false
+//  unionParentPomLicenses = false
   configurations = ['unoJarPack']
   renderers = [new InventoryHtmlReportRenderer(), new JsonReportRenderer("index.json", false)]
   allowedLicensesFile = new File("$projectDir/licenses/allowed-licenses.json")
@@ -159,27 +159,27 @@ licenseReport {
       bundlePath: "$projectDir/licenses/license-normalizer-bundle.json",
       createDefaultTransformationRules: false)
 
-  def preferences = new PreferredLicensesFilter([
-      "Apache-2.0",
-      "Apache-1.0-no-acknowledge",
-      "CC0-1.0",
-      "MIT",
-      "MIT-OneJar",
-      "BSD-2-Clause",
-      "BSD-3-Clause",
-      "BSD-3-Clause-Nuclear",
-      "Eclipse-Distribution-1.0",
-      "Bouncy-Castle",
-      "CUP-Parser",
-      "ISC",
-      "Public-Domain",
-      "Eclipse-Public-1.0",
-      "Eclipse-Public-2.0",
-      "Mozilla-1.1",
-      "CDDL-1.0",
-      "UnRar"
-  ])
-  filters = [normalizer, preferences]
+//  def preferences = new PreferredLicensesFilter([
+//      "Apache-2.0",
+//      "Apache-1.0-no-acknowledge",
+//      "CC0-1.0",
+//      "MIT",
+//      "MIT-OneJar",
+//      "BSD-2-Clause",
+//      "BSD-3-Clause",
+//      "BSD-3-Clause-Nuclear",
+//      "Eclipse-Distribution-1.0",
+//      "Bouncy-Castle",
+//      "CUP-Parser",
+//      "ISC",
+//      "Public-Domain",
+//      "Eclipse-Public-1.0",
+//      "Eclipse-Public-2.0",
+//      "Mozilla-1.1",
+//      "CDDL-1.0",
+//      "UnRar"
+//  ])
+  filters = [normalizer]//, preferences]
 }
 import groovy.json.JsonSlurper
 
@@ -187,132 +187,144 @@ tasks.register("verifyLicenseDirs") {
   // This task ensures that if we add a library and update the permitted licenses to add a new license type
   // we don't forget to add a directory for it under /licenses
   doLast {
-    def jsonReport = new File("$projectDir/build/reports/dependency-license/index.json").text
-    def jsonSlurper = new JsonSlurper()
-    def obj = jsonSlurper.parseText(jsonReport)
-    def numberOfDependencies = obj["dependencies"].size()
-    println "Found " + numberOfDependencies + " dependencies"
-    def licenseTypes = new HashSet()
-    def licenseDirs = new HashSet()
-    obj["dependencies"].each {
-      def licenses = it["moduleLicenses"]
-      def modLic = licenses?[0]?["moduleLicense"]
-      if (modLic == null) {
-        // check special cases manually here so a new module with no licenses doesn't cause issues.
-        // see https://github.com/jk1/Gradle-License-Report/issues/263
-        if ("com.fasterxml.jackson:jackson-bom".equals(it["moduleName"]) && "2.13.4".equals(it["moduleVersion"])) {
-          licenseTypes.add("Apache-2.0")
-        } else {
-          ant.fail("New, unknown (null) license for dependency:" + it)
-        }
-      } else {
-        licenseTypes.add(modLic)
-      }
-    }
-    //println licenseTypes
-    def licDir = new File("$projectDir/licenses")
-    licDir.eachDir {
-      licenseDirs.add(it.getName())
-    }
-    //println licenseDirs
-    def fail = false
-    def possibleDisallowed = new HashSet()
-    licenseTypes.each {
-      if (licenseDirs.contains(it)) {
-        //println it + " OK (License Dir found)"
-      } else {
-        possibleDisallowed.add(it)
-      }
-    }
-    // The dependencyCheck target is used to flag libraries that ONLY have a disallowed license, so
-    // now we need to verify that none of the licenses that remain are listed as permitted since
-    // that would indicate a gap in our documenation (we don't have to document disallowed licenses we haven't
-    // elected to use)
-    def allowedLicFile = new File("$projectDir/licenses/allowed-licenses.json").text
-    def allowedLic = jsonSlurper.parseText(allowedLicFile)
 
-    def allowedNames = allowedLic["allowedLicenses"].collect() {
-      return it["moduleLicense"]
-    }
-    possibleDisallowed.each {
-      if (allowedNames.contains(it)) {
-        fail = true
-        println "FAIL:" + it + " (No directory, but listed as allowed)"
-      }
-    }
-    if(fail) {
-      ant.fail("One or more permitted license types do not have a directory in licenses (or are not recognized by the normalizer)")
-    }
-    def missingCount = 0
-    obj["dependencies"].each {
-      def licenses = it["moduleLicenses"]
-      def modLic = licenses?[0]?["moduleLicense"]
-      if(possibleDisallowed.contains(modLic)) {
-        return
-      }
+    // This requires a not-yet-released bugfix for gradle-license-report
+    // (see https://github.com/jk1/Gradle-License-Report/issues/264)
 
-      if (!modLic) {
-        if ("com.fasterxml.jackson:jackson-bom".equals(it["moduleName"]) && "2.13.4".equals(it["moduleVersion"])) {
-          modLic = "Apache-2.0"
-        } else {
-          ant.fail("New, unknown (null) license for dependency:" + it)
-        }
-      }
-
-      def readme1 = "$projectDir/licenses/" + modLic + "/README.txt"
-      def license = "$projectDir/licenses/" + modLic + "/" + modLic + ".txt"
-      def artifact = it["moduleName"].contains(":") ? it["moduleName"].split(":")[1] : it["moduleName"]
-      def version = it["moduleVersion"]
-      def readme2 = "$projectDir/licenses/" + modLic + "/" + artifact + "-" + version + "/README.txt"
-      def notice = "$projectDir/licenses/" + modLic + "/" + artifact + "-" + version + "/NOTICE.txt"
-      def notice_md = "$projectDir/licenses/" + modLic + "/" + artifact + "-" + version + "/NOTICE.md"
-
-      def readmeFile1 = file(readme1)
-      if (!readmeFile1.exists()) {
-        fail = true
-        missingCount++
-        println "FAIL: license level README.txt not found at " + readme1
-      }
-
-      def licenseFile = file(license)
-      if (!licenseFile.exists()) {
-        if ("Public-Domain" == modLic) {
-          def pubDomLic = license.replace("Public-Domain.txt", "Apache-JJ-2.0.txt" )
-          def pubDomLicFile = file(pubDomLic)
-          if (!pubDomLicFile.exists()) {
-            fail = true
-            missingCount++
-            println "FAIL: special license file for public domain not found at " + pubDomLic
-          }
-        } else {
-          fail = true
-          missingCount++
-          println "FAIL: license file not found at " + license
-        }
-      }
-
-      def readmeFile2 = file(readme2)
-      if (!readmeFile2.exists()) {
-        fail = true
-        missingCount++
-        println "FAIL: library level README.txt not found at " + readme2
-      }
-
-      def noticeFile = file(notice)
-      def noticeMdFile = file(notice_md)
-      if ("Apache-2.0" == modLic) {
-        if (!noticeFile.exists() && !noticeMdFile.exists()) {
-          fail = true
-          missingCount++
-          println "FAIL: library level NOTICE.txt not found at " + notice
-        }
-      }
-    }
-
-    if(fail) {
-      ant.fail(missingCount + " license documentation errors were found. See above output for details")
-    }
-
+//    def jsonReport = new File("$projectDir/build/reports/dependency-license/index.json").text
+//    def jsonSlurper = new JsonSlurper()
+//    def obj = jsonSlurper.parseText(jsonReport)
+//    def numberOfDependencies = obj["dependencies"].size()
+//    println "Found " + numberOfDependencies + " dependencies"
+//    def licenseTypes = new HashSet()
+//    def licenseDirs = new HashSet()
+//    obj["dependencies"].each {
+//      def licenses = it["moduleLicenses"]
+//      def modLic = licenses?[0]?["moduleLicense"]
+//      if (modLic == null) {
+//        // check special cases manually here so a new module with no licenses doesn't cause issues.
+//        // see https://github.com/jk1/Gradle-License-Report/issues/263
+//        if ("com.fasterxml.jackson:jackson-bom".equals(it["moduleName"]) && "2.13.4".equals(it["moduleVersion"])) {
+//          licenseTypes.add("Apache-2.0")
+//        } else {
+//          ant.fail("New, unknown (null) license for dependency:" + it)
+//        }
+//      } else {
+//        licenseTypes.add(modLic)
+//      }
+//    }
+//    //println licenseTypes
+//    def licDir = new File("$projectDir/licenses")
+//    licDir.eachDir {
+//      licenseDirs.add(it.getName())
+//    }
+//    //println licenseDirs
+//    def fail = false
+//    def possibleDisallowed = new HashSet()
+//    licenseTypes.each {
+//      if (licenseDirs.contains(it)) {
+//        //println it + " OK (License Dir found)"
+//      } else {
+//        possibleDisallowed.add(it)
+//      }
+//    }
+//    // The dependencyCheck target is used to flag libraries that ONLY have a disallowed license, so
+//    // now we need to verify that none of the licenses that remain are listed as permitted since
+//    // that would indicate a gap in our documentation (we don't have to document disallowed licenses we haven't
+//    // elected to use)
+//    def allowedLicFile = new File("$projectDir/licenses/allowed-licenses.json").text
+//    def allowedLic = jsonSlurper.parseText(allowedLicFile)
+//
+//    def allowedNames = allowedLic["allowedLicenses"].collect() {
+//      return it["moduleLicense"]
+//    }
+//    possibleDisallowed.each {
+//      if (allowedNames.contains(it)) {
+//        fail = true
+//        println "FAIL:" + it + " (No directory, but listed as allowed)"
+//      }
+//    }
+//    if(fail) {
+//      ant.fail("One or more permitted license types do not have a directory in licenses (or are not recognized by the normalizer)")
+//    }
+//    def missingCount = 0
+//    obj["dependencies"].each {
+//      def licenses = it["moduleLicenses"]
+//      def modLic = licenses?[0]?["moduleLicense"]
+//      if(possibleDisallowed.contains(modLic)) {
+//        return
+//      }
+//
+//      if (!modLic) {
+//        if ("com.fasterxml.jackson:jackson-bom".equals(it["moduleName"]) && "2.13.4".equals(it["moduleVersion"])) {
+//          modLic = "Apache-2.0"
+//        } else {
+//          ant.fail("New, unknown (null) license for dependency:" + it)
+//        }
+//      }
+//
+//      def readme1 = "$projectDir/licenses/" + modLic + "/README.txt"
+//      def license = "$projectDir/licenses/" + modLic + "/" + modLic + ".txt"
+//      def artifact = it["moduleName"].contains(":") ? it["moduleName"].split(":")[1] : it["moduleName"]
+//      def version = it["moduleVersion"]
+//      def readme2 = "$projectDir/licenses/" + modLic + "/" + artifact + "-" + version + "/README.txt"
+//      def notice = "$projectDir/licenses/" + modLic + "/" + artifact + "-" + version + "/NOTICE.txt"
+//      def notice_md = "$projectDir/licenses/" + modLic + "/" + artifact + "-" + version + "/NOTICE.md"
+//
+//      def readmeFile1 = file(readme1)
+//      if (!readmeFile1.exists()) {
+//        fail = true
+//        missingCount++
+//        println "FAIL: license level README.txt not found at " + readme1
+//      }
+//
+//      def licenseFile = file(license)
+//      if (!licenseFile.exists()) {
+//        if ("Public-Domain" == modLic) {
+//          def pubDomLic = license.replace("Public-Domain.txt", "Apache-JJ-2.0.txt" )
+//          def pubDomLicFile = file(pubDomLic)
+//          if (!pubDomLicFile.exists()) {
+//            fail = true
+//            missingCount++
+//            println "FAIL: special license file for public domain not found at " + pubDomLic
+//          }
+//        } else {
+//          fail = true
+//          missingCount++
+//          println "FAIL: license file not found at " + license
+//        }
+//      }
+//
+//      def readmeFile2 = file(readme2)
+//      if (!readmeFile2.exists()) {
+//        fail = true
+//        missingCount++
+//        println "FAIL: library level README.txt not found at " + readme2
+//      }
+//
+//      def noticeFile = file(notice)
+//      def noticeMdFile = file(notice_md)
+//      if ("Apache-2.0" == modLic) {
+//        if (!noticeFile.exists() && !noticeMdFile.exists()) {
+//          fail = true
+//          missingCount++
+//          println "FAIL: library level NOTICE.txt not found at " + notice
+//        }
+//      }
+//    }
+//
+//    if(fail) {
+//      ant.fail(missingCount + " license documentation errors were found. See above output for details")
+//    }
+//
+////    def licsByDep = [:]
+////    for (Object dir : licenseDirs) {
+////      ld = new File("$projectDir/licenses/$dir")
+////      ld.eachDir {
+////        licsByDep.get(it.name,[]).add(ld.name)
+////      }
+////    }
+//
   }
 }
 
