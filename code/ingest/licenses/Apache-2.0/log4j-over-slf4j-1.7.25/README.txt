@@ -10,4 +10,4 @@ There is no Notice file for this version of log4j-over-slf4j
 
 This was verified at:
 
-https://github.com/qos-ch/slf4j/tree/v_1.7.25
+https://github.com/qos-ch/slf4j/tree/v_1.7.25/log4j-over-slf4j
