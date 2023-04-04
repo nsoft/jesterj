@@ -9,6 +9,7 @@ The above notice was found here:
 
 http://snowball.tartarus.org/license.html
 
+No version specific tag could be found https://github.com/snowballstem/snowball/tags
 
 Copy of License
 ---------------

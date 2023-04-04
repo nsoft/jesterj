@@ -2,7 +2,7 @@ Copyright Declaration
 ---------------------
 Copyright <YEAR> <COPYRIGHT HOLDER>
 
-This project fails to declare a specific copyritht
+This project fails to declare a specific copyright
 
 Evidence of this can be found at:
 

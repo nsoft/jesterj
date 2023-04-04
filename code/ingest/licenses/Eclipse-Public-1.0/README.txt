@@ -9,8 +9,3 @@ should contain:
 
 1. Availability of Source Code
 
-The source code for ecj can be determined only by understanding the build at
-
-https://github.com/eclipse-jdt/eclipse.jdt.core/blob/R4_6_maintenance/org.eclipse.jdt.core/pom.xml#L143
-
-Not ideal, but pester the eclipse foundation not jesterj, we can only point you to what they provide.

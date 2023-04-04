@@ -15,5 +15,9 @@ explain how this satisfies ** their own ** license!!)
 Another clue might be to disect whatever it is this ant build is doing:
 https://github.com/eclipse-jdt/eclipse.jdt.core/blob/R4_6_1/org.eclipse.jdt.core/scripts/export-ecj.xml
 
+Another possible option is to understand this build
+
+https://github.com/eclipse-jdt/eclipse.jdt.core/blob/R4_6_maintenance/org.eclipse.jdt.core/pom.xml#L143
+
 If the eclipse foundation gets their act together and makes it possible to *find* their source code I'll
 be happy to tell folks where it is.
