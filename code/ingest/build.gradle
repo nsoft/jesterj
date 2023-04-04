@@ -317,13 +317,22 @@ tasks.register("verifyLicenseDirs") {
 //      ant.fail(missingCount + " license documentation errors were found. See above output for details")
 //    }
 //
-////    def licsByDep = [:]
-////    for (Object dir : licenseDirs) {
-////      ld = new File("$projectDir/licenses/$dir")
-////      ld.eachDir {
-////        licsByDep.get(it.name,[]).add(ld.name)
-////      }
-////    }
+//    def licsByDep = [:]
+//    for (Object dir : licenseDirs) {
+//      def ld = new File("$projectDir/licenses/$dir")
+//      ld.eachDir {
+//        def deps = licsByDep.get(it.name, [])
+//        deps.add(ld.name)
+//        if (deps.size() > 1) {
+//          fail = true;
+//          println "FAIL: " + it.name + " exists in multiple license directories: " + deps
+//        }
+//      }
+//    }
+//
+//    if(fail) {
+//      ant.fail("Some dependencies have been listed in more than one license dir see output above for details")
+//    }
 //
   }
 }
