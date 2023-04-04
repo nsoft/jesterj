@@ -1,3 +1,6 @@
+//file:noinspection VulnerableLibrariesLocal
+import org.jesterj.licensereport.PreferredLicensesFilter
+
 import java.text.SimpleDateFormat
 import java.time.Instant
 
@@ -33,7 +36,7 @@ plugins {
   id 'signing'
 //  id 'maven'
   id 'maven-publish'
-  id 'com.github.jk1.dependency-license-report' version '2.1'
+  id 'com.github.jk1.dependency-license-report'// version '2.1'  // fersion determined in buildSrc
   id "com.github.onslip.gradle-one-jar" version "1.0.5"
   id 'com.needhamsoftware.unojar' version '1.1.0'
 }
@@ -147,10 +150,36 @@ dependencies {
 import com.github.jk1.license.filter.*
 import com.github.jk1.license.render.*
 licenseReport {
+  unionParentPomLicenses = false
   configurations = ['unoJarPack']
-  renderers = [new InventoryHtmlReportRenderer(), new JsonReportRenderer()]
+  renderers = [new InventoryHtmlReportRenderer(), new JsonReportRenderer("index.json", false)]
   allowedLicensesFile = new File("$projectDir/licenses/allowed-licenses.json")
-  filters = [new LicenseBundleNormalizer(bundlePath: "$projectDir/licenses/license-normalizer-bundle.json", createDefaultTransformationRules:false)]
+
+  def normalizer = new LicenseBundleNormalizer(
+      bundlePath: "$projectDir/licenses/license-normalizer-bundle.json",
+      createDefaultTransformationRules: false)
+
+  def preferences = new PreferredLicensesFilter([
+      "Apache-2.0",
+      "Apache-1.0-no-acknowledge",
+      "CC0-1.0",
+      "MIT",
+      "MIT-OneJar",
+      "BSD-2-Clause",
+      "BSD-3-Clause",
+      "BSD-3-Clause-Nuclear",
+      "Eclipse-Distribution-1.0",
+      "Bouncy-Castle",
+      "CUP-Parser",
+      "ISC",
+      "Public-Domain",
+      "Eclipse-Public-1.0",
+      "Eclipse-Public-2.0",
+      "Mozilla-1.1",
+      "CDDL-1.0",
+      "UnRar"
+  ])
+  filters = [normalizer, preferences]
 }
 import groovy.json.JsonSlurper
 
@@ -161,11 +190,13 @@ tasks.register("verifyLicenseDirs") {
     def jsonReport = new File("$projectDir/build/reports/dependency-license/index.json").text
     def jsonSlurper = new JsonSlurper()
     def obj = jsonSlurper.parseText(jsonReport)
-    println "Found " + obj["dependencies"].size() + " dependencies"
+    def numberOfDependencies = obj["dependencies"].size()
+    println "Found " + numberOfDependencies + " dependencies"
     def licenseTypes = new HashSet()
     def licenseDirs = new HashSet()
     obj["dependencies"].each {
-        def modLic = it["moduleLicense"]
+      def licenses = it["moduleLicenses"]
+      def modLic = licenses?[0]?["moduleLicense"]
       if (modLic == null) {
         // check special cases manually here so a new module with no licenses doesn't cause issues.
         // see https://github.com/jk1/Gradle-License-Report/issues/263
@@ -212,6 +243,76 @@ tasks.register("verifyLicenseDirs") {
     if(fail) {
       ant.fail("One or more permitted license types do not have a directory in licenses (or are not recognized by the normalizer)")
     }
+    def missingCount = 0
+    obj["dependencies"].each {
+      def licenses = it["moduleLicenses"]
+      def modLic = licenses?[0]?["moduleLicense"]
+      if(possibleDisallowed.contains(modLic)) {
+        return
+      }
+
+      if (!modLic) {
+        if ("com.fasterxml.jackson:jackson-bom".equals(it["moduleName"]) && "2.13.4".equals(it["moduleVersion"])) {
+          modLic = "Apache-2.0"
+        } else {
+          ant.fail("New, unknown (null) license for dependency:" + it)
+        }
+      }
+
+      def readme1 = "$projectDir/licenses/" + modLic + "/README.txt"
+      def license = "$projectDir/licenses/" + modLic + "/" + modLic + ".txt"
+      def artifact = it["moduleName"].contains(":") ? it["moduleName"].split(":")[1] : it["moduleName"]
+      def version = it["moduleVersion"]
+      def readme2 = "$projectDir/licenses/" + modLic + "/" + artifact + "-" + version + "/README.txt"
+      def notice = "$projectDir/licenses/" + modLic + "/" + artifact + "-" + version + "/NOTICE.txt"
+      def notice_md = "$projectDir/licenses/" + modLic + "/" + artifact + "-" + version + "/NOTICE.md"
+
+      def readmeFile1 = file(readme1)
+      if (!readmeFile1.exists()) {
+        fail = true
+        missingCount++
+        println "FAIL: license level README.txt not found at " + readme1
+      }
+
+      def licenseFile = file(license)
+      if (!licenseFile.exists()) {
+        if ("Public-Domain" == modLic) {
+          def pubDomLic = license.replace("Public-Domain.txt", "Apache-JJ-2.0.txt" )
+          def pubDomLicFile = file(pubDomLic)
+          if (!pubDomLicFile.exists()) {
+            fail = true
+            missingCount++
+            println "FAIL: special license file for public domain not found at " + pubDomLic
+          }
+        } else {
+          fail = true
+          missingCount++
+          println "FAIL: license file not found at " + license
+        }
+      }
+
+      def readmeFile2 = file(readme2)
+      if (!readmeFile2.exists()) {
+        fail = true
+        missingCount++
+        println "FAIL: library level README.txt not found at " + readme2
+      }
+
+      def noticeFile = file(notice)
+      def noticeMdFile = file(notice_md)
+      if ("Apache-2.0" == modLic) {
+        if (!noticeFile.exists() && !noticeMdFile.exists()) {
+          fail = true
+          missingCount++
+          println "FAIL: library level NOTICE.txt not found at " + notice
+        }
+      }
+    }
+
+    if(fail) {
+      ant.fail(missingCount + " license documentation errors were found. See above output for details")
+    }
+
   }
 }
 
@@ -332,10 +433,11 @@ packageUnoJar.doLast {
     }
   }
 
-task generateNotices() {
+tasks.register('generateNotices') {
   doLast {
     def toConcatenate = fileTree(file('licenses')) {
-      include '**/Apache-2.0/*/NOTICE.txt'
+      include '**/NOTICE.txt'
+      include '**/NOTICE.md'
     }
     def header = new File("notice-header.txt")
     def output = new File("NOTICE.txt")
@@ -408,18 +510,20 @@ ext.uploadRepo = isRelease ? releaseRepo : (isSnapshot ? snapshotRepo : testingR
 //task uploadSnapshot(dependsOn: uploadArchives) {}
 //task uploadRelease(dependsOn: uploadArchives) {}
 
-task sourcesJar(type: Jar, dependsOn: classes) {
+tasks.register('sourcesJar', Jar) {
+  dependsOn classes
   //noinspection GroovyAccessibility
   archiveClassifier = 'sources'
   from sourceSets.main.allSource
-  archiveFileName = 'jesterj-ingest-'+project.version+'-sources.jar'
+  archiveFileName = 'jesterj-ingest-' + project.version + '-sources.jar'
 }
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
+tasks.register('javadocJar', Jar) {
+  dependsOn javadoc
   //noinspection GroovyAccessibility
   archiveClassifier = 'javadoc'
   from javadoc.destinationDir
-  archiveFileName = 'jesterj-ingest-'+project.version+'-javadoc.jar'
+  archiveFileName = 'jesterj-ingest-' + project.version + '-javadoc.jar'
 }
 
 artifacts {
@@ -428,7 +532,7 @@ artifacts {
 }
 
 // A little idiot proofing...
-task checkUploadDest {
+tasks.register('checkUploadDest') {
   doLast {
     if (gradle.taskGraph.hasTask(':uploadRelease')) {
       if (isSnapshot) {
@@ -456,6 +560,13 @@ signing {
     required { !isLocalVersion && gradle.taskGraph.hasTask('uploadArchives') }
     sign configurations.archives
 }
+
+// fix grouping of tasks in ide
+checkLicense.group = "license"
+checkLicensePreparation.group = "license"
+verifyLicenseDirs.group = "license"
+generateNotices.group = "license"
+generateLicenseReport.group = "license"
 
 
 ext.isLocalVersion = !version.endsWith("LOCAL")

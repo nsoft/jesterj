@@ -21,6 +21,10 @@
       "moduleVersion": ".*"
     },
     {
+      "moduleLicense": "BSD-3-Clause-Nuclear",
+      "moduleVersion": ".*"
+    },
+    {
       "moduleLicense": "CUP-Parser",
       "moduleVersion": "11b-20160615",
       "moduleName": "com.github.vbmacher:java-cup-runtime"
@@ -52,6 +56,10 @@
       "moduleVersion": ".*"
     },
     {
+      "moduleLicense": "CC0-1.0",
+      "moduleVersion": ".*"
+    },
+    {
       "moduleLicense": "Public-Domain",
       "moduleVersion": "1.9",
       "moduleName": "org.tukaani:xz"
@@ -80,11 +88,6 @@
       "moduleLicense": "ISC",
       "moduleVersion": "0.4",
       "moduleName": "org.mindrot:jbcrypt"
-    },
-    {
-      "moduleLicense": "CC0-1.0",
-      "moduleVersion": "1.0.3",
-      "moduleName": "org.reactivestreams:reactive-streams"
     }
   ]
 }
