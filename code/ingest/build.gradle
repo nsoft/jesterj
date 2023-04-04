@@ -190,16 +190,13 @@ tasks.register("verifyLicenseDirs") {
     def jsonReport = new File("$projectDir/build/reports/dependency-license/index.json").text
     def jsonSlurper = new JsonSlurper()
     def obj = jsonSlurper.parseText(jsonReport)
-    println "Found " + obj["dependencies"].size() + " dependencies"
+    def numberOfDependencies = obj["dependencies"].size()
+    println "Found " + numberOfDependencies + " dependencies"
     def licenseTypes = new HashSet()
     def licenseDirs = new HashSet()
     obj["dependencies"].each {
-      println it
-
       def licenses = it["moduleLicenses"]
-      println licenses
       def modLic = licenses?[0]?["moduleLicense"]
-      println modLic
       if (modLic == null) {
         // check special cases manually here so a new module with no licenses doesn't cause issues.
         // see https://github.com/jk1/Gradle-License-Report/issues/263
@@ -436,10 +433,11 @@ packageUnoJar.doLast {
     }
   }
 
-task generateNotices() {
+tasks.register('generateNotices') {
   doLast {
     def toConcatenate = fileTree(file('licenses')) {
-      include '**/Apache-2.0/*/NOTICE.txt'
+      include '**/NOTICE.txt'
+      include '**/NOTICE.md'
     }
     def header = new File("notice-header.txt")
     def output = new File("NOTICE.txt")
@@ -512,18 +510,20 @@ ext.uploadRepo = isRelease ? releaseRepo : (isSnapshot ? snapshotRepo : testingR
 //task uploadSnapshot(dependsOn: uploadArchives) {}
 //task uploadRelease(dependsOn: uploadArchives) {}
 
-task sourcesJar(type: Jar, dependsOn: classes) {
+tasks.register('sourcesJar', Jar) {
+  dependsOn classes
   //noinspection GroovyAccessibility
   archiveClassifier = 'sources'
   from sourceSets.main.allSource
-  archiveFileName = 'jesterj-ingest-'+project.version+'-sources.jar'
+  archiveFileName = 'jesterj-ingest-' + project.version + '-sources.jar'
 }
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
+tasks.register('javadocJar', Jar) {
+  dependsOn javadoc
   //noinspection GroovyAccessibility
   archiveClassifier = 'javadoc'
   from javadoc.destinationDir
-  archiveFileName = 'jesterj-ingest-'+project.version+'-javadoc.jar'
+  archiveFileName = 'jesterj-ingest-' + project.version + '-javadoc.jar'
 }
 
 artifacts {
@@ -532,7 +532,7 @@ artifacts {
 }
 
 // A little idiot proofing...
-task checkUploadDest {
+tasks.register('checkUploadDest') {
   doLast {
     if (gradle.taskGraph.hasTask(':uploadRelease')) {
       if (isSnapshot) {
@@ -560,6 +560,13 @@ signing {
     required { !isLocalVersion && gradle.taskGraph.hasTask('uploadArchives') }
     sign configurations.archives
 }
+
+// fix grouping of tasks in ide
+checkLicense.group = "license"
+checkLicensePreparation.group = "license"
+verifyLicenseDirs.group = "license"
+generateNotices.group = "license"
+generateLicenseReport.group = "license"
 
 
 ext.isLocalVersion = !version.endsWith("LOCAL")

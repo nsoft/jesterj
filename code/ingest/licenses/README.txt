@@ -1,4 +1,4 @@
-JesterJ is disributed under the terms of the Apache-2.0 license.
+JesterJ is distributed under the terms of the Apache-2.0 license.
 
 --------------------------------------------------------------------
 
@@ -53,15 +53,12 @@ urls at which related information can be verified.
 
 ********************************************************************************
 ***                                                                          ***
-***  USE OF JesterJ's EXECUTABLE JAR IS AN ACCEPTANCE OF THE LICENSES BELOW  ***
+***    USE OF JesterJ's EXECUTABLE JAR IS AN ACCEPTANCE OF THESE LICENSES    ***
 ***                                                                          ***
 ********************************************************************************
 
-Please note that since there are no compliance requirements for Public Domain
-software, no separate directory needs to be maintained listing those libraries.
-
-Public domain software used by JesterJ is redistributed to you under ASL 2.0, but
-we also attempt to identify a location where you may obtain the software
+Public domain software used by JesterJ is redistributed to you under a modified
+ASL 2.0, but we also attempt to identify a location where you may obtain the software
 directly as public domain software.
 
 
