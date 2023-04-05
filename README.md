@@ -47,23 +47,17 @@ Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki
 
 # Project Status
 
-**Current release**: 1.0-beta2. (Very stale, very buggy, not reccomended)
+**Current release**: 1.0-Beta3. This is the best version to use, and should be fully functional.
 
-**Reccomended:** Build from `master` branch (Only waiting on documentation for release)
+**Next Release:** 1.0 will be published if no serious issues are found in beta3 within two weeks.
 
- - `cd /code/ingest; ./gradlew packageUnoJar`
- - use /code/ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar
- - ask [on discord](https://discord.com/invite/RmdTYvpXr9) if you have issues with the build
 
-**Next Release:** 1.0-beta3
-
-This next release will be a true feature locked beta suitable for use with all the latest features.
-
-NOTE: The current code and the upcoming 1.0 release expect to support any design and load that can be serviced by a single machine.
-Scaling across many machines is a priority for future releases, but not yet available.
+NOTE: The current code and the upcoming 1.0 release target any design and load that can be serviced by a single machine.
 JesterJ is explicitly designed to take advantage of machines with many processors.
-Automatic scaling of threads/step based on load will be in 1.1 (current estimate), but in 1.0 you can design your plan with duplicates of your slowest step to alleviate bottlenecks.
-This is better than linear pipeline based systems which just have to choke on whatever is slowest, and for which the only way to speed up is to duplicate everything, which makes fault tolerance extremely difficult to manage.
+You can design your plan with duplicates of your slowest step to alleviate bottlenecks. Each duplicate implies an additional thread working on that step.
+Automatic scaling of threads is planned for 1.1 and Scaling across many machines is a key priority for the 2.x releases. As always, if you want these features sooner, please start a discussion and contribute a PR if you are able!
+
+
 
 # JDK versions
 
