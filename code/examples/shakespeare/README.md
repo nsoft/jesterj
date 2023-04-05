@@ -2,17 +2,24 @@ To see JesterJ in action, you can run this example. (Java 11 required)
 
 **PLEASE DO use this project to bootstrap your own!**
 
-Setup Solr
+## Setup Solr
 1. Set up a local Solr Cloud node with zookeeper on 9983  (or edit ShakespeareConfig.java to match your ports[^1])
 1. Create a collection named jjtest using the _default configset
 
-Set up JDK 11 for JesterJ
-1. For the commands below to work you will need to `export JAVA_HOME=~/gus/tools/java/zulu11.50.19-ca-jdk11.0.12-linux_x64/` (or similar)
+## Set up JDK 11 for JesterJ
+- For the commands below to work you will need to `export JAVA_HOME=~/gus/tools/java/zulu11.50.19-ca-jdk11.0.12-linux_x64/` (or similar)
 
-Start JesterJ
+## Build or Download JesterJ
+
+### Download: 
+- https://github.com/nsoft/jesterj/releases
+
+### Build:
 1. Clone https://github.com/nsoft/jesterj.git
 1. In /jesterj/code/ingest run `./gradlew  publishToMavenLocal` (to publish 1.0-SNAPSHOT required by this example)
 1. In /jesterj/code/example/shakespeare run `./gradlew build`
+
+## Run JesterJ
 1. In /jesterj/code/example/shakespeare run `$JAVA_HOME/bin/java -jar ../../ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar build/libs/example-shakespeare-1.0-SNAPSHOT.jar shakespeare mysecret`
 
 Once JesterJ goes throug it's startup, your search engine(s) should have indexed shakespeare's plays within a minute or so.
