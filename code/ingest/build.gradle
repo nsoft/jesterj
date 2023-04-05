@@ -422,6 +422,12 @@ jar {
     from { generatePomFileForMavenJavaPublication }
     rename ".*", "pom.xml"
   }
+  into("META-INF") {
+    from "$projectDir/NOTICE.txt"
+  }
+  into("META-INF") {
+    from "$projectDir/LICENSE.txt"
+  }
 }
 
 
@@ -477,6 +483,8 @@ tasks.register('generateNotices') {
     }
   }
 }
+packageUnoJar.dependsOn generateNotices
+jar.dependsOn generateNotices
 
 
 
@@ -488,6 +496,12 @@ tasks.register('sourcesJar', Jar) {
   archiveClassifier = 'sources'
   from sourceSets.main.allSource
   archiveFileName = 'jesterj-ingest-' + project.version + '-sources.jar'
+  into("META-INF") {
+    from "$projectDir/NOTICE.txt"
+  }
+  into("META-INF") {
+    from "$projectDir/LICENSE.txt"
+  }
 }
 
 tasks.register('javadocJar', Jar) {
@@ -496,6 +510,12 @@ tasks.register('javadocJar', Jar) {
   archiveClassifier = 'javadoc'
   from javadoc.destinationDir
   archiveFileName = 'jesterj-ingest-' + project.version + '-javadoc.jar'
+  into("META-INF") {
+    from "$projectDir/NOTICE.txt"
+  }
+  into("META-INF") {
+    from "$projectDir/LICENSE.txt"
+  }
 }
 
 artifacts {
@@ -526,7 +546,6 @@ tasks.register('checkUploadDest') {
   }
 }
 
-
 // fix grouping of tasks in ide
 checkLicense.group = "license"
 checkLicensePreparation.group = "license"
@@ -539,7 +558,6 @@ javadoc {
     options.addBooleanOption('html5', true)
   }
 }
-
 
 jar.manifest.attributes getManifestAttributes()
 sourcesJar.manifest.attributes getManifestAttributes()
@@ -556,12 +574,6 @@ def getManifestAttributes() {
   attrs.put('Build-Jdk', getJdk())
   attrs.put('Build-OS', "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}")
   return attrs
-}
-
-static def getTimestamp() {
-  def dt = new Date()
-  def df = new SimpleDateFormat('yyyy-MM-dd HH:mm:ss', Locale.ENGLISH)
-  df.format(dt)
 }
 
 static def getJdk() {
