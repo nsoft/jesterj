@@ -7,6 +7,8 @@ A highly flexible, scalable, fault-tolerant document ingestion system designed f
 
 Builds are run on infrastructure kindly donated by [<img align="top" src="https://crave.io/wp-content/uploads/2022/09/Crave_logo_black_bg-e1663023213710.png" alt="" width="100px" height="26px">](https://crave.io/)
 
+Note: CodeCov is having issues failing build icon may show for builds that passed. See issue #187
+
 
 ## The problem
 Frequently, search projects start by feeding a few documents manually to a search engine, often via the "just for testing" built in processing features of Solr such as [SolrCell](https://solr.apache.org/guide/6_6/uploading-data-with-solr-cell-using-apache-tika.html) or [post.jar](https://solr.apache.org/guide/6_6/post-tool.html#simpleposttool).
