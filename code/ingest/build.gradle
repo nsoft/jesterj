@@ -36,6 +36,7 @@ plugins {
   id 'signing'
 //  id 'maven'
   id 'maven-publish'
+  id 'com.palantir.git-version'
   id 'com.github.jk1.dependency-license-report' version '2.1'  // fersion determined in buildSrc
   id "com.github.onslip.gradle-one-jar" version "1.0.5"
   id 'com.needhamsoftware.unojar' version '1.1.0'
@@ -78,7 +79,10 @@ configurations.all {
 
 version = '1.0-SNAPSHOT'
 group = 'org.jesterj'
-def archiveName = 'jesterj-ingest'
+ext.shortDesc = 'JesterJ Core API'
+description = 'Library for writing JesterJ ingestion plans'
+
+ext.archiveName = 'jesterj-ingest'
 
 //////////////////////////
 
@@ -478,59 +482,6 @@ tasks.register('generateNotices') {
 
 jacocoTestReport.dependsOn test
 
-publishing {
-  publications {
-    mavenJava(MavenPublication) {
-      groupId project.group
-      artifactId 'jesterj-ingest'
-      version project.version
-      from components.java
-      artifact source: file(nodeFile), classifier: "node"
-    }
-  }
-}
-
-/*
-
- Maven Publishing stuff to publish to central. This also allows you to publish
- to a local repository on your system byt setting the version to -LOCAL instead
- of -SNAPSHOT. Specifically:
-
-  To test pom and artifact generation locally...
-
-  1. Ensure GPG keyring in .gnupg dir
-  2. Check that the value (above) for ext.
-  3. Change version to remove -SNAPSHOT and add -LOCAL
-  4. Run gradle uploadArchives
-  5. observe archives uploaded to ext.uploadRepo (adjust location as needed)
-
-
-  To release to central
-
-  1. Ensure GPG keyring in .gnupg dir
-  2. Ensure passwords for sonatype in gradle.properties
-  3. Test the production of artifacts locally with -LOCAL (see above)
-  4. No really, test it, and read everything...
-  5. Seriously, don't skip #3!
-  6. Change version to remove -SNAPSHOT
-  7. Run gradle uploadRelease
-  8. Hope to hell you didn't miss anything in step 3....
-  9. you skipped #3? OMG you suck... *sigh*
-
- */
-
-ext.isSnapshot = version.endsWith('-SNAPSHOT')
-ext.isLocal = version.endsWith('-LOCAL')
-ext.isRelease = !(isLocal || isSnapshot)
-
-ext.releaseRepo = 'https://oss.sonatype.org/service/local/staging/deploy/maven2'
-ext.snapshotRepo = 'https://oss.sonatype.org/content/repositories/snapshots'
-ext.testingRepo = 'file:///tmp/myRepo/'
-ext.uploadRepo = isRelease ? releaseRepo : (isSnapshot ? snapshotRepo : testingRepo)
-
-//task uploadSnapshot(dependsOn: uploadArchives) {}
-//task uploadRelease(dependsOn: uploadArchives) {}
-
 tasks.register('sourcesJar', Jar) {
   dependsOn classes
   //noinspection GroovyAccessibility
@@ -575,12 +526,6 @@ tasks.register('checkUploadDest') {
   }
 }
 
-// Uncomment this to do sonatype uploads (fails on all other machines looking for gpg key otherwise
-//
-signing {
-    required { !isLocalVersion && gradle.taskGraph.hasTask('uploadArchives') }
-    sign configurations.archives
-}
 
 // fix grouping of tasks in ide
 checkLicense.group = "license"
@@ -589,117 +534,12 @@ verifyLicenseDirs.group = "license"
 generateNotices.group = "license"
 generateLicenseReport.group = "license"
 
-
-ext.isLocalVersion = !version.endsWith("LOCAL")
-
-//uploadArchives {
-//  it.dependsOn checkUploadDest
-//  repositories {
-//    mavenDeployer {
-//      beforeDeployment { deployment -> signing.signPom(deployment) }
-//      repository(url: project.uploadRepo) {
-//        authentication(userName: propOrDefault('sonatypeUsername','foo'), password: propOrDefault('sonatypePassword','foo'))
-//      }
-//      pom.project {
-//        parent {
-//          groupId 'org.sonatype.oss'
-//          artifactId 'oss-parent'
-//          //noinspection GroovyAssignabilityCheck
-//          version '7'
-//        }
-//        artifactId 'jesterj-ingest'
-//        name 'JesterJ Ingester'
-//        description 'Document ingestion for search'
-//        url 'https://github.com/nsoft/jesterj'
-//        licenses {
-//          license {
-//            name 'The Apache Software License, Version 2.0'
-//            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-//            distribution 'repo'
-//          }
-//        }
-//        scm {
-//          connection 'scm:git:git@github.com:nsoft/jesterj.git'
-//          developerConnection 'scm:git:git@github.com:nsoft/jesterj.git'
-//          url 'git@github.com:nsoft/jesterj.git'
-//        }
-//        developers {
-//          developer {
-//            id 'nsoft'
-//            name 'Patrick Heck'
-//            email 'gus@needhamsoftware.com'
-//          }
-//        }
-//      }
-//      pom.withXml { root ->
-//        def children = root.asNode().children()
-//        def versionIndex = children.indexOf(children.find { it.name().localPart == 'version' })
-//        // Stuff that sonatype wants... there may be a way to make these appear automatically but...
-//        // http://issues.gradle.org/browse/GRADLE-1285
-//        children.add(versionIndex + 1, new Node(null, 'packaging', 'jar'))
-//      }
-//    }
-//  }
-//}
-
-publishing {
-  publications {
-    mavenJava(MavenPublication) {
-      artifactId = 'jesterj-ingest'
-//      from components.java
-
-      pom {
-        name = 'My Library'
-        description = 'A concise description of my library'
-        url = 'http://www.example.com/library'
-        properties = [
-            myProp: "value",
-            "prop.with.dots": "anotherValue"
-        ]
-        licenses {
-          license {
-            name = 'The Apache License, Version 2.0'
-            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-            distribution = 'repo'
-          }
-        }
-        developers {
-          developer {
-            id = 'johnd'
-            name = 'John Doe'
-            email = 'john.doe@example.com'
-          }
-        }
-        scm {
-          connection = 'scm:git:git://example.com/my-library.git'
-          developerConnection = 'scm:git:ssh://example.com/my-library.git'
-          url = 'http://example.com/my-library/'
-        }
-      }
-    }
-  }
-  repositories {
-    maven {
-      def releasesRepoUrl = 'http://localhost:8081/repository/maven-releases'
-      def snapshotsRepoUrl = 'http://localhost:8081/repository/maven-snapshots'
-      url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
-      allowInsecureProtocol=true
-      credentials {
-        username "admin"
-        password "admin123"
-      }
-    }
-  }
-}
-
-
 javadoc {
   if(JavaVersion.current().isJava9Compatible()) {
     options.addBooleanOption('html5', true)
   }
 }
 
-generateMetadataFileForMavenJavaPublication.dependsOn(packageUnoJar)
 
 jar.manifest.attributes getManifestAttributes()
 sourcesJar.manifest.attributes getManifestAttributes()
@@ -707,12 +547,14 @@ javadocJar.manifest.attributes getManifestAttributes()
 
 @SuppressWarnings("GroovyAssignabilityCheck")
 def getManifestAttributes() {
+  def gitDetails = versionDetails();
   Map<String, String> attrs = new LinkedHashMap<>()
   attrs.put('Implementation-Title', project.name)
   attrs.put('Implementation-Version', version)
-  attrs.put('Build-Timestamp', getTimestamp())
+  attrs.put('Build-Revision', gitDetails.gitHashFull + (gitDetails.clean ? '' : ' (with uncommitted files)'))
+  attrs.put('Created-By', "Gradle ${gradle.gradleVersion}")
   attrs.put('Build-Jdk', getJdk())
-  attrs.put('Build-Tool', gradle.gradleVersion)
+  attrs.put('Build-OS', "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}")
   return attrs
 }
 
@@ -726,7 +568,6 @@ static def getJdk() {
   "${System.getProperty('java.version')} (${System.getProperty('java.vm.vendor')} ${System.getProperty('java.vm.version')})"
 }
 
-@SuppressWarnings('unused')
-def propOrDefault(String prop, String defaultVal) {
-  return project.hasProperty(prop) ? project.getProperty(prop) : defaultVal
-}
+apply from:  file('./gradle/publishing/publishing.gradle')
+
+generateMetadataFileForMavenJavaPublication.dependsOn(packageUnoJar)

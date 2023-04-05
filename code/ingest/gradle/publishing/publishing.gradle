@@ -1,0 +1,107 @@
+/*
+
+ Maven Publishing stuff to publish to central. This also allows you to publish
+ to a local repository on your system byt setting the version to -LOCAL instead
+ of -SNAPSHOT. Specifically:
+
+  To test pom and artifact generation locally...
+
+  1. Ensure GPG keyring in .gnupg dir
+  2. Check that the value (above) for ext.
+  3. Change version to remove -SNAPSHOT and add -LOCAL
+  4. Run gradle uploadArchives
+  5. observe archives uploaded to ext.uploadRepo (adjust location as needed)
+
+
+  To release to central
+
+  1. Ensure GPG keyring in .gnupg dir
+  2. Ensure passwords for sonatype in gradle.properties
+  3. Test the production of artifacts locally with -LOCAL (see above)
+  4. No really, test it, and read everything...
+  5. Seriously, don't skip #3!
+  6. Change version to remove -SNAPSHOT
+  7. Run gradle uploadRelease
+  8. Hope to hell you didn't miss anything in step 3....
+  9. you skipped #3? OMG you suck... *sigh*
+
+ */
+
+ext.isSnapshot = version.endsWith('-SNAPSHOT')
+ext.isLocal = version.endsWith('-LOCAL')
+ext.isRelease = !(isLocal || isSnapshot)
+
+ext.releaseRepo = 'https://oss.sonatype.org/service/local/staging/deploy/maven2'
+ext.snapshotRepo = 'https://oss.sonatype.org/content/repositories/snapshots'
+ext.testingRepo = 'file:///tmp/myRepo/'
+ext.uploadRepo = isRelease ? releaseRepo : (isSnapshot ? snapshotRepo : testingRepo)
+
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      groupId project.group
+      artifactId archiveName
+      version project.version
+      pom {
+        name = shortDesc
+        description = project.description
+        url = 'https://github.com/nsoft/jesterj'
+        licenses {
+          license {
+            name = 'Apache License, Version 2.0'
+            url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+            distribution = 'repo'
+          }
+        }
+        scm {
+          connection = 'scm:git:git@github.com:nsoft/jesterj.git'
+          developerConnection = 'scm:git:git@github.com:nsoft/jesterj.git'
+          url =  'git@github.com:nsoft/jester.git'
+        }
+        developers {
+          developer {
+            id = 'nsoft'
+            name =  'Patrick Heck'
+            email = 'gus@needhamsoftware.com'
+          }
+        }
+      }
+      pom.withXml { root ->
+        def children = root.asNode().children()
+        def versionIndex = children.indexOf(children.find { it.name().localPart == 'version' })
+        // Stuff that sonatype wants... there may be a way to make these appear automatically but...
+        // http://issues.gradle.org/browse/GRADLE-1285
+        children.add(versionIndex + 1, new Node(null, 'packaging', 'jar'))
+      }
+      from components.java
+      artifact sourcesJar {
+        classifier "sources"
+      }
+      artifact javadocJar {
+        classifier "javadoc"
+      }
+      repositories {
+        maven {
+          name = "sonatype"
+          if (!isLocal) {
+            credentials(PasswordCredentials)
+          }
+          url = uploadRepo
+        }
+      }
+    }
+  }
+}
+
+def haveUser = project.hasProperty("sonatypeUsername")
+def userName = haveUser? project.property("sonatypeUsername") : "none"
+if (haveUser && userName == "nsoft"){
+  // no point in signing unless able to upload
+  signing {
+    sign publishing.publications.mavenJava
+  }
+  signMavenJavaPublication.dependsOn(["sourcesJar","javadocJar","build"])
+} else {
+  println "Upload user not found, not signing Jars"
+}
+
