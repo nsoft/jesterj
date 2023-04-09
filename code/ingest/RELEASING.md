@@ -1,5 +1,10 @@
 # Key tasks prior to release
 
+## Prerequisites
+
+1. Key for signing the release
+2. Login credentials for sonatype's nexus
+
 ## Licenses
 
 The management of licenses is one of the biggest challenges in this project. There are over 300 possible licenses available for something like 250 dependencies, and we must declare which license we choose and then explicitly comply with the requirements of the license we chose.
