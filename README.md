@@ -49,9 +49,9 @@ Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki
 
 # Project Status
 
-**Current release**: 1.0-Beta3. This is the best version to use, and should be fully functional.
+**Current release**: 1.0-Beta3. This is the best version to use, and should be mostly functional. (known issue: https://github.com/nsoft/jesterj/issues/189)
 
-**Next Release:** 1.0 will be published if no serious issues are found in beta3 within two weeks.
+**Next Release:** 1.0-Beta4 will be published soon  if no serious issues are found in within two weeks 1.0 will be released.
 
 
 NOTE: The current code and the upcoming 1.0 release target any design and load that can be serviced by a single machine.
