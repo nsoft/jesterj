@@ -5,9 +5,9 @@ name: Java CI with Gradle
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, branch_1x ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, branch_1x ]
   schedule:
     - cron: 0 0 */3 * *
 
