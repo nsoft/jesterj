@@ -149,12 +149,7 @@ public class DocumentImpl implements Document {
     return new DocumentImpl(rawData, getId() + CHILD_SEP + childId, operation, this);
   }
 
-  @Override
-  public Multiset<String> keys() {
-    return delegate.keys();
-  }
-
-  @Override
+    @Override
   public boolean putAll(@Nullable java.lang.String key, Iterable<? extends String> values) {
     return delegate.putAll(key, values);
   }
@@ -169,11 +164,6 @@ public class DocumentImpl implements Document {
     } else {
       return delegate.put(key, value);
     }
-  }
-
-  @Override
-  public boolean putAll(Multimap<? extends String, ? extends String> multimap) {
-    return delegate.putAll(multimap);
   }
 
   @Override
@@ -206,10 +196,7 @@ public class DocumentImpl implements Document {
     return delegate.isEmpty();
   }
 
-  @Override
-  public void clear() {
-    delegate.clear();
-  }
+
 
   @Override
   public Map<String, Collection<String>> asMap() {

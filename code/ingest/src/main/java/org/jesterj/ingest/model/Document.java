@@ -17,8 +17,11 @@
 package org.jesterj.ingest.model;
 
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
 
+import javax.annotation.Nullable;
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,13 +31,44 @@ import java.util.Set;
  * exists to document the methods that authors of processors should interact with. There are multiple places where this
  * will get cast to DocumentImpl, but doing so inside a processor may be dangerous.
  */
-public interface Document extends ListMultimap<String, String>, Serializable {
+public interface Document extends  Serializable {
 
   /**
    * The 'file_size' field which holds the size of the original content for an input document as
    * the framework first pulled it in.
    */
   String DOC_RAW_SIZE = "doc_raw_size";
+
+
+  Set<String> keySet();
+
+  boolean containsEntry(@Nullable Object key, @Nullable Object value);
+
+  boolean remove(@Nullable Object key, @Nullable Object value);
+
+  boolean containsValue(@Nullable Object value);
+
+  Collection<Map.Entry<String, String>> entries();
+
+  boolean isEmpty();
+
+  Map<String, Collection<String>> asMap();
+
+  List<String> replaceValues(@Nullable String key, Iterable<? extends String> values);
+
+  Collection<String> values();
+
+  boolean containsKey(@Nullable Object key);
+
+  List<String> get(@Nullable String key);
+
+  int size();
+
+  List<String> removeAll(@Nullable Object key);
+
+  boolean putAll(@Nullable String key, Iterable<? extends String> values);
+
+  boolean put(String field, String value);
 
   /**
    * Get the raw bytes from which this item was constructed. This is usually only used by the first or
