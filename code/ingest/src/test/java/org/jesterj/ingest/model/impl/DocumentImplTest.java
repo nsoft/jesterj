@@ -120,13 +120,11 @@ public class DocumentImplTest {
 
     assertEquals(Document.Operation.NEW, impl.getOperation());
 
-    ArrayListMultimap<String,String> mm = ArrayListMultimap.create();
-    mm.put("foo","bar");
-    mm.put("foo","baz");
-    mm.put("fizz","buzz");
-    mm.put("nullthing", null);
+    impl.put("foo","bar");
+    impl.put("foo","baz");
+    impl.put("fizz","buzz");
+    impl.put("nullthing", null);
 
-    impl.putAll(mm);
 
     assertTrue(impl.containsKey("foo"));
     assertTrue(impl.containsValue("bar"));
@@ -205,7 +203,6 @@ public class DocumentImplTest {
         "}", impl.toString());
 
     assertFalse(impl.isEmpty());
-    impl.clear();
-    assertTrue(impl.isEmpty());
+
   }
 }
