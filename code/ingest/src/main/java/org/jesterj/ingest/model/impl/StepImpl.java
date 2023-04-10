@@ -36,6 +36,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.jesterj.ingest.model.Status.*;
+
 /**
  * The class that is used to run {@link DocumentProcessor}s. This class takes care of the handling of the document
  * ensures it is properly received and passed on. This class is not normally overridden, to implement custom
@@ -307,7 +309,7 @@ public class StepImpl implements Step {
 
   @Override
   public void sendToNext(Document doc) {
-    pushToNextIfOk(doc);
+    pushToNextIfNotDropped(doc);
   }
 
 
@@ -426,15 +428,47 @@ public class StepImpl implements Step {
     return priorSteps;
   }
 
-  void pushToNextIfOk(Document document) {
-    pushToNextIfOk(document, false);
+  void pushToNextIfNotDropped(Document document) {
+    boolean allDrop = true;
+    DocStatusChange statusChange = document.getStatusChange();
+    String id = document.getId();
+    if (statusChange == null) {
+      log.trace("No Status change for {}", id);
+      allDrop = false;
+    } else {
+      log.trace("Status change for {} = {}", id, statusChange);
+
+      Collection<String> droppedDestinations;
+      if (statusChange.getStatus() == DROPPED){
+        log.trace("Status was DROPPED for {}", id);
+        droppedDestinations = statusChange.getSpecificDestinations();
+        // else allDrop remains true
+        if (droppedDestinations != null && droppedDestinations.size() != 0) {
+          log.trace("Had dropped destinations: {} for {}", droppedDestinations, id);
+          // we have been routed, check for non-drop statuses (likely true)
+          for (String dest : document.getIncompleteOutputDestinations()) {
+            log.trace("SAW STATUS:{} and change:{} for {}", () -> document.getStatus(dest), statusChange::getStatus, ()-> id);
+            allDrop &= droppedDestinations.contains(dest);
+          }
+        } // else allDrop remains true
+      } else {
+       allDrop = false;
+      }
+    }
+    if (!allDrop) {
+      log.trace("Pushing on:{}", id);
+      pushToNextIfOk(document, false);
+    } else {
+      log.trace("Dropping:{}", id);
+      document.reportDocStatus();
+    }
   }
   void pushToNextIfOk(Document document, boolean processorSkipped) {
     try {
       log.trace("starting push to next if ok {} for {}", getName(), document.getId());
       NextSteps next = getNextSteps(document);
       log.trace("Found {} next steps", next == null ? "(null)" : next.size());
-      if (document.getIncompleteOutputDestinations().length < 1 && nextSteps.isEmpty()) {
+      if (document.getIncompleteOutputDestinations().length < 1 && getNextSteps().isEmpty()) {
         throw new RuntimeException("Critical failure! No down stream step on Document after routing. This is likely to be a bug " +
             "in JesterJ, please report an issue in the project issue tracker. Current Step:" + getName() +
             " Document:" + document + " Router class:" + (getRouter() == null ? "(no router)": getRouter().getClass()));
@@ -474,7 +508,7 @@ public class StepImpl implements Step {
         }
         // we have a single step, we are the right type of step, and this is the expected step. Our work is done here!
         Status currStat = document.getStatus(document.getIncompleteOutputDestinations()[0]);
-        if (!Status.BATCHED.equals(currStat) && !Status.INDEXING.equals(currStat) ) {
+        if (!BATCHED.equals(currStat) && !INDEXING.equals(currStat) ) {
           markIndexed((DocumentImpl) document);
           document.reportDocStatus();
         }
@@ -506,7 +540,7 @@ public class StepImpl implements Step {
   void markIndexed(DocumentImpl document) {
     log.trace("{} finished processing {}", getName(), document.getId());
     // relies on status update logic to only update destinations that pertain to this step.
-    document.setStatus(Status.INDEXED, "Last available step {} completed OK,", getName());
+    document.setStatus(INDEXED, "Last available step {} completed OK,", getName());
   }
 
   void pushToNext(NextSteps next) {
@@ -599,7 +633,7 @@ public class StepImpl implements Step {
       }
     } catch (Throwable t) {
       t.printStackTrace();
-      log.error(t);
+      log.error("Throwable:",t);
       String message = "Thread for " + getName() + " died. This should not happen and is always a bug in JesterJ " +
           "unless you killed the process with Ctrl-C or similar. This plan is Shutting down for safety. If the " +
           "process was not killed, and you got this message during normal running, please open a bug report at " +
@@ -638,7 +672,7 @@ public class StepImpl implements Step {
     e.printStackTrace(new PrintWriter(buff));
     String errorMsg = message + " " + e.getMessage() + "\n" + buff;
 
-    doc.setStatus(Status.ERROR, errorMsg, params);
+    doc.setStatus(ERROR, errorMsg, params);
     doc.reportDocStatus();
     if (e instanceof InterruptedException) {
       log.debug("Step interrupted!", e);
@@ -673,9 +707,9 @@ public class StepImpl implements Step {
         String[] incompleteOutputSteps = document.getIncompleteOutputDestinations();
 
         for (String incompleteOutputStep : incompleteOutputSteps) {
-          if (document.getStatus(incompleteOutputStep) == Status.ERROR ||
-              document.getStatus(incompleteOutputStep) == Status.DROPPED ||
-              document.getStatus(incompleteOutputStep) == Status.DEAD) {
+          if (document.getStatus(incompleteOutputStep) == ERROR ||
+              document.getStatus(incompleteOutputStep) == DROPPED ||
+              document.getStatus(incompleteOutputStep) == DEAD) {
             log.fatal("ATTEMPTED TO CONSUME {}} DOCUMENT!!", document.getStatus(incompleteOutputStep));
             log.fatal("offending doc:{}", document.getId());
             log.fatal("This is a bug in JesterJ");
@@ -692,14 +726,14 @@ public class StepImpl implements Step {
       } catch (Exception e) {
         log.warn("Exception processing step", e);
         document.stepStarted(StepImpl.this);
-        document.setStatus(Status.ERROR,"Exception while processing document in {}. Message:{}", getName(), e.getMessage());
+        document.setStatus(ERROR,"Exception while processing document in {}. Message:{}", getName(), e.getMessage());
         document.reportDocStatus();
         return;
       }
       if (documents != null) {
         for (Document documentResult : documents) {
           ((DocumentImpl) documentResult).stepStarted(StepImpl.this); // cloned docs need an introduction to the step.
-          pushToNextIfOk(documentResult);
+          pushToNextIfNotDropped(documentResult);
         }
       }
       log.trace("DOC CONSUMER END");
