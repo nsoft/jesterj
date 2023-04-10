@@ -246,7 +246,7 @@ public class DocumentImpl implements Document {
   @Override
   public Status getStatus(String outputDestination) {
     if (statusChange != null) {
-      Collection<String> specificSteps = statusChange.getSpecificSteps();
+      Collection<String> specificSteps = statusChange.getSpecificDestinations();
       if (specificSteps != null && specificSteps.contains(outputDestination)) {
         return statusChange.getStatus();
       }
@@ -258,7 +258,7 @@ public class DocumentImpl implements Document {
   @Override
   public String getStatusMessage(String outputDestination) {
     if (statusChange != null) {
-      if (statusChange.getSpecificSteps().contains(outputDestination)) {
+      if (statusChange.getSpecificDestinations().contains(outputDestination)) {
         return statusChange.getMessage();
       }
     }
@@ -366,6 +366,7 @@ public class DocumentImpl implements Document {
         "id=" + getId() +
         ", delegate=" + delegate +
         ", status=" + incompleteOutputDestinations +
+        ", statusChanges=" + statusChange +
         ", operation=" + operation +
         ", sourceScannerName='" + sourceScannerName + '\'' +
         ", idField='" + idField + '\'' +
@@ -448,9 +449,9 @@ public class DocumentImpl implements Document {
       List<DocDestinationStatus> destinationChanges = values.stream()
           .filter(v -> !statusChange.getStatus().isStepSpecific() ||
               (statusChange.getStatus().isStepSpecific() && step.isOutputDestinationThisStep(v.getOutputDestination())))
-          .filter(v -> statusChange.getSpecificSteps() == null ||
-              statusChange.getSpecificSteps().size() == 0 ||
-              statusChange.getSpecificSteps().contains(v.getOutputDestination()))
+          .filter(v -> statusChange.getSpecificDestinations() == null ||
+              statusChange.getSpecificDestinations().size() == 0 ||
+              statusChange.getSpecificDestinations().contains(v.getOutputDestination()))
           .map(v -> new DocDestinationStatus(
               statusChange.getStatus(),
               v.getOutputDestination(),

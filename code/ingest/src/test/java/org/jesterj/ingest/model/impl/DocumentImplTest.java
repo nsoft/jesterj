@@ -196,6 +196,7 @@ public class DocumentImplTest {
               "messageArgs=[]" +
             "}" +
           "}, " +
+          "statusChanges=DocStatusChange{status=ERROR, message='It was bad, {} bad', specificSteps=[destination2], messageArgs=[real]}, " +
           "operation=NEW, " +
           "sourceScannerName='scannerFoo', " +
           "idField='id', " +

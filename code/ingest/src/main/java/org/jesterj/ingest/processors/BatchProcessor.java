@@ -83,7 +83,7 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
     if (oldBatch != null) {
       sendBatch(oldBatch);
     }
-    log.info("Batch Processor ({}) processed {}", getName(), document.getId());
+    log.trace("Batch Processor ({}) processed {}", getName(), document.getId());
 
     return new Document[0];
   }
@@ -109,6 +109,7 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
         }
         batchOperation(oldBatch);
       } catch (Exception e) {
+        log.info("Batch Send failed", e);
         // we may have a single bad document...
         //noinspection ConstantConditions
         if (exceptionIndicatesDocumentIssue(e)) {

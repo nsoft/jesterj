@@ -47,7 +47,7 @@ public class RoundRobinRouter extends RouterBase {
     return name;
   }
 
-  public static class Builder extends NamedBuilder<RoundRobinRouter> {
+  public static class Builder extends RouterBase.Builder<RoundRobinRouter> {
     private RoundRobinRouter obj = new RoundRobinRouter();
 
     public Builder named(String name) {
