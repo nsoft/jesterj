@@ -9,15 +9,15 @@ public class DocStatusChange implements Serializable {
 
   private final String message;
 
-  private final Collection<String> specificSteps;
+  private final Collection<String> specificDestinations;
 
 
   Serializable[] messageArgs;
   public DocStatusChange(Status status, String message, Serializable... messageArgs) {
     this(status,message,null,messageArgs);
   }
-  public DocStatusChange(Status status, String message, Collection<String> specificSteps, Serializable... messageArgs) {
-    this.specificSteps = specificSteps;
+  public DocStatusChange(Status status, String message, Collection<String> specificDestinations, Serializable... messageArgs) {
+    this.specificDestinations = specificDestinations;
     if (messageArgs != null) {
       for (Serializable messageArg : messageArgs) {
         if (messageArg != null) {
@@ -51,7 +51,7 @@ public class DocStatusChange implements Serializable {
     return "DocStatusChange{" +
         "status=" + status +
         ", message='" + message + '\'' +
-        ", specificSteps=" + specificSteps +
+        ", specificSteps=" + specificDestinations +
         ", messageArgs=" + Arrays.toString(messageArgs) +
         '}';
   }
@@ -60,7 +60,7 @@ public class DocStatusChange implements Serializable {
     return messageArgs;
   }
 
-  public Collection<String> getSpecificSteps() {
-    return specificSteps;
+  public Collection<String> getSpecificDestinations() {
+    return specificDestinations;
   }
 }

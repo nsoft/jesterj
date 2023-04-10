@@ -23,10 +23,7 @@ package org.jesterj.ingest.model.impl;
 
 import com.copyright.easiertest.Mock;
 import com.copyright.easiertest.ObjectUnderTest;
-import org.jesterj.ingest.model.ConfiguredBuildable;
-import org.jesterj.ingest.model.DocumentProcessor;
-import org.jesterj.ingest.model.Plan;
-import org.jesterj.ingest.model.Step;
+import org.jesterj.ingest.model.*;
 import org.jesterj.ingest.processors.*;
 import org.jesterj.ingest.routers.DuplicateToAll;
 import org.jesterj.ingest.scanners.SimpleFileScanner;
@@ -35,9 +32,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import static com.copyright.easiertest.EasierMocks.*;
+import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.*;
 
 public class StepImplTest {
@@ -55,6 +55,8 @@ public class StepImplTest {
   private Step testStep;
   @Mock private ConfiguredBuildable<? extends DocumentProcessor> mockProcessorBuilder;
   @Mock private DocumentProcessor mockProcessor;
+  @Mock private Document dockMock;
+  @Mock private DocStatusChange changeMock;
 
   public StepImplTest() {
     prepareMocks(this);
@@ -78,6 +80,69 @@ public class StepImplTest {
     builder.build();
   }
 
+  @Test
+  public void testPushToNextIfNotDroppedNoChanges() {
+    // if there are no changes, nothing interesting happens, and we just continue
+    expect(dockMock.getStatusChange()).andReturn(null);
+    expect(dockMock.getId()).andReturn("42").anyTimes();
+    step.pushToNextIfOk(dockMock,false);
+    replay();
+    step.pushToNextIfNotDropped(dockMock);
+  }
+  @Test
+  public void testPushToNextIfNotDroppedBatched() {
+    // if there athe status change is not DROPPED
+    expect(dockMock.getStatusChange()).andReturn(changeMock);
+    expect(dockMock.getId()).andReturn("42").anyTimes();
+    expect(changeMock.getStatus()).andReturn(Status.BATCHED);
+    step.pushToNextIfOk(dockMock,false);
+    replay();
+    step.pushToNextIfNotDropped(dockMock);
+  }
+
+  @Test
+  public void testPushToNextIfNotDroppedDropAll() {
+    // This time there is a status change of dropped and since it has no specific steps it means drop the entire document
+    expect(dockMock.getStatusChange()).andReturn(changeMock);
+    expect(dockMock.getId()).andReturn("42").anyTimes();
+    expect(changeMock.getStatus()).andReturn(Status.DROPPED);
+    expect(changeMock.getSpecificDestinations()).andReturn(null);
+    // key differnce, not pushToNext
+    dockMock.reportDocStatus();
+    replay();
+    step.pushToNextIfNotDropped(dockMock);
+  }
+
+  @Test
+  public void testPushToNextIfNotDroppedDropAll2() {
+    // This time there is a status change of dropped and since it has no specific steps it means drop the entire document
+    expect(dockMock.getStatusChange()).andReturn(changeMock);
+    expect(dockMock.getId()).andReturn("42").anyTimes();
+    expect(changeMock.getStatus()).andReturn(Status.DROPPED);
+    expect(changeMock.getSpecificDestinations()).andReturn(Collections.emptyList()); // empty list treated as null
+    // key differnce, not pushToNext
+    dockMock.reportDocStatus();
+    replay();
+    step.pushToNextIfNotDropped(dockMock);
+  }
+
+  @Test
+  public void testPushToNextIfNotDroppedRouterDroppedSome() {
+    // This time there is a status change of dropped but it relates to a router having dropped some destinations
+    // not all. This is a legal configuration, but maybe not legal at this point. I'm not 100% sure we really ever
+    // should see this case, and maybe it's should error instead?
+    expect(dockMock.getStatusChange()).andReturn(changeMock);
+    expect(dockMock.getId()).andReturn("42").anyTimes();
+    expect(changeMock.getStatus()).andReturn(Status.DROPPED);
+    expect(changeMock.getSpecificDestinations()).andReturn(List.of("foo"));
+    expect(dockMock.getIncompleteOutputDestinations()).andReturn(new String[]{"foo","bar"});
+
+    // key difference, pushToNext not report status
+    step.pushToNextIfOk(dockMock,false);
+
+    replay();
+    step.pushToNextIfNotDropped(dockMock);
+  }
 
   @Test
   public void testSideEffectsLastStep() {
