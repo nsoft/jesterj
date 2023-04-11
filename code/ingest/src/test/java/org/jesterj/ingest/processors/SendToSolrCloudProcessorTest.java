@@ -109,6 +109,26 @@ public class SendToSolrCloudProcessorTest {
   }
 
   @Test
+  public void testIdSubstitution() {
+    expect(docMock.getOperation()).andReturn(Document.Operation.NEW);
+    expect(docMock.keySet()).andReturn(Set.of("id","myField"));
+    expect(docMock.get("id")).andReturn(List.of("forty-two")).anyTimes();
+    expect(docMock.get("myField")).andReturn(List.of("this","that"));
+    expect(docMock.getFirstValue("id")).andReturn("forty-two");
+    expect(docMock.getRawData()).andReturn(null);
+    expect(proc.getFieldsField()).andReturn(null);
+    expect(proc.getIdTransformer()).andReturn(v -> 42);
+    expect(docMock.getIdField()).andReturn("id");
+    expect(docMock.getFirstValue("id")).andReturn("42");
+
+    replay();
+    SolrInputDocument solrDoc = proc.convertDoc(docMock);
+    assertEquals(42, solrDoc.get("id").getValue());
+    List<Object> myField = (List<Object>) solrDoc.get("myField").getValues();
+    assertEquals("this", myField.get(0));
+    assertEquals("that", myField.get(1));
+  }
+  @Test
   public void testPerBatchOperation() throws IOException, SolrServerException {
     ConcurrentBiMap<Document, SolrInputDocument> biMap = expect3Docs();
     expect(proc.getParams()).andReturn(null).anyTimes();

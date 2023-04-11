@@ -30,6 +30,7 @@ import org.jesterj.ingest.model.Status;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> implements DocumentProcessor {
@@ -42,6 +43,8 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
 
   private CloudSolrClient solrClient;
   private String name;
+
+  private Function<String, Object> idTransformer;
 
   protected SendToSolrCloudProcessor() {
   }
@@ -154,6 +157,7 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
     } else {
       doc = new SolrInputDocument();
     }
+    String fieldsField = getFieldsField();
     for (String field : document.keySet()) {
       List<String> values = document.get(field);
       if (values.size() > 1) {
@@ -162,15 +166,28 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
         doc.addField(field, document.getFirstValue(field));
       }
       // Note that raw data should be empty or have been converted to the bytes of a utf-8 string.
-      if (document.getRawData() != null && document.getRawData().length > 0) {
-        String value = new String(document.getRawData(), StandardCharsets.UTF_8);
-        doc.addField(textContentField, value);
-      }
       if (fieldsField != null) {
         doc.addField(fieldsField, field);
       }
     }
+    byte[] rawData = document.getRawData();
+    if (rawData != null && rawData.length > 0) {
+      String value = new String(rawData, StandardCharsets.UTF_8);
+      doc.addField(textContentField, value);
+    }
+
+    Function<String, Object> idTransformer = getIdTransformer();
+    if (idTransformer != null) {
+      String idField = document.getIdField();
+      doc.remove(idField);
+      doc.addField(idField,idTransformer.apply(document.getFirstValue(idField)));
+    }
     return doc;
+  }
+
+  // visible for testing
+  String getFieldsField() {
+    return fieldsField;
   }
 
   Map<String, String> getParams() {
@@ -188,6 +205,11 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
 
   void setSolrClient(CloudSolrClient solrClient) {
     this.solrClient = solrClient;
+  }
+
+  // for testing
+  Function<String, Object> getIdTransformer() {
+    return this.idTransformer;
   }
 
   private static class Delete extends SolrInputDocument {
@@ -243,6 +265,19 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
 
     public Builder withDocFieldsIn(String fieldsField) {
       getObj().fieldsField = fieldsField;
+      return this;
+    }
+
+    /**
+     * The document identifier is a field that JesterJ relies upon and so it must not be meddled with until
+     * the final creation of the solr input document. (i.e. never setId() on the Document).
+     *
+     * @param transformer a function to replace the id
+     * @return this builder for additional configuration
+     */
+    @SuppressWarnings("unused")
+    public Builder transformIdsWith(Function<String,Object> transformer) {
+      getObj().idTransformer = transformer;
       return this;
     }
 
