@@ -27,6 +27,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.time.Instant;
 
 import static org.junit.Assert.assertEquals;
 
@@ -124,12 +125,15 @@ public class SimpleFileScannerImplTest extends ScannerImplTest {
     Plan plan = planBuilder.build();
 
     try {
+      Instant start = Instant.now();
       plan.activate();
 
       Thread.sleep(10000);
+      Instant end = Instant.now();
 
       // glossary has 2428 lines, but glossary will no longer be a document as a whole so - 1
-      assertEquals(43 + 2428 - 1, sizeForCounter(plan, "counterStep"));
+      assertEquals("Wrong count (processing elapsed time = " + (end.toEpochMilli() - start.toEpochMilli()),
+          43 + 2428 - 1, sizeForCounter(plan, "counterStep"));
 
     } finally {
       plan.deactivate();
