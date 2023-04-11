@@ -77,7 +77,7 @@ configurations.all {
 
 //////////////////////////
 
-version = '1.0-Beta3'
+version = '1.1-SNAPSHOT'
 group = 'org.jesterj'
 ext.shortDesc = 'JesterJ Core API'
 description = 'Library for writing JesterJ ingestion plans'
@@ -565,7 +565,7 @@ javadocJar.manifest.attributes getManifestAttributes()
 
 @SuppressWarnings("GroovyAssignabilityCheck")
 def getManifestAttributes() {
-  def gitDetails = versionDetails();
+  def gitDetails = versionDetails()
   Map<String, String> attrs = new LinkedHashMap<>()
   attrs.put('Implementation-Title', project.name)
   attrs.put('Implementation-Version', version)
