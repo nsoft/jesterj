@@ -132,7 +132,7 @@ public class SimpleFileScannerImplTest extends ScannerImplTest {
       Instant end = Instant.now();
 
       // glossary has 2428 lines, but glossary will no longer be a document as a whole so - 1
-      assertEquals("Wrong count (processing elapsed time = " + (end.toEpochMilli() - start.toEpochMilli()),
+      assertEquals("Wrong count (processing elapsed time = " + (end.toEpochMilli() - start.toEpochMilli()) + "ms)",
           43 + 2428 - 1, sizeForCounter(plan, "counterStep"));
 
     } finally {
