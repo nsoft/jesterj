@@ -240,21 +240,20 @@ public class JesterJAppender extends AbstractAppender {
             "\n\toutputStepNames:" + outputStepNames +
             "\n\tstatuses:" + statuses +
             "\n\tmessages:" + messages +
-            "\n\tplanName:" + planName +
-            "");
+            "\n\tplanName:" + planName);
       }
       if (planName == null) {
         throw new IllegalStateException("Null Plan name name detected! Info --> " +
             "\n\toutputStepNames:" + outputStepNames +
             "\n\tstatuses:" + statuses +
             "\n\tmessages:" + messages +
-            "\n\tplanName:" + planName +
-            "");
+            "\n\tplanName:" + planName);
       }
-
+      Plan plan = Main.locatePlan(planName)
+          .orElseThrow(() ->  // will be caught by logging infra
+              new RuntimeException("Plan "+planName+" not found (This is ok if the plan is shutting down)"));
       for (int i = 0; i < changedSteps.length; i++) {
         String changedStep = changedSteps[i];
-        Plan plan = Main.locatePlan(planName).orElseThrow(); // will be caught by logging infra
         Scanner step = (Scanner) plan.findStep(scannerName);
         String keySpace = step.keySpace(changedStep);
         String sq = String.format(INSERT_FTI, keySpace);
@@ -299,12 +298,12 @@ public class JesterJAppender extends AbstractAppender {
         try {
           s.execute(update.bind(params.toArray()));
         } catch (NoNodeAvailableException ex) {
-          //noinspection StatementWithEmptyBody
           if (!Cassandra.isStopping()) {
             throw ex;
           } else {
             // ignore
             // this is expected and not a problem, we are shutting down. Don't scare the users.
+            break;
           }
         }
 
