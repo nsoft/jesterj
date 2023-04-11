@@ -27,6 +27,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.time.Instant;
 
 import static org.junit.Assert.assertEquals;
 
@@ -124,15 +125,15 @@ public class SimpleFileScannerImplTest extends ScannerImplTest {
     Plan plan = planBuilder.build();
 
     try {
+      Instant start = Instant.now();
       plan.activate();
 
       Thread.sleep(20000);
+      Instant end = Instant.now();
 
       // glossary has 2428 lines, but glossary will no longer be a document as a whole so - 1
-      assertEquals(43 + 2428 - 1, sizeForCounter(plan, "counterStep"));
-      // Note if the above failure is observed and the elapsed time is significantly greater than the sleep time and
-      // the count is less than 2470 then the machine running the test was too busy and the failure was likely
-      // spurious.
+      assertEquals("Wrong count (processing elapsed time = " + (end.toEpochMilli() - start.toEpochMilli()),
+          43 + 2428 - 1, sizeForCounter(plan, "counterStep"));
 
     } finally {
       plan.deactivate();
