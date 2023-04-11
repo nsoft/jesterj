@@ -23,9 +23,9 @@ import org.jesterj.ingest.model.Router;
 import org.jesterj.ingest.model.impl.DocumentImpl;
 import org.jesterj.ingest.model.impl.ScannerImpl;
 import org.jesterj.ingest.routers.RouterBase;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
@@ -55,6 +55,8 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   private static final Object SCAN_LOCK = new Object();
   private File rootDir;
   private transient volatile boolean scanning;
+  private FileFilter includes;
+  private FileFilter docPerLine;
   private final MemoryUsage heapMemoryUsage;
   private int memWaitTimeout;
 
@@ -95,8 +97,48 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   @Override
   public Optional<Document> fetchById(String id, String origination) {
     try {
-      File file = new File(new URI(id));
-      return makeDoc(file.toPath(), Document.Operation.NEW, Files.readAttributes(file.toPath(), BasicFileAttributes.class), origination);
+      String fileForId = id;
+      if (id.contains("#")) {
+        fileForId = fileForId.substring(0,id.indexOf("#"));
+      }
+      File file;
+      try {
+         file = new File(new URI(fileForId));
+      } catch (IllegalArgumentException e) {
+        // stupid jdk errors that don't tell you what the input was
+        log.info("JDK error message stupid:",e);
+        log.info("Input was {}",fileForId);
+        throw e;
+      }
+      // todo: this will be inefficient, but for the moment bank on restarts only having a small number of docs in flight
+      BasicFileAttributes attributes = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
+      if (docPerLine != null && docPerLine.accept(file)) {
+        if (!id.contains("#")) {
+          log.error("Could not interpret line by line file lacking fragment identifier to denote line");
+          return Optional.empty();
+        }
+        String lineStr = id.split("#")[1];
+        if (!lineStr.startsWith("L")) {
+          log.error("Invalid line number{} in ID:{}", lineStr, id);
+        }
+        long lineNo = Long.parseLong(lineStr.substring(1));
+        try(LineNumberReader reader = new LineNumberReader(new FileReader(file))) {
+          while (true) {
+            String line = reader.readLine();
+            if (line == null) {
+              break;
+            }
+            if (reader.getLineNumber() < lineNo) {
+              continue;
+            }
+            return Optional.of(docWithAttrs(Document.Operation.NEW, attributes, FTI_ORIGIN, line.getBytes(), id));
+          }
+          log.error("Not found: {}" , id);
+          return Optional.empty();
+        }
+      } else {
+        return makeDoc(file.toPath(), Document.Operation.NEW, attributes, origination);
+      }
     } catch (URISyntaxException e) {
       log.error("Malformed doc id, can't fetch document: {}", id);
       return Optional.empty();
@@ -122,9 +164,16 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
       log.trace("found file {}", file);
-      Optional<Document> document = makeDoc(file, Document.Operation.NEW, attrs, ScannerImpl.SCAN_ORIGIN);
-      log.trace("Created:{}", document::get);
-      document.ifPresent(SimpleFileScanner.this::docFound);
+      File asFile = file.toFile();
+      if (includes == null || includes.accept(asFile)) {
+        if (docPerLine != null && docPerLine.accept(asFile)) {
+          makeLineDocs(file,Document.Operation.NEW,attrs,SCAN_ORIGIN);
+        } else {
+          Optional<Document> document = makeDoc(file, Document.Operation.NEW, attrs, SCAN_ORIGIN);
+          log.trace("Created:{}", document::get);
+          document.ifPresent(SimpleFileScanner.this::docFound);
+        }
+      }
       return FileVisitResult.CONTINUE;
     }
 
@@ -138,6 +187,47 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
       return FileVisitResult.CONTINUE;
     }
+  }
+
+  private void makeLineDocs(Path file, Document.Operation operation, BasicFileAttributes attributes, String origination) {
+    try(LineNumberReader reader = new LineNumberReader(new FileReader(file.toFile()))) {
+      long bytesRead = 0;
+      while (true) {
+        byte[] rawData;
+        String line = reader.readLine();
+        if (line == null) {
+            break;
+        }
+        rawData = line.getBytes();
+        bytesRead += (long) line.length() *Character.BYTES;
+        long size = bytesRead / reader.getLineNumber();
+        memThrottle(size, "Timed out waiting for available memory to process file (" + size + " bytes):" + file);
+        String id = file.toRealPath().toUri().toASCIIString()+ "#L" + reader.getLineNumber();
+        DocumentImpl doc = docWithAttrs(operation, attributes, origination, rawData, id);
+        doc.put("__LINE_NUMBER__", String.valueOf(reader.getLineNumber()));
+        log.trace("Bytes Read:{}", rawData.length);
+        docFound(doc);
+      }
+    } catch (IOException e) {
+      log.error("Could not read bytes from file:" + file, e);
+    } catch (InterruptedException e) {
+      log.error("Document failed (not fully processed) due to interrupted exception", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  @NotNull
+  private DocumentImpl docWithAttrs(Document.Operation operation, BasicFileAttributes attributes, String origination, byte[] rawData, String id) {
+    DocumentImpl doc = new DocumentImpl(
+        rawData,
+        id,
+        getPlan(),
+        operation,
+        this,
+        origination
+    );
+    addAttrs(attributes, doc);
+    return doc;
   }
 
   private Optional<Document> makeDoc(Path file, Document.Operation operation, BasicFileAttributes attributes, String origination) {
@@ -156,15 +246,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     String id;
     try {
       id = file.toRealPath().toUri().toASCIIString();
-      DocumentImpl doc = new DocumentImpl(
-          rawData,
-          id,
-          getPlan(),
-          operation,
-          this,
-          origination
-      );
-      addAttrs(attributes, doc);
+      DocumentImpl doc = docWithAttrs(operation, attributes, origination, rawData, id);
       return Optional.of(doc);
     } catch (IOException e) {
       log.error("Could not resolve file path. Skipping:" + file, e);
@@ -254,6 +336,16 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
 
     public SimpleFileScanner.Builder memoryAvailabilityTimeout(int ms) {
       getObj().memWaitTimeout = ms;
+      return this;
+    }
+
+    public SimpleFileScanner.Builder acceptOnly(FileFilter filter) {
+      getObj().includes = filter;
+      return this;
+    }
+
+    public SimpleFileScanner.Builder docPerLineIfMatches(FileFilter filter) {
+      getObj().docPerLine = filter;
       return this;
     }
 

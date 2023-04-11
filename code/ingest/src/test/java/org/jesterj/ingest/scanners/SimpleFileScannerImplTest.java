@@ -51,6 +51,93 @@ public class SimpleFileScannerImplTest extends ScannerImplTest {
   }
 
   @Test
+  public void testFilter() throws InterruptedException {
+    File tempDir = getUniqueTempDir();
+    Cassandra.start(tempDir, "127.0.0.1");
+
+    PlanImpl.Builder planBuilder = new PlanImpl.Builder();
+    SimpleFileScanner.Builder scannerBuilder = new SimpleFileScanner.Builder();
+    scannerBuilder.scanFreqMS(1000);
+    StepImpl.Builder testStepBuilder = new StepImpl.Builder();
+
+    File tragedies = new File("src/test/resources/test-data");
+    scannerBuilder.named(SHAKESPEARE)
+        .withRoot(tragedies)
+        .acceptOnly(pathname -> !pathname.getName().contains("README"))
+        .scanFreqMS(1000)
+    ;
+
+    testStepBuilder.named("counterStep")
+        .batchSize(10)
+        .withProcessor(new DocumentCounter.Builder().named("counterProc"));
+
+    planBuilder
+        .named("testScan")
+        .addStep(scannerBuilder)
+        .addStep(testStepBuilder, SHAKESPEARE)
+        .withIdField("id");
+    Plan plan = planBuilder.build();
+
+    try {
+      plan.activate();
+
+      Thread.sleep(2000);
+
+      assertEquals(43, sizeForCounter(plan, "counterStep"));
+
+      clearCounter(plan, "counterStep");
+
+      Thread.sleep(2000);
+      assertEquals(43, sizeForCounter(plan, "counterStep"));
+    } finally {
+      plan.deactivate();
+    }
+
+  }
+  @Test
+  public void testLineByLine() throws InterruptedException {
+    File tempDir = getUniqueTempDir();
+    Cassandra.start(tempDir, "127.0.0.1");
+
+    PlanImpl.Builder planBuilder = new PlanImpl.Builder();
+    SimpleFileScanner.Builder scannerBuilder = new SimpleFileScanner.Builder();
+    scannerBuilder.scanFreqMS(1000);
+    StepImpl.Builder testStepBuilder = new StepImpl.Builder();
+
+    File tragedies = new File("src/test/resources/test-data");
+    scannerBuilder.named(SHAKESPEARE)
+        .withRoot(tragedies)
+        .acceptOnly(pathname -> !pathname.getName().contains("README"))
+        .docPerLineIfMatches(pathname -> pathname.getName().equals("glossary"))
+        .scanFreqMS(1000)
+    ;
+
+    testStepBuilder.named("counterStep")
+        .batchSize(10)
+        .withProcessor(new DocumentCounter.Builder().named("counterProc"));
+
+    planBuilder
+        .named("testScan")
+        .addStep(scannerBuilder)
+        .addStep(testStepBuilder, SHAKESPEARE)
+        .withIdField("id");
+    Plan plan = planBuilder.build();
+
+    try {
+      plan.activate();
+
+      Thread.sleep(10000);
+
+      // glossary has 2428 lines, but glossary will no longer be a document as a whole so - 1
+      assertEquals(43 + 2428 - 1, sizeForCounter(plan, "counterStep"));
+
+    } finally {
+      plan.deactivate();
+    }
+
+  }
+
+  @Test
   public void testScan() throws InterruptedException {
     File tempDir = getUniqueTempDir();
     Cassandra.start(tempDir, "127.0.0.1");
