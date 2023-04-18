@@ -41,9 +41,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.jesterj.ingest.logging.JesterJAppender.DELIM;
 import static org.jesterj.ingest.model.Status.PROCESSING;
 import static org.jesterj.ingest.model.impl.ScannerImpl.NEW_CONTENT_FOUND_MSG;
-import static org.jesterj.ingest.model.impl.StepImpl.VIA;
 
 
 /**
@@ -272,13 +272,10 @@ public class DocumentImpl implements Document {
     }
 
     // Here we need to replicate the message and args for each destination
-    List<String> tmp = new ArrayList<>();
     List<Serializable[]> argTmp = new ArrayList<>();
     for (String ignored : destinations) {
-      tmp.add(statusMessage);
       argTmp.add(messageArgs);
     }
-    statusMessage = String.join(VIA, tmp);
     messageArgs = argTmp.stream().flatMap(Arrays::stream).collect(Collectors.toList()).toArray(new Serializable[]{});
 
     //noinspection RedundantCast
@@ -419,7 +416,7 @@ public class DocumentImpl implements Document {
             "This is only set when the document object is created");
       }
       newDocAllowedToSetProcessingStatus = false;
-      String message = destinationChanges.stream().map(DocDestinationStatus::getMessage).collect(Collectors.joining("#,#"));
+      String message = destinationChanges.stream().map(DocDestinationStatus::getMessage).collect(Collectors.joining(DELIM));
       Object[] params = destinationChanges.stream().flatMap(d -> Arrays.stream(d.getMessageParams())).toArray();
       try (DocumentLoggingContext dc = new DocumentLoggingContext(DocumentImpl.this)) {
         dc.run(() -> log.info(Markers.FTI_MARKER, message, params));
