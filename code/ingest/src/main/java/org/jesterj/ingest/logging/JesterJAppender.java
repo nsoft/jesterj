@@ -80,7 +80,8 @@ public class JesterJAppender extends AbstractAppender {
   public static final String FTI_INSERT_U = "FTI_INSERT_U";
 
   private static final CassandraSupport cassandra = new CassandraSupport();
-  public static final Pattern MESSAGE_DELIMITER = Pattern.compile("#,#");
+  public static final String DELIM = "#,#";
+  public static final Pattern MESSAGE_DELIMITER = Pattern.compile(DELIM);
 
   private static CassandraLog4JManager manager;
 

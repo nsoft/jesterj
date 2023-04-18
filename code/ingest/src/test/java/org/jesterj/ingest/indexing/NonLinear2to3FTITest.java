@@ -283,7 +283,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
     Map<String, List<String>> filesWithoutIndexedStatus = filesWithoutStats(docStatusSummaryCassandra, List.of(Status.INDEXED.toString(), Status.DROPPED.toString()));
     Map<String, List<String>> filesMultipleIndexedStatus = filesWithoutMoreThanNofStat(docStatusSummaryCassandra, Status.INDEXED, 1);
 
-    String message = String.format("" +
+    String message = String.format(
             "\nC_OJI:%s" +
             "\nC_CJI:%s" +
             "\nC_TJI:%s" +
@@ -330,6 +330,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
     return filesWithoutIndexedStatus;
   }
 
+  @SuppressWarnings("SameParameterValue")
   @NotNull
   private static Map<String, List<String>> filesWithoutMoreThanNofStat(Map<String, Map<String, Map<String, AtomicInteger>>> docStatusSummaryCassandra, Status indexed, int maxAllowed) {
     Map<String, List<String>> filesWithoutIndexedStatus = new HashMap<>();
@@ -345,6 +346,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
     return filesWithoutIndexedStatus;
   }
 
+  @SuppressWarnings("SameParameterValue")
   private static int statusCountInTable(Map<String, Map<String, Map<String, AtomicInteger>>> docStatusSummaryCassandra, String table, Status status) {
 
     Map<String, Map<String, AtomicInteger>> stringMapMap = docStatusSummaryCassandra.get(table);
@@ -376,6 +378,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
         String id = row.getString(0);
         String status = row.getString(1);
         String outputStep = row.getString(2);
+        assert id != null;
         String tableDecoded = (id.startsWith("file") ? "file_" : "jdbc_") + outputStep;
         docStatusSummary.computeIfAbsent(tableDecoded, k -> new HashMap<>()).computeIfAbsent(id, k -> new HashMap<>()).computeIfAbsent(status, k -> new AtomicInteger(0)).incrementAndGet();
       }
@@ -397,7 +400,7 @@ public class NonLinear2to3FTITest extends ScannerImplTest {
       if (tableName.endsWith("_hash")) {
         assertEquals(44, rowCount); // one entry for each file or DB row
       } else if (tableName.endsWith("_status")) {
-        assertEquals(44 + numCountedExpected, rowCount); // initial processing, and all of them got to indexed
+        assertEquals(tableName + "has wrong count of " + rowCount,44 + numCountedExpected, rowCount); // initial processing, and all of them got to indexed
       } else {
         assertEquals("Found unexpected table" + tableName, "jj_logging.regular", tableName);
       }
