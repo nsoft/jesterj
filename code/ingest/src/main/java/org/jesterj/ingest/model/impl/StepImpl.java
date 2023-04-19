@@ -418,6 +418,15 @@ public class StepImpl implements Step {
   }
 
   @Override
+  public LinkedHashMap<String, Step> getEligibleNextSteps(Document d) {
+    return nextSteps.entrySet().stream().filter(e -> e.getValue().getOutputDestinationNames().stream()
+        .anyMatch(dest -> Arrays.asList(d.getIncompleteOutputDestinations()).contains(dest)))
+        // since we are filtering only we won't get multiple instances of the same key, and the merge function is
+        // superfluous, but required by the method signature.
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,(s1, s2) -> s1,LinkedHashMap::new));
+  }
+
+  @Override
   public boolean isActivePriorSteps() {
     return getPriorSteps().stream().anyMatch(Step::isActive);
   }
