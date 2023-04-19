@@ -90,6 +90,13 @@ public interface Step extends Active, BlockingQueue<Document>, Runnable, Deferre
   LinkedHashMap<String, Step> getNextSteps();
 
   /**
+   * The steps that are reachable from this step and lead to at least one destination valid for the document.
+   *
+   * @return A map of steps keyed by their names.
+   */
+  LinkedHashMap<String, Step> getEligibleNextSteps(Document d);
+
+  /**
    * Determine if any upstream steps are still active. A true result implies that
    * documents may yet be received for processing, and it is not safe to shut down
    * the processing thread for this step.

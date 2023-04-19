@@ -18,7 +18,6 @@ package org.jesterj.ingest.model.impl;
 
 import org.jesterj.ingest.model.Configurable;
 import org.jesterj.ingest.model.ConfiguredBuildable;
-import org.yaml.snakeyaml.DumperOptions;
 
 /*
  * Created with IntelliJ IDEA.
@@ -26,13 +25,6 @@ import org.yaml.snakeyaml.DumperOptions;
  * Date: 3/26/16
  */
 public abstract class NamedBuilder<TYPE extends Configurable> implements ConfiguredBuildable<TYPE> {
-
-  private static final DumperOptions OPTS = new DumperOptions();
-
-  static {
-    OPTS.setAllowReadOnlyProperties(true);
-    OPTS.setIndent(2);
-  }
 
   public abstract NamedBuilder<TYPE> named(String name);
 

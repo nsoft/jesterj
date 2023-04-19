@@ -504,6 +504,11 @@ public class PlanImplTest {
     }
 
     @Override
+    public LinkedHashMap<String, Step> getEligibleNextSteps(Document d) {
+      return mock.getEligibleNextSteps(d);
+    }
+
+    @Override
     public boolean isActivePriorSteps() {
       return mock.isActivePriorSteps();
     }

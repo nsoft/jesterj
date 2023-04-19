@@ -61,7 +61,7 @@ public class RouteByStepName extends RouterBase {
     if (possibleReplacement != null) {
       firstValue = possibleReplacement;
     }
-    Step dest = getStep().getNextSteps().get(firstValue);
+    Step dest = getStep().getEligibleNextSteps(doc).get(firstValue);
     if (dest == null) {
       log.warn("Document {} dropped! no value for {} You probably want to either set a different " +
           "router or provide a value for that field in the document.", doc::getId, this::getKeyFieldName);

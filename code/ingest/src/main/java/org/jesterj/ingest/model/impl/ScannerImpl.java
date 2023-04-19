@@ -459,7 +459,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     // Sadly to avoid allow filtering we have to iterate here instead of just using a single IN()
     CassandraSupport cStar = getCassandra();
     CqlSession session = cStar.getSession();
-    Map<String, List<LatestStatus>> needToProcess = new HashMap<>();
+    Map<String, Set<LatestStatus>> needToProcess = createLatestStatusByIdMap();
     Map<String, LatestStatus> statusCheckCache = new HashMap<>();
     for (String stepName : getOutputDestinationNames()) {
       String keySpace = keySpace(stepName);
@@ -480,7 +480,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
           LatestStatus latestStatus = findLatestSatus(actualQuery, id, stepName, statusCheckCache);
           if (status.toString().equals(latestStatus.getStatus())) {
             log.trace("{} found for reprocessing with status={}", id, status);
-            needToProcess.computeIfAbsent(id, (docid) -> new ArrayList<>()).add(latestStatus);
+            needToProcess.computeIfAbsent(id, (docid) -> new HashSet<>()).add(latestStatus);
           } else {
             log.trace("{} not processed for status of {}, latest status is {}", id, status, latestStatus);
           }
@@ -488,21 +488,27 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       }
     }
     // if there are no statuses that require processing, we skip this loop and the doc is not sent.
-    for (Map.Entry<String, List<LatestStatus>> toProcess : needToProcess.entrySet()) {
+    for (Map.Entry<String, Set<LatestStatus>> toProcess : needToProcess.entrySet()) {
       process(force, sentAlready, toProcess, FTI_ORIGIN);
       i++;
     }
     log.info("Found and restarted processing for {} FTI records", i);
   }
 
-  void process(boolean force, Set<String> sentAlready, Map.Entry<String, List<LatestStatus>> toProcess, String origination) {
+  HashMap<String, Set<LatestStatus>> createLatestStatusByIdMap() {
+    return new HashMap<>();
+  }
+
+
+
+  void process(boolean force, Set<String> sentAlready, Map.Entry<String, Set<LatestStatus>> toProcess, String origination) {
     String docId = toProcess.getKey();
     if (sentAlready != null) {
       sentAlready.add(docId);
     }
     fetchById(docId, origination).ifPresentOrElse((d) -> {
           d.setForceReprocess(force);
-          List<LatestStatus> statuses = toProcess.getValue();
+          Set<LatestStatus> statuses = toProcess.getValue();
           Map<String, DocDestinationStatus> downstream = new HashMap<>();
           statuses.forEach((status) -> downstream.put(status.getoutputStepName(),
               new DocDestinationStatus(PROCESSING, status.getoutputStepName(),
@@ -545,6 +551,19 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
 
     public String getoutputStepName() {
       return outputStepName;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      LatestStatus that = (LatestStatus) o;
+      return Objects.equals(status, that.status) && Objects.equals(timestamp, that.timestamp) && Objects.equals(outputStepName, that.outputStepName);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(status, timestamp, outputStepName);
     }
   }
 
@@ -594,7 +613,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   void processErrors(FTIQueryContext scanContext) {
     log.info("Checking for Errored docs");
     Set<DocumentImpl> deadDocs = new HashSet<>();
-    Map<String, List<LatestStatus>> forceReprocess = new HashMap<>();
+    Map<String, Set<LatestStatus>> forceReprocess = createLatestStatusByIdMap();
     for (String outputStepName : getOutputDestinationNames()) {
       ResultSet rs;
       PreparedStatement pq;
@@ -663,7 +682,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         if (errorMostRecent && errorCount < retryErrors) {
           log.info("Re-feeding errored document {}", id);
           LatestStatus latestStatus = new LatestStatus(ERROR.toString(), String.valueOf(mostRecent), outputStepName);
-          forceReprocess.computeIfAbsent(id, (k) -> new ArrayList<>()).add(latestStatus);
+          forceReprocess.computeIfAbsent(id, (k) -> new HashSet<>()).add(latestStatus);
         } else {
           if (!alreadyDropped && errorCount >= retryErrors) {
             log.warn("Marking document dead id={} due to too many error retries ({})", id, errorCount);
@@ -687,7 +706,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       d.reportDocStatus();
     }
 
-    for (Map.Entry<String, List<LatestStatus>> toReproc : forceReprocess.entrySet()) {
+    for (Map.Entry<String, Set<LatestStatus>> toReproc : forceReprocess.entrySet()) {
       process(true, null, toReproc, FTI_ORIGIN);
     }
   }

@@ -21,8 +21,13 @@ import org.jesterj.ingest.model.NextSteps;
 import org.jesterj.ingest.model.Step;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.LinkedHashMap;
+
 /**
- * A router that simply duplicates the document to all subsequent steps.
+ * A router that simply duplicates the document to all subsequent steps. Note that like all routers
+ * it is constrained to only select steps for which the document is eligible.
+ *
+ * @see Step#getEligibleNextSteps(Document)
  */
 public class DuplicateToAll extends RouterBase {
 
@@ -48,7 +53,8 @@ public class DuplicateToAll extends RouterBase {
 
   @NotNull
   NextSteps createNextSteps(Document doc) {
-    return new NextSteps(doc, getStep().getNextSteps().values().toArray(new Step[0]));
+    LinkedHashMap<String, Step> eligibleNextSteps = getStep().getEligibleNextSteps(doc);
+    return new NextSteps(doc, eligibleNextSteps.values().toArray(new Step[0]));
   }
 
   @Override
