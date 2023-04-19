@@ -459,7 +459,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     // Sadly to avoid allow filtering we have to iterate here instead of just using a single IN()
     CassandraSupport cStar = getCassandra();
     CqlSession session = cStar.getSession();
-    Map<String, Set<LatestStatus>> needToProcess = createLatestStatusByIdMap();
+    Map<String, Set<LatestStatus>> needToProcess = new HashMap<>();
     Map<String, LatestStatus> statusCheckCache = new HashMap<>();
     for (String stepName : getOutputDestinationNames()) {
       String keySpace = keySpace(stepName);
@@ -494,11 +494,6 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
     }
     log.info("Found and restarted processing for {} FTI records", i);
   }
-
-  HashMap<String, Set<LatestStatus>> createLatestStatusByIdMap() {
-    return new HashMap<>();
-  }
-
 
 
   void process(boolean force, Set<String> sentAlready, Map.Entry<String, Set<LatestStatus>> toProcess, String origination) {
@@ -613,7 +608,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   void processErrors(FTIQueryContext scanContext) {
     log.info("Checking for Errored docs");
     Set<DocumentImpl> deadDocs = new HashSet<>();
-    Map<String, Set<LatestStatus>> forceReprocess = createLatestStatusByIdMap();
+    Map<String, Set<LatestStatus>> forceReprocess = new HashMap<>();
     for (String outputStepName : getOutputDestinationNames()) {
       ResultSet rs;
       PreparedStatement pq;
