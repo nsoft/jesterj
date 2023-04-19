@@ -58,7 +58,7 @@ public class RouteByStepNameTest {
     stepList.put("foo",stepMock1);
     stepList.put("bar",stepMock2);
     expect(router.getStep()).andReturn(stepMock);
-    expect(stepMock.getNextSteps()).andReturn(stepList);
+    expect(stepMock.getEligibleNextSteps(docMock1)).andReturn(stepList);
     expect(router.getKeyFieldName()).andReturn(RouteByStepName.JESTERJ_NEXT_STEP_NAME);
     expect(docMock1.getFirstValue(RouteByStepName.JESTERJ_NEXT_STEP_NAME)).andReturn("foo");
     expect(router.getValueToStepNameMap()).andReturn(new HashMap<>());
@@ -75,7 +75,7 @@ public class RouteByStepNameTest {
     stepList.put("foo",stepMock1);
     stepList.put("bar",stepMock2);
     expect(router.getStep()).andReturn(stepMock);
-    expect(stepMock.getNextSteps()).andReturn(stepList);
+    expect(stepMock.getEligibleNextSteps(docMock2)).andReturn(stepList);
     expect(router.getKeyFieldName()).andReturn(RouteByStepName.JESTERJ_NEXT_STEP_NAME);
     expect(docMock2.getFirstValue(RouteByStepName.JESTERJ_NEXT_STEP_NAME)).andReturn("bar");
     expect(router.getValueToStepNameMap()).andReturn(new HashMap<>());
@@ -92,7 +92,7 @@ public class RouteByStepNameTest {
     stepList.put("foo",stepMock1);
     stepList.put("bar",stepMock2);
     expect(router.getStep()).andReturn(stepMock);
-    expect(stepMock.getNextSteps()).andReturn(stepList);
+    expect(stepMock.getEligibleNextSteps(docMock2)).andReturn(stepList);
     expect(router.getKeyFieldName()).andReturn("foobar");
     expect(docMock2.getFirstValue("foobar")).andReturn("bar");
     expect(router.getValueToStepNameMap()).andReturn(new HashMap<>());
@@ -109,7 +109,7 @@ public class RouteByStepNameTest {
     stepList.put("foo",stepMock1);
     stepList.put("bar",stepMock2);
     expect(router.getStep()).andReturn(stepMock);
-    expect(stepMock.getNextSteps()).andReturn(stepList);
+    expect(stepMock.getEligibleNextSteps(docMock2)).andReturn(stepList);
     expect(router.getKeyFieldName()).andReturn("foobar");
     expect(docMock2.getFirstValue("foobar")).andReturn("step named bar");
     expect(router.getValueToStepNameMap()).andReturn(Map.of("step named bar", "bar"));
