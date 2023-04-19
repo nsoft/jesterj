@@ -22,6 +22,8 @@ package org.jesterj.ingest.model;
 public interface Router extends Configurable {
   /**
    * Indicates if this router will always route an identical document to the same downstream step or steps.
+   * It is important to understand that this attribute refers to determinism with respect to document content
+   * and anything that depends on the order in which documents are fed, is NOT deterministic.
    *
    * @return True if the document's destination is deterministic, false if it may vary.
    */
@@ -36,6 +38,7 @@ public interface Router extends Configurable {
    *
    * @return True if one document in produces a constant number of documents out.
    */
+  @SuppressWarnings("unused")
   boolean isConstantNumberOfOutputDocs();
 
   /**
@@ -56,8 +59,10 @@ public interface Router extends Configurable {
 
   /**
    * Decide where to send this document. The result may represent some or all of the steps down stream. Note that
-   * it is illegal for a router not to select at least one destination, and this will cause errors.
+   * it is illegal for a router not to select at least one destination, and this will cause errors. It is also
+   * prohibited for the router to select a destination not listed on the document.
    *
+   * @see Step#getEligibleNextSteps(Document)
    * @param doc The document to route
    * @return An object encapsulating the destinations to which the document (or copies of it) will be sent.
    */

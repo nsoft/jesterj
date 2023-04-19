@@ -64,8 +64,9 @@ public class ScannerImplTest {
   @Mock private Step stepMock1;
   @Mock private Step stepMock2;
   @Mock private ScannerImpl.LatestStatus lstatMock;
-  @Mock private Map.Entry<String, List<LatestStatus>> entryMock;
+  @Mock private Map.Entry<String, Set<LatestStatus>> entryMock;
   @Mock private LatestStatus lstatMock2;
+  @Mock private Router routerMock;
 
   public ScannerImplTest() {
     prepareMocks(this);
@@ -413,7 +414,7 @@ public class ScannerImplTest {
     steps.add(stepMock1);
     expect(scanner.getDownstreamOutputSteps()).andReturn(steps).anyTimes();
     Set<String> sentAlready = new HashSet<>();
-    Capture<Map.Entry<String, List<LatestStatus>>> c = newCapture();
+    Capture<Map.Entry<String, Set<LatestStatus>>> c = newCapture();
     //noinspection DataFlowIssue
     scanner.process(eq(true),eq(sentAlready),capture(c), eq(FTI_ORIGIN));
     Set<String> dests = new HashSet<>();
@@ -423,7 +424,7 @@ public class ScannerImplTest {
     replay();
     FTIQueryContext src = new FTIQueryContext(sentAlready);
     scanner.processPendingDocs(src, List.of(PROCESSING, BATCHED, RESTART, FORCE), true);
-    Map.Entry<String, List<LatestStatus>> captured = c.getValue();
+    Map.Entry<String, Set<LatestStatus>> captured = c.getValue();
     assertEquals("foobarId", captured.getKey());
     assertEquals(1,captured.getValue().size());
     assertEquals(lstatMock,captured.getValue().iterator().next());
@@ -432,14 +433,14 @@ public class ScannerImplTest {
   @Test
   public void testProcess() {
     Set<String> sentAlready = new HashSet<>();
-    Map.Entry<String, List<LatestStatus>> toProcess = entryMock;
+    Map.Entry<String, Set<LatestStatus>> toProcess = entryMock;
 
     expect(entryMock.getKey()).andReturn("fooId");
     expect(scanner.fetchById("fooId",FTI_ORIGIN)).andReturn(Optional.of(docMock));
     docMock.setForceReprocess(true);
     Capture<Map<String, DocDestinationStatus>> downstream = newCapture();
     docMock.setIncompleteOutputDestinations(capture(downstream));
-    List<LatestStatus> stats = new ArrayList<>();
+    Set<LatestStatus> stats = new HashSet<>();
     stats.add(lstatMock);
     stats.add(lstatMock2);
     expect(entryMock.getValue()).andReturn(stats);
