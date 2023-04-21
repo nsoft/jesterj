@@ -108,6 +108,9 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
           return;
         }
         batchOperation(oldBatch);
+      } catch (InterruptedException e) {
+        // no fall back if shutting down, and cassandra won't be avail so no failure marking either
+        log.info("Send aborted due to system shutdown");
       } catch (Exception e) {
         log.info("Batch Send failed", e);
         // we may have a single bad document...
