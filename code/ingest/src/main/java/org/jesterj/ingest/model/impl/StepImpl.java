@@ -45,15 +45,20 @@ import static org.jesterj.ingest.model.Status.*;
  * an instance of your processor. Also note that one does not normally call build on a StepImpl or any of its
  * subclasses. The builder for this class is provided to a {@link org.jesterj.ingest.model.impl.PlanImpl.Builder} so
  * that the plan can validate the ordering of the steps and assemble the entire plan as an immutable DAG.
+ * <br><br>
+ * <strong>IMPORTANT:</strong> no field in this class or it's subclasses should be mutated after the builder
+ * has been built unless it is sufficiently synchronized. Once built this class and all sub-classes should be thread
+ * safe.
  */
 public class StepImpl implements Step {
+
 
   private static final Logger log = LogManager.getLogger();
   public static final String VIA = "<-via->"; // note: must contain characters disallowed for step names.
 
   private static final Map<String, Pattern> stepNameInDestinationPatterns = new ConcurrentHashMap<>();
 
-  DocumentConsumer documentConsumer = new DocumentConsumer(); // stateless bean
+  private final DocumentConsumer documentConsumer = new DocumentConsumer(); // stateless bean
   private LinkedBlockingQueue<Document> queue;
   private int batchSize; // no concurrency by default
   private final LinkedHashMap<String, Step> nextSteps = new LinkedHashMap<>();
@@ -65,11 +70,17 @@ public class StepImpl implements Step {
   private final Object WORKER_LOCK = new Object();
   private Plan plan;
   private final List<Runnable> deferred = new ArrayList<>();
-  private final Object OUTPUT_STEP_LIST_LOCK = new Object();
-  private volatile Set<Step> outputSteps;
   private int shutdownTimeout = 100;
   private final List<Step> priorSteps = new ArrayList<>();
-  private Set<String> outputDestinationNames;
+
+  /**
+   * Note that this outputSteps gets lazy initialized but this guarded with double-check locking.
+   */
+  private volatile Set<Step> outputSteps;
+  private final Object OUTPUT_STEP_LIST_LOCK = new Object();
+
+  private volatile Set<String> outputDestinationNames;
+  private final Object OUTPUT_DEST_NAMES_LOCK = new Object();
 
   StepImpl() {
   }
@@ -315,17 +326,20 @@ public class StepImpl implements Step {
 
   @Override
   public Set<String> getOutputDestinationNames() {
-    if (this.outputDestinationNames != null) {
-      return outputDestinationNames;
+    if (this.outputDestinationNames == null) {
+      synchronized (OUTPUT_DEST_NAMES_LOCK) {
+        if (this.outputDestinationNames == null) {
+          Set<Step> downstreamOutputSteps = getDownstreamOutputSteps();
+          Set<String> destinations = new HashSet<>();
+          for (Step downstreamOutputStep : downstreamOutputSteps) {
+            String destinationName = downstreamOutputStep.getName();
+            appendUpstreamDuplicatingSplitDestinationNamesAndAdd(destinationName,
+                downstreamOutputStep, this, destinations, new HashSet<>());
+          }
+          this.outputDestinationNames = destinations;
+        }
+      }
     }
-    Set<Step> downstreamOutputSteps = getDownstreamOutputSteps();
-    Set<String> destinations = new HashSet<>();
-    for (Step downstreamOutputStep : downstreamOutputSteps) {
-      String destinationName = downstreamOutputStep.getName();
-      appendUpstreamDuplicatingSplitDestinationNamesAndAdd(destinationName,
-          downstreamOutputStep, this, destinations, new HashSet<>());
-    }
-    this.outputDestinationNames = destinations;
     return this.outputDestinationNames;
   }
 
@@ -474,7 +488,8 @@ public class StepImpl implements Step {
   }
   void pushToNextIfOk(Document document, boolean processorSkipped) {
     try {
-      log.trace("starting push to next if ok {} for {}", getName(), document.getId());
+      String id = document.getId();
+      log.trace("starting push to next if ok {} for {}", getName(), id);
       NextSteps next = getNextSteps(document);
       log.trace("Found {} next steps", next == null ? "(null)" : next.size());
       if (document.getIncompleteOutputDestinations().length < 1 && getNextSteps().isEmpty()) {
@@ -533,7 +548,7 @@ public class StepImpl implements Step {
         // to be working on a document at the same time. Particularly, don't try to factor the report
         // status down out of the if/else, since that causes a duplicate write about 0.034% of the time.
       }
-      log.trace("completing push to next if ok {} for {}", getName(), document.getId());
+      log.trace("completing push to next if ok {} for {}", getName(), id);
     } catch (
         Exception e) {
       // otherwise so very annoying to try to figure out which step is causing problems.
