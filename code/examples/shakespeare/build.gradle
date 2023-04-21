@@ -1,5 +1,5 @@
 group 'org.jesterj'
-version '1.0-SNAPSHOT'
+version '2.0-SNAPSHOT'
 
 apply plugin: 'java'
 apply plugin: 'wrapper'
@@ -9,16 +9,10 @@ sourceCompatibility = 1.11
 repositories {
   mavenLocal()
   mavenCentral()
-  maven {
-    url 'https://jesterj.jfrog.io/jesterj/libs-release/'
-  }
-  maven {
-    url 'https://clojars.org/repo'
-  }
 }
 
 dependencies {
-  implementation ('org.jesterj:jesterj-ingest:1.0-SNAPSHOT') {
+  implementation ('org.jesterj:jesterj-ingest:2.0-SNAPSHOT') {
     exclude group: 'ch.qos.logback'
   }
 }
