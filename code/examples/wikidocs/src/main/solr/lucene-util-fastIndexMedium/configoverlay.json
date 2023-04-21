@@ -1,0 +1,3 @@
+{"props":{"updateHandler":{"autoCommit":{
+        "maxTime":15000,
+        "openSearcher":true}}}}

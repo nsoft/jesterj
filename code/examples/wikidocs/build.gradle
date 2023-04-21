@@ -1,0 +1,28 @@
+plugins {
+  id 'java'
+  id 'wrapper'
+  id("com.needhamsoftware.solr-gradle") version "1.0.2"
+}
+
+group 'org.jesterj'
+version '2.0-SNAPSHOT'
+sourceCompatibility = 1.11
+
+repositories {
+  mavenLocal()
+  mavenCentral()
+}
+
+// This is a fairly primitive plugin. Edit the names below and then run upconfig or downconfig target
+// as desired. Does not currently support multiple configs.
+solr {
+  zkHost 'localhost:2181/solr__home_gus_projects_gus-asf_solr_testing_wikidoc1n'
+  confName 'lucene-util-fastIndexMedium'
+  confDir 'src/main/solr/lucene-util-fastIndexMedium'
+}
+
+dependencies {
+  implementation('org.jesterj:jesterj-ingest:2.0-SNAPSHOT') {
+    exclude group: 'ch.qos.logback'
+  }
+}
