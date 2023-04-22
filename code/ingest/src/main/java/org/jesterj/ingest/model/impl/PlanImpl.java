@@ -102,12 +102,7 @@ public class PlanImpl implements Plan {
     }
     Graph g = graph("visualize").directed();
     for (Step scanner : scanners) {
-      String label = scanner.getName();
-      if (scanner.getRouter() != null) {
-        label += "\n(" +scanner.getRouter().getName()+ ")";
-      }
-      Node node = nodes.get(label);
-      g = g.with(node);
+      g = g.with(nodes.get(scanner.getName()));
     }
     Graphviz tmp = Graphviz.fromGraph(g);
     return tmp.render(format);
