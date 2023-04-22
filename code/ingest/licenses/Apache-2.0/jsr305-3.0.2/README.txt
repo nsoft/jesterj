@@ -11,7 +11,7 @@ There is no Notice file for this version of jsr305
 There is no clear source code corresponding to the archive distributed
 via Maven Central:
 
-http://search.maven.org/#artifactdetails%7Ccom.google.code.findbugs%7Cjsr305%7C3.0.0%7Cjar
+https://search.maven.org/artifact/com.google.code.findbugs/jsr305/3.0.0/jar
 
 A source repository was found at:
 
