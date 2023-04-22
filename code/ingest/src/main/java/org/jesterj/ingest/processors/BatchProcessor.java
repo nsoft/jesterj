@@ -141,7 +141,7 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
   protected void perDocumentFailure(ConcurrentBiMap<Document, ?> oldBatch, Exception e) {
     // something's wrong with the network etc. all documents must be errored out:
     for (Document doc : oldBatch.keySet()) {
-      createDocContext(doc).run(() -> perDocFailLogging(e, doc));
+      perDocFailLogging(e, doc);
     }
   }
 
