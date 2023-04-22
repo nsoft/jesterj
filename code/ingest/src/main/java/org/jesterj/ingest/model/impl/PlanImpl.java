@@ -18,6 +18,7 @@ package org.jesterj.ingest.model.impl;
 
 import com.google.common.collect.ArrayListMultimap;
 import guru.nidi.graphviz.attribute.Color;
+import guru.nidi.graphviz.attribute.Label;
 import guru.nidi.graphviz.attribute.Style;
 import guru.nidi.graphviz.engine.Format;
 import guru.nidi.graphviz.engine.Graphviz;
@@ -120,27 +121,27 @@ public class PlanImpl implements Plan {
   private void linkUp(Map<String, Node> nodes, List<String> knownSteps, StepImpl step) {
     LinkedHashMap<String, Step> nextSteps = step.getNextSteps();
     String label = getLabel(step);
-    Node node = nodes.computeIfAbsent(label, Factory::node);
+    Node node = nodes.computeIfAbsent(step.getName(), Factory::node);
+    //noinspection unchecked
     node = node.with(
         nodeColor(step), Style.lineWidth(2),
-        Style.FILLED, nodeFillColor(step).fill());
-      nodes.replace(label, node);
+        Style.FILLED, nodeFillColor(step).fill(), Label.of(label));
+      nodes.replace(step.getName(), node);
 
-    knownSteps.add(label);
+    knownSteps.add(step.getName());
     if (nextSteps.size() == 0) {
       return;
     }
     for (Step subsequentStep : nextSteps.values()) {
-      String subsequentLabel = getLabel(subsequentStep);
-      if (!knownSteps.contains(subsequentLabel)) {
+      if (!knownSteps.contains(subsequentStep.getName())) {
         // new node, need to recurse
         linkUp(nodes, knownSteps, (StepImpl) subsequentStep);  // yuck, but I don't really want to expose next steps in interface either
       }
-      Node nextNode = nodes.get(subsequentLabel);
+      Node nextNode = nodes.get(subsequentStep.getName());
       node = node.link(nextNode);
       // link returns an immutable copy of the node we just created, so we need
       // to throw out the original and keep the copy
-      nodes.put(label, node);
+      nodes.put(step.getName(), node);
     }
   }
 
@@ -170,11 +171,13 @@ public class PlanImpl implements Plan {
   }
 
   private static String getLabel(Step step) {
-    String label = step.getName();
-    if (step.getRouter() != null) {
-      label = String.format("%s\n(%s)",label, step.getRouter().getName());
+    if (step instanceof Scanner) {
+      return step.getName();
     }
-    return label;
+    if (step.getRouter() != null) {
+      return String.format("%s/%s\n%s\n(%s)",step.size(),step.getBatchSize(), step.getName(),step.getRouter().getName());
+    }
+    return String.format("%s/%s\n%s",step.size(),step.getBatchSize(), step.getName());
   }
 
   @Override
