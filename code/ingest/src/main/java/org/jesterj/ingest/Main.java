@@ -150,7 +150,20 @@ public class Main {
               }
               while (true) {
                 try {
-                  System.out.print(".");
+                  List<String> plans = Main.plansByName.entrySet().stream().map(e -> {
+                    Plan plan1 = e.getValue().get();
+                        return plan1 == null ? ".\n" : "" +
+                            "========================\n" +
+                            e.getKey() + "\n" +
+                            "------------------------\n" +
+                            plan1.visualize(Format.DOT) + "\n" +
+                            "------------------------\n";
+                      }
+                  ).collect(Collectors.toList());
+                  for (String plan : plans) {
+                    log.debug(plan);
+                    System.out.println(plan);
+                  }
                   Thread.sleep(5000);
                 } catch (InterruptedException e) {
 
@@ -197,7 +210,7 @@ public class Main {
     if (plansByName.containsKey(plan.getName())) {
       throw new IllegalArgumentException("Plan already registered");
     }
-    plansByName.put(plan.getName(),new WeakReference<>(plan));
+    plansByName.put(plan.getName(), new WeakReference<>(plan));
   }
 
   public static void deregisterPlan(Plan plan) {
@@ -289,7 +302,7 @@ public class Main {
       log.info("Loading from {} which is a {} file", () -> file, () ->
           finalIsUnoJar ? "Uno-Jar" : "Standard Jar");
     } else {
-      System.out.println("Loading from "+file+" which is a "+(finalIsUnoJar ? "Uno-Jar" : "Standard Jar")+" file");
+      System.out.println("Loading from " + file + " which is a " + (finalIsUnoJar ? "Uno-Jar" : "Standard Jar") + " file");
     }
     JesterJLoader jesterJLoader;
 
@@ -356,7 +369,7 @@ public class Main {
    * @throws IllegalAccessException if we are unable to set the system class loader
    */
   private static void initClassloader() throws NoSuchFieldException, IllegalAccessException {
-   // fix bug in One-Jar with an ugly hack
+    // fix bug in One-Jar with an ugly hack
     ClassLoader unoJarClassLoader = Main.class.getClassLoader();
     String name = unoJarClassLoader.getClass().getName();
     if ("com.needhamsoftware.unojar.JarClassLoader".equals(name)) {
@@ -367,7 +380,6 @@ public class Main {
   }
 
   private static Map<String, Object> usage(String[] args) throws IOException {
-    @SuppressWarnings("SpellCheckingInspection")
     URL usage = Resources.getResource("usage.docopts.txt");
     String usageStr = Resources.toString(usage, StandardCharsets.UTF_8);
     Map<String, Object> result = new Docopt(usageStr).parse(args);
