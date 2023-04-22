@@ -90,8 +90,8 @@ public class SendToSolrCloudProcessorTest {
     documents.add(docMock);
     expect(batchMock.keySet()).andReturn(documents);
     RuntimeException e = new RuntimeException("TEST EXCEPTION");
-    expect(proc.createDocContext(docMock)).andReturn(docContextMock);
-    docContextMock.run(isA(Runnable.class));
+    proc.perDocFailLogging(e, docMock);
+
     replay();
     proc.perDocumentFailure(batchMock, e);
   }
