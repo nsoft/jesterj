@@ -15,11 +15,12 @@ public interface FileScanner {
   /**
    * A default, reusable and overridable means of adding file attributes to a document
    *
-   * @param attributes The attributes of the scanned file as returned by
-   *                   {@link java.nio.file.Files#getFileAttributeView(Path, Class, LinkOption...)}
-   * @param doc        The document representing the scanned file to which attributes should be added.
+   * @param attributes      The attributes of the scanned file as returned by
+   *                        {@link java.nio.file.Files#getFileAttributeView(Path, Class, LinkOption...)}
+   * @param doc             The document representing the scanned file to which attributes should be added.
+   * @param includeAccessed if true the file accessed time will also be used. This is often not desirable.
    */
-  default void addAttrs(BasicFileAttributes attributes, DocumentImpl doc) {
+  default void addAttrs(BasicFileAttributes attributes, DocumentImpl doc, boolean includeAccessed) {
     if (attributes != null) {
       FileTime modifiedTime = attributes.lastModifiedTime();
       FileTime accessTime = attributes.lastAccessTime();
@@ -27,7 +28,7 @@ public interface FileScanner {
       if (modifiedTime != null) {
         doc.put("modified", String.valueOf(modifiedTime.toMillis()));
       }
-      if (accessTime != null) {
+      if (includeAccessed && accessTime != null) {
         doc.put("accessed", String.valueOf(accessTime.toMillis()));
       }
       if (creationTime != null) {

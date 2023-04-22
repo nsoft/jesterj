@@ -57,6 +57,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   private transient volatile boolean scanning;
   private final MemoryUsage heapMemoryUsage;
   private int memWaitTimeout;
+  private boolean includeAccessTime = false; // by default
 
   @SuppressWarnings("WeakerAccess")
   protected SimpleFileScanner() {
@@ -164,7 +165,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
           this,
           origination
       );
-      addAttrs(attributes, doc);
+      addAttrs(attributes, doc, this.includeAccessTime);
       return Optional.of(doc);
     } catch (IOException e) {
       log.error("Could not resolve file path. Skipping:" + file, e);
@@ -254,6 +255,11 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
 
     public SimpleFileScanner.Builder memoryAvailabilityTimeout(int ms) {
       getObj().memWaitTimeout = ms;
+      return this;
+    }
+
+    public SimpleFileScanner.Builder includingFileAccessTime(boolean include) {
+      getObj().includeAccessTime = include;
       return this;
     }
 
