@@ -1,17 +1,14 @@
 Copyright Declaration
 ---------------------
 
-http://www.adobe.com/devnet/xmp/library/eula-xmp-library-java.html
-
-The above notice was found here:
-
-http://www.adobe.com/devnet/xmp/library/eula-xmp-library-java.html
+A declaration was once found at http://www.adobe.com/devnet/xmp/library/eula-xmp-library-java.html
+But adobe has chosen to redirect this to a generic XMP page.
 
 The above site was linked from
 
-http://grepcode.com/snapshot/repo1.maven.org/maven2/com.adobe.xmp/xmpcore/5.1.2
+The now dead site at http://grepcode.com/snapshot/repo1.maven.org/maven2/com.adobe.xmp/xmpcore/5.1.2
 
-No actual source repository was found for this project.
+No actual source repository was found for this project. (please file an issue if you found it so we can reference it!)
 
 As far as I can tell Adobe is not complying with their own license, because they aren't publishing a copyright, and
 above links have gone dead...

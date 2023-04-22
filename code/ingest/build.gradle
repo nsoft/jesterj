@@ -187,6 +187,8 @@ licenseReport {
 }
 import groovy.json.JsonSlurper
 
+import java.util.concurrent.atomic.AtomicInteger
+
 tasks.register("verifyLicenseDirs") {
   // This task ensures that if we add a library and update the permitted licenses to add a new license type
   // we don't forget to add a directory for it under /licenses
@@ -338,6 +340,66 @@ tasks.register("verifyLicenseDirs") {
 //      ant.fail("Some dependencies have been listed in more than one license dir see output above for details")
 //    }
 //
+  }
+}
+
+tasks.register("validateLicenseLinks") {
+  def licDir = new File("$projectDir/licenses")
+  def count = new AtomicInteger(0)
+  def manualChecks = []
+  licDir.eachDir {
+    it.listFiles().each {
+      checkFileUrls(it, count, manualChecks)
+    }
+  }
+  println "Processed " + count.get() + " links"
+  println "The following links prevent automated verification, please check them manually"
+  manualChecks.each {
+    println it
+  }
+
+}
+
+private void checkFileUrls(File f, AtomicInteger count, List manualChecks) {
+  if (f.isDirectory()) {
+    f.listFiles().each {
+      checkFileUrls(it, count, manualChecks)
+    }
+  } else {
+    if (f.getName().contains("README")) {
+      f.readLines().each {
+        def match = (it =~ /^\s*(https?:\/\/[^,<>)\s]+[^.,<>)\s]).*/)
+        if (match.find()) {
+          def url = match.group(1)
+          checkLink(url,f, manualChecks)
+          count.incrementAndGet()
+        }
+      }
+    }
+  }
+}
+
+void checkLink(String s, File f, List manualChecks) {
+  sleep(1000)
+
+  def url = new URL(s)
+  def get = url.openConnection()
+  get.setRequestProperty("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/112.0")
+  get.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+  get.setRequestProperty("Accept-Encoding", "gzip, deflate, br")
+  get.setRequestProperty("Accept-Language", "en-US,en;q=0.5")
+  get.setRequestProperty("Host",url.getHost())
+  def respCode = get.getResponseCode()
+  def status = "Got response of " + respCode + " from " + s + " in " + f
+  if (respCode.equals(403)) {
+    // mvnrepository for example sends 403 to us even when browser is fine.
+    manualChecks.add(s)
+  } else if (!respCode.equals(200)) {
+    println get.headerFields
+    println get.getContent()
+    ant.fail(status)
+  } else {
+    println status
   }
 }
 
@@ -565,7 +627,7 @@ javadocJar.manifest.attributes getManifestAttributes()
 
 @SuppressWarnings("GroovyAssignabilityCheck")
 def getManifestAttributes() {
-  def gitDetails = versionDetails();
+  def gitDetails = versionDetails()
   Map<String, String> attrs = new LinkedHashMap<>()
   attrs.put('Implementation-Title', project.name)
   attrs.put('Implementation-Version', version)
