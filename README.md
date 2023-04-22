@@ -47,7 +47,7 @@ Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki
 
 # Project Status
 
-**Current release**: 1.0-beta2. (Very stale, very buggy, not reccomended)
+**Current release**: 1.0.0. (Very stale, very buggy, not reccomended)
 
 **Reccomended:** Build from `master` branch (Only waiting on documentation for release)
 
@@ -55,7 +55,7 @@ Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki
  - use /code/ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar
  - ask [on discord](https://discord.com/invite/RmdTYvpXr9) if you have issues with the build
 
-**Next Release:** 1.0-beta3
+**Next Release:** 1.0.1
 
 This next release will be a true feature locked beta suitable for use with all the latest features.
 
