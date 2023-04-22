@@ -59,6 +59,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   private FileFilter docPerLine;
   private final MemoryUsage heapMemoryUsage;
   private int memWaitTimeout;
+  private boolean includeAccessTime = false; // by default
 
   @SuppressWarnings("WeakerAccess")
   protected SimpleFileScanner() {
@@ -226,7 +227,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
         this,
         origination
     );
-    addAttrs(attributes, doc);
+    addAttrs(attributes, doc, this.includeAccessTime);
     return doc;
   }
 
@@ -346,6 +347,11 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
 
     public SimpleFileScanner.Builder docPerLineIfMatches(FileFilter filter) {
       getObj().docPerLine = filter;
+      return this;
+    }
+
+    public SimpleFileScanner.Builder includingFileAccessTime(boolean include) {
+      getObj().includeAccessTime = include;
       return this;
     }
 
