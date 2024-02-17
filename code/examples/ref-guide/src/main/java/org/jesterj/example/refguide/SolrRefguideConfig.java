@@ -1,4 +1,4 @@
-package org.jesterj.example.shakespeare;
+package org.jesterj.example.refguide;
 
 import org.jesterj.ingest.JavaPlanConfig;
 import org.jesterj.ingest.PlanProvider;
