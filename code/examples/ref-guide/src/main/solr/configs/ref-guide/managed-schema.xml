@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Solr managed schema - automatically generated - DO NOT EDIT -->
+<schema name="default-config" version="1.6">
+  <uniqueKey>id</uniqueKey>
+  <fieldType name="_nest_path_" class="solr.NestPathField" maxCharsForDocValues="-1" omitNorms="true" omitTermFreqAndPositions="true" stored="false" multiValued="false"/>
+  <fieldType name="ancestor_path" class="solr.TextField">
+    <analyzer type="index">
+      <tokenizer name="keyword"/>
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer name="pathHierarchy" delimiter="/"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="binary" class="solr.BinaryField"/>
+  <fieldType name="boolean" class="solr.BoolField" sortMissingLast="true"/>
+  <fieldType name="booleans" class="solr.BoolField" sortMissingLast="true" multiValued="true"/>
+  <fieldType name="delimited_payloads_float" class="solr.TextField" indexed="true" stored="false">
+    <analyzer>
+      <tokenizer name="whitespace"/>
+      <filter encoder="float" name="delimitedPayload"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="delimited_payloads_int" class="solr.TextField" indexed="true" stored="false">
+    <analyzer>
+      <tokenizer name="whitespace"/>
+      <filter encoder="integer" name="delimitedPayload"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="delimited_payloads_string" class="solr.TextField" indexed="true" stored="false">
+    <analyzer>
+      <tokenizer name="whitespace"/>
+      <filter encoder="identity" name="delimitedPayload"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="descendent_path" class="solr.TextField">
+    <analyzer type="index">
+      <tokenizer name="pathHierarchy" delimiter="/"/>
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer name="keyword"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="ignored" class="solr.StrField" indexed="false" stored="false" multiValued="true"/>
+  <fieldType name="location" class="solr.LatLonPointSpatialField" docValues="true"/>
+  <fieldType name="location_rpt" class="solr.SpatialRecursivePrefixTreeFieldType" geo="true" maxDistErr="0.001" distErrPct="0.025" distanceUnits="kilometers"/>
+  <fieldType name="lowercase" class="solr.TextField" positionIncrementGap="100">
+    <analyzer>
+      <tokenizer name="keyword"/>
+      <filter name="lowercase"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="pdate" class="solr.DatePointField" docValues="true"/>
+  <fieldType name="pdates" class="solr.DatePointField" docValues="true" multiValued="true"/>
+  <fieldType name="pdouble" class="solr.DoublePointField" docValues="true"/>
+  <fieldType name="pdoubles" class="solr.DoublePointField" docValues="true" multiValued="true"/>
+  <fieldType name="pfloat" class="solr.FloatPointField" docValues="true"/>
+  <fieldType name="pfloats" class="solr.FloatPointField" docValues="true" multiValued="true"/>
+  <fieldType name="phonetic_en" class="solr.TextField" indexed="true" stored="false">
+    <analyzer>
+      <tokenizer name="standard"/>
+      <filter inject="false" name="doubleMetaphone"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="pint" class="solr.IntPointField" docValues="true"/>
+  <fieldType name="pints" class="solr.IntPointField" docValues="true" multiValued="true"/>
+  <fieldType name="plong" class="solr.LongPointField" docValues="true"/>
+  <fieldType name="plongs" class="solr.LongPointField" docValues="true" multiValued="true"/>
+  <fieldType name="point" class="solr.PointType" subFieldSuffix="_d" dimension="2"/>
+  <fieldType name="random" class="solr.RandomSortField" indexed="true"/>
+  <fieldType name="rank" class="solr.RankField"/>
+  <fieldType name="string" class="solr.StrField" sortMissingLast="true" docValues="true"/>
+  <fieldType name="strings" class="solr.StrField" sortMissingLast="true" docValues="true" multiValued="true"/>
+  <fieldType name="text_en" class="solr.TextField" positionIncrementGap="100">
+    <analyzer type="index">
+      <tokenizer name="standard"/>
+      <filter words="lang/stopwords_en.txt" name="stop" ignoreCase="true"/>
+      <filter name="lowercase"/>
+      <filter name="englishPossessive"/>
+      <filter protected="protwords.txt" name="keywordMarker"/>
+      <filter name="porterStem"/>
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer name="standard"/>
+      <filter synonyms="synonyms.txt" name="synonymGraph" expand="true" ignoreCase="true"/>
+      <filter words="lang/stopwords_en.txt" name="stop" ignoreCase="true"/>
+      <filter name="lowercase"/>
+      <filter name="englishPossessive"/>
+      <filter protected="protwords.txt" name="keywordMarker"/>
+      <filter name="porterStem"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="text_en_splitting" class="solr.TextField" autoGeneratePhraseQueries="true" positionIncrementGap="100">
+    <analyzer type="index">
+      <tokenizer name="whitespace"/>
+      <filter words="lang/stopwords_en.txt" name="stop" ignoreCase="true"/>
+      <filter generateNumberParts="1" generateWordParts="1" catenateAll="0" name="wordDelimiterGraph" splitOnCaseChange="1" catenateNumbers="1" catenateWords="1"/>
+      <filter name="lowercase"/>
+      <filter protected="protwords.txt" name="keywordMarker"/>
+      <filter name="porterStem"/>
+      <filter name="flattenGraph"/>
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer name="whitespace"/>
+      <filter synonyms="synonyms.txt" name="synonymGraph" expand="true" ignoreCase="true"/>
+      <filter words="lang/stopwords_en.txt" name="stop" ignoreCase="true"/>
+      <filter generateNumberParts="1" generateWordParts="1" catenateAll="0" name="wordDelimiterGraph" splitOnCaseChange="1" catenateNumbers="0" catenateWords="0"/>
+      <filter name="lowercase"/>
+      <filter protected="protwords.txt" name="keywordMarker"/>
+      <filter name="porterStem"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="text_en_splitting_tight" class="solr.TextField" autoGeneratePhraseQueries="true" positionIncrementGap="100">
+    <analyzer type="index">
+      <tokenizer name="whitespace"/>
+      <filter synonyms="synonyms.txt" name="synonymGraph" expand="false" ignoreCase="true"/>
+      <filter words="lang/stopwords_en.txt" name="stop" ignoreCase="true"/>
+      <filter catenateNumbers="1" catenateWords="1" name="wordDelimiterGraph" generateNumberParts="0" catenateAll="0" generateWordParts="0"/>
+      <filter name="lowercase"/>
+      <filter protected="protwords.txt" name="keywordMarker"/>
+      <filter name="englishMinimalStem"/>
+      <filter name="removeDuplicates"/>
+      <filter name="flattenGraph"/>
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer name="whitespace"/>
+      <filter synonyms="synonyms.txt" name="synonymGraph" expand="false" ignoreCase="true"/>
+      <filter words="lang/stopwords_en.txt" name="stop" ignoreCase="true"/>
+      <filter catenateNumbers="1" catenateWords="1" name="wordDelimiterGraph" generateNumberParts="0" catenateAll="0" generateWordParts="0"/>
+      <filter name="lowercase"/>
+      <filter protected="protwords.txt" name="keywordMarker"/>
+      <filter name="englishMinimalStem"/>
+      <filter name="removeDuplicates"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="text_gen_sort" class="solr.SortableTextField" positionIncrementGap="100" multiValued="true">
+    <analyzer type="index">
+      <tokenizer name="standard"/>
+      <filter words="stopwords.txt" name="stop" ignoreCase="true"/>
+      <filter name="lowercase"/>
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer name="standard"/>
+      <filter words="stopwords.txt" name="stop" ignoreCase="true"/>
+      <filter synonyms="synonyms.txt" name="synonymGraph" expand="true" ignoreCase="true"/>
+      <filter name="lowercase"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="text_general" class="solr.TextField" positionIncrementGap="100" multiValued="true">
+    <analyzer type="index">
+      <tokenizer name="standard"/>
+      <filter words="stopwords.txt" name="stop" ignoreCase="true"/>
+      <filter name="lowercase"/>
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer name="standard"/>
+      <filter words="stopwords.txt" name="stop" ignoreCase="true"/>
+      <filter synonyms="synonyms.txt" name="synonymGraph" expand="true" ignoreCase="true"/>
+      <filter name="lowercase"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="text_general_rev" class="solr.TextField" positionIncrementGap="100">
+    <analyzer type="index">
+      <tokenizer name="standard"/>
+      <filter words="stopwords.txt" name="stop" ignoreCase="true"/>
+      <filter name="lowercase"/>
+      <filter maxPosQuestion="2" withOriginal="true" maxPosAsterisk="3" maxFractionAsterisk="0.33" name="reversedWildcard"/>
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer name="standard"/>
+      <filter synonyms="synonyms.txt" name="synonymGraph" expand="true" ignoreCase="true"/>
+      <filter words="stopwords.txt" name="stop" ignoreCase="true"/>
+      <filter name="lowercase"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="text_ws" class="solr.TextField" positionIncrementGap="100">
+    <analyzer>
+      <tokenizer name="whitespace"/>
+    </analyzer>
+  </fieldType>
+  <field name=".fields" type="strings"/>
+  <field name="Chroma_BackgroundColor" type="string"/>
+  <field name="Chroma_BlackIsZero" type="booleans"/>
+  <field name="Chroma_ColorSpaceType" type="string"/>
+  <field name="Chroma_Gamma" type="pdoubles"/>
+  <field name="Chroma_NumChannels" type="plongs"/>
+  <field name="Chroma_Palette_PaletteEntry" type="string"/>
+  <field name="Compression_CompressionTypeName" type="string"/>
+  <field name="Compression_Lossless" type="booleans"/>
+  <field name="Compression_NumProgressiveScans" type="plongs"/>
+  <field name="Content_Encoding" type="string"/>
+  <field name="Content_Language" type="string"/>
+  <field name="Content_Type" type="string"/>
+  <field name="Data_BitsPerSample" type="string"/>
+  <field name="Data_PlanarConfiguration" type="string"/>
+  <field name="Data_SampleFormat" type="string"/>
+  <field name="Data_SignificantBitsPerSample" type="string"/>
+  <field name="Dimension_HorizontalPixelOffset" type="plongs"/>
+  <field name="Dimension_HorizontalPixelSize" type="pdoubles"/>
+  <field name="Dimension_ImageOrientation" type="string"/>
+  <field name="Dimension_PixelAspectRatio" type="pdoubles"/>
+  <field name="Dimension_VerticalPixelOffset" type="plongs"/>
+  <field name="Dimension_VerticalPixelSize" type="pdoubles"/>
+  <field name="Document_ImageModificationTime" type="string"/>
+  <field name="GraphicControlExtension" type="string"/>
+  <field name="IHDR" type="string"/>
+  <field name="ImageDescriptor" type="string"/>
+  <field name="PLTE_PLTEEntry" type="string"/>
+  <field name="Text_TextEntry" type="string"/>
+  <field name="Transparency_Alpha" type="string"/>
+  <field name="UnknownChunks_UnknownChunk" type="string"/>
+  <field name="X_TIKA_Parsed_By" type="string"/>
+  <field name="X_TIKA_Parsed_By_Full_Set" type="string"/>
+  <field name="_text_" type="text_general" multiValued="true" indexed="true" stored="false"/>
+  <field name="_version_" type="plong" indexed="false" stored="false"/>
+  <field name="bKGD_bKGD_RGB" type="string"/>
+  <field name="cHRM" type="string"/>
+  <field name="created" type="plongs"/>
+  <field name="created_dt" type="pdate" indexed="true" stored="true"/>
+  <field name="dc_format" type="string"/>
+  <field name="dc_title" type="text_general"/>
+  <field name="doc_raw_size" type="plongs"/>
+  <field name="file_size_i" type="pint" indexed="true" stored="true"/>
+  <field name="gAMA" type="plongs"/>
+  <field name="generator" type="string"/>
+  <field name="height" type="plongs"/>
+  <field name="iCCP" type="string"/>
+  <field name="iTXt_iTXtEntry" type="string"/>
+  <field name="id" type="string" multiValued="false" indexed="true" required="true" stored="true"/>
+  <field name="modified" type="plongs"/>
+  <field name="modified_dt" type="pdate" indexed="true" stored="true"/>
+  <field name="pHYs" type="string"/>
+  <field name="sBIT_sBIT_Palette" type="string"/>
+  <field name="sBIT_sBIT_RGB" type="string"/>
+  <field name="sBIT_sBIT_RGBAlpha" type="string"/>
+  <field name="sRGB" type="string"/>
+  <field name="tEXt_tEXtEntry" type="string"/>
+  <field name="tIME" type="string"/>
+  <field name="tRNS_tRNS_Palette_tRNS_PaletteEntry" type="string"/>
+  <field name="tiff_BitsPerSample" type="string"/>
+  <field name="tiff_ImageLength" type="plongs"/>
+  <field name="tiff_ImageWidth" type="plongs"/>
+  <field name="viewport" type="string"/>
+  <field name="width" type="plongs"/>
+  <field name="zTXt_zTXtEntry" type="string"/>
+
+</schema>
