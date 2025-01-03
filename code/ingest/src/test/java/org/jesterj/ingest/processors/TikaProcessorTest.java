@@ -22,7 +22,7 @@ import static org.easymock.EasyMock.expect;
 @SuppressWarnings("ALL")
 public class TikaProcessorTest {
 
-  private static final String HTML = "<!DOCTYPE html><html><head><title>The title</title></head><body>This is some body text</body></html>";
+  private static final String HTML = "<!DOCTYPE html><html><head><title>The title</title></head><body><script>scripty</script><h1>heading</h1><div>This is some body text</div></body></html>";
   private static final String XML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root><peer><child>The title</child></peer><peer>This is some body text</peer></root>";
   private static final String XML_BROKEN = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root><peer><child>The title</peer><peer>This is some body text</peer></root>";
   private static final String XML_CONFIG=
@@ -76,9 +76,9 @@ public class TikaProcessorTest {
 
   @Test
   public void testHtml() {
-    TikaProcessor proc = new TikaProcessor.Builder().named("foo").appendingSuffix("_tk").truncatingTextTo(20).build();
+    TikaProcessor proc = new TikaProcessor.Builder().named("foo").appendingSuffix("_tk").truncatingTextTo(-1).build();
     expect(mockDocument.getRawData()).andReturn(HTML.getBytes()).anyTimes();
-    mockDocument.setRawData(aryEq("This is some body te".getBytes()));
+    mockDocument.setRawData(aryEq("heading\nThis is some body text\n".getBytes()));
     expect(mockDocument.put("X_TIKA_Parsed_By_tk", "org.apache.tika.parser.DefaultParser")).andReturn(true);
     expect(mockDocument.put("X_TIKA_Parsed_By_Full_Set_tk", "org.apache.tika.parser.DefaultParser")).andReturn(true);
     expect(mockDocument.put("dc_title_tk", "The title")).andReturn(true);
