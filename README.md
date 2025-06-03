@@ -21,8 +21,8 @@ Nobody likes setting aside valuable work, and it's natural to resist, but the lo
 Common problems are:
 
 - It works "ok" for a small test corpus and then becomes unstable on a larger production corpus.
-- The code written to feed into such interfaces often needs to be repeated for several types of documents or various document formats. It can easily lead to duplication and cut-and-paste copying of common functionality.
-- No way to recover if indexing fails partway through reindexing.
+- The code written to feed into such interfaces (hopefully) reproduces standard solutions to problems that have been solved many times by other search engineers over the last 20 years.
+- No way to recover if indexing errors or is disrupted partway through. One is forced to start again from the beginning.
 - If failure is related to the size of a growing corpus, failures become increasingly common, and eventually, the search index cannot be reindexed or upgraded at all.
 - Leveraging the power of modern multicore machines requires developers skilled at threading and concurrency, the resulting bugs can be very expensive to troubleshoot, fix and test.
 - Reliance on outdated, unmaintained or poorly maintained features such as the [Data Import Handler](https://solr.apache.org/guide/8_11/uploading-structured-data-store-data-with-the-data-import-handler.html). Such features are not used by any major companies (where committers often work), and consequently receive less attention and support.
