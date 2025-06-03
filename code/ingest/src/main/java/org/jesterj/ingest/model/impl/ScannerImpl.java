@@ -296,6 +296,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
    * What to do when a document has been recognized as required for indexing.
    *
    * @param doc The document to be processed
+   * @return true if the found document should be indexed, false if it should be ignored
    */
   public boolean docFound(Document doc) {
     ((DocumentImpl) doc).stepStarted(this);

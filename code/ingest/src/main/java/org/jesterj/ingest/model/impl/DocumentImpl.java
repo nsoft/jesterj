@@ -380,7 +380,6 @@ public class DocumentImpl implements Document {
   @Override
   public void reportDocStatus() {
     this.statusReporter.reportStatus(this);
-
   }
 
   void stepStarted(Step step) {

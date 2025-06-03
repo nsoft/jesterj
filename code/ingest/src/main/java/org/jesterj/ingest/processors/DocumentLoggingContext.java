@@ -1,7 +1,9 @@
 package org.jesterj.ingest.processors;
 
 import org.apache.logging.log4j.ThreadContext;
+import org.jesterj.ingest.model.DocStatusChange;
 import org.jesterj.ingest.model.Document;
+import org.jesterj.ingest.model.Status;
 
 import java.io.Closeable;
 import java.util.stream.Collectors;
