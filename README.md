@@ -11,8 +11,11 @@ Builds are run on infrastructure kindly donated by [<img align="top" src="https:
 Frequently, search projects start by feeding a few documents manually to a search engine, often via the "just for testing" built-in processing features of Solr such as [SolrCell](https://solr.apache.org/guide/6_6/uploading-data-with-solr-cell-using-apache-tika.html) or [post.jar](https://solr.apache.org/guide/6_6/post-tool.html#simpleposttool).
 These features are documented and included to help users get a feel for what they can do with Solr with minimal painful setup.
 
-This is good, and that's how it should be for first explorations. **Unfortunately, it's also a potential trap.**
-Large-scale ingestion of documents for search is non-trivial, and many projects outgrow these simple tools and have to throw away their early exploratory work. Nobody likes setting aside valuable work, and it's natural to resist, but the longer one clings to an insufficient tool, the bigger, more difficult, and more expensive the migration is.
+This is good, and that's how it should be for first explorations.
+**Unfortunately, it's also a potential trap.**
+Large-scale ingestion of documents for search is non-trivial.
+Many projects outgrow these simple tools and have to throw away their early exploratory work.
+Nobody likes setting aside valuable work, and it's natural to resist, but the longer one clings to an insufficient tool, the bigger, more difficult, and more expensive the migration is.
 
 
 Common problems are:
@@ -20,7 +23,7 @@ Common problems are:
 - It works "ok" for a small test corpus and then becomes unstable on a larger production corpus.
 - The code written to feed into such interfaces often needs to be repeated for several types of documents or various document formats. It can easily lead to duplication and cut-and-paste copying of common functionality.
 - No way to recover if indexing fails partway through reindexing.
-- If failure is related to the size of a growing corpus, failures become increasingly common, and the system eventually cannot be reindexed or upgraded at all.
+- If failure is related to the size of a growing corpus, failures become increasingly common, and eventually, the search index cannot be reindexed or upgraded at all.
 - Leveraging the power of modern multicore machines requires developers skilled at threading and concurrency, the resulting bugs can be very expensive to troubleshoot, fix and test.
 - Reliance on outdated, unmaintained or poorly maintained features such as the [Data Import Handler](https://solr.apache.org/guide/8_11/uploading-structured-data-store-data-with-the-data-import-handler.html). Such features are not used by any major companies (where committers often work), and consequently receive less attention and support.
 
