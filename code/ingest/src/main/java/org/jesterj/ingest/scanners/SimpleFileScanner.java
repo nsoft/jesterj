@@ -71,7 +71,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   @Override
   public ScanOp getScanOperation() {
     return new ScanOp(() -> {
-      log.trace("Scan Op:{}" , opCountTrace::incrementAndGet);
+      log.trace("Scan Op:{}", opCountTrace::incrementAndGet);
       synchronized (SimpleFileScanner.SCAN_LOCK) {
         log.trace("Acquired lock on " + SimpleFileScanner.this);
         setScanning(true); // ensure initial walk completes before new scans are started.
@@ -100,15 +100,15 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
     try {
       String fileForId = id;
       if (id.contains("#")) {
-        fileForId = fileForId.substring(0,id.indexOf("#"));
+        fileForId = fileForId.substring(0, id.indexOf("#"));
       }
       File file;
       try {
-         file = new File(new URI(fileForId));
+        file = new File(new URI(fileForId));
       } catch (IllegalArgumentException e) {
         // stupid jdk errors that don't tell you what the input was
-        log.info("JDK error message stupid:",e);
-        log.info("Input was {}",fileForId);
+        log.info("JDK error message stupid:", e);
+        log.info("Input was {}", fileForId);
         throw e;
       }
       // todo: this will be inefficient, but for the moment bank on restarts only having a small number of docs in flight
@@ -123,7 +123,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
           log.error("Invalid line number{} in ID:{}", lineStr, id);
         }
         long lineNo = Long.parseLong(lineStr.substring(1));
-        try(LineNumberReader reader = new LineNumberReader(new FileReader(file))) {
+        try (LineNumberReader reader = new LineNumberReader(new FileReader(file))) {
           while (true) {
             String line = reader.readLine();
             if (line == null) {
@@ -134,7 +134,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
             }
             return Optional.of(docWithAttrs(Document.Operation.NEW, attributes, FTI_ORIGIN, line.getBytes(), id));
           }
-          log.error("Not found: {}" , id);
+          log.error("Not found: {}", id);
           return Optional.empty();
         }
       } else {
@@ -168,7 +168,7 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
       File asFile = file.toFile();
       if (includes == null || includes.accept(asFile)) {
         if (docPerLine != null && docPerLine.accept(asFile)) {
-          makeLineDocs(file,Document.Operation.NEW,attrs,SCAN_ORIGIN);
+          makeLineDocs(file, Document.Operation.NEW, attrs, SCAN_ORIGIN);
         } else {
           Optional<Document> document = makeDoc(file, Document.Operation.NEW, attrs, SCAN_ORIGIN);
           log.trace("Created:{}", document::get);
@@ -191,19 +191,19 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
   }
 
   private void makeLineDocs(Path file, Document.Operation operation, BasicFileAttributes attributes, String origination) {
-    try(LineNumberReader reader = new LineNumberReader(new FileReader(file.toFile()))) {
+    try (LineNumberReader reader = new LineNumberReader(new FileReader(file.toFile()))) {
       long bytesRead = 0;
       while (true) {
         byte[] rawData;
         String line = reader.readLine();
         if (line == null) {
-            break;
+          break;
         }
         rawData = line.getBytes();
-        bytesRead += (long) line.length() *Character.BYTES;
+        bytesRead += (long) line.length() * Character.BYTES;
         long size = bytesRead / reader.getLineNumber();
         memThrottle(size, "Timed out waiting for available memory to process file (" + size + " bytes):" + file);
-        String id = file.toRealPath().toUri().toASCIIString()+ "#L" + reader.getLineNumber();
+        String id = file.toRealPath().toUri().toASCIIString() + "#L" + reader.getLineNumber();
         DocumentImpl doc = docWithAttrs(operation, attributes, origination, rawData, id);
         doc.put("__LINE_NUMBER__", String.valueOf(reader.getLineNumber()));
         log.trace("Bytes Read:{}", rawData.length);
