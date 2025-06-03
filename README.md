@@ -25,7 +25,7 @@ Common problems are:
 - No way to recover if indexing errors or is disrupted partway through. One is forced to start again from the beginning.
 - If failure is related to the size of a growing corpus, failures become increasingly common, and eventually, the search index cannot be reindexed or upgraded at all.
 - Leveraging the power of modern multicore machines requires developers skilled at threading and concurrency, the resulting bugs can be very expensive to troubleshoot, fix and test.
-- Reliance on outdated, unmaintained or poorly maintained features such as the [Data Import Handler](https://solr.apache.org/guide/8_11/uploading-structured-data-store-data-with-the-data-import-handler.html). Such features are not used by any major companies (where committers often work), and consequently receive less attention and support.
+- Reliance on outdated, unmaintained or poorly maintained features such as the [Data Import Handler](https://solr.apache.org/guide/8_11/uploading-structured-data-store-data-with-the-data-import-handler.html) (which has been removed from solr 9.0+). Such features are not used by any major companies (where committers often work), and consequently receive less attention and support.
 
 ## JesterJ's solution
 
@@ -37,7 +37,7 @@ The key aspects for achieving this are simplicity, robustness, flexibility, and 
 - Scanners (active connectors) for database and filesystem data sources _(simplicity)_
 - Custom processors only require a 4-method interface _(simplicity)_
 - Specialized classloading allows any version of a library in your custom code _(flexibility, simplicity)_
-- Simplified [startup](): `java -jar jesterj.jar <id> <secret>` _(simplicity)_
+- Simplified [startup](https://github.com/nsoft/jesterj/blob/master/code/ingest/src/main/resources/usage.docopts.txt): `java -jar jesterj.jar <id> <secret>` _(simplicity)_
 - Built in embedded Cassandra for performant persistent storage _(simplicity)_
 - Optional auto-detection of changes to documents _(flexibility, simplicity)_
 - Automatic fault-tolerant restart skipping previously seen documents _(robustness, scalability)_
@@ -115,11 +115,11 @@ In this release, we have the following features.
 * Embedded Cassandra server (no need to install Cassandra yourself!)
 * Cassandra config and data location configurable, defaults to `~/.jj/cassandra`
 * Support for fault tolerance, writing status change events to the embedded Cassandra server
-* Initial API/process for user-written document processors. (see [documentation](https://github.com/nsoft/jesterj/wiki/Documentation))
+* Support for user-written document processors. (see [documentation](https://github.com/nsoft/jesterj/wiki/Documentation))
 * 70% test coverage (jacoco)
 * Simple, single Java file to configure everything, non-Java programmers need only follow a simple example (for use cases not requiring custom code)
 * If you DO need custom code, that code can be packaged as an [uno-jar](https://github.com/nsoft/uno-jar) to provide all required dependencies and escape from any library versions that JesterJ uses! You only have to deal with your OWN jar hell, not ours! Of course, you can also rely on whatever we already provide. The classloaders for custom code prefer your uno-jar and then default to whatever JesterJ has available on its classpath.
-* Runnable example to [execute a plan](https://github.com/nsoft/jesterj/blob/master/code/ingest/README.md) that scans a filesystem, and indexes the documents in Solr.
+* Runnable example to [execute a plan](https://github.com/nsoft/jesterj/blob/master/code/examples/shakespeare/README.md) that scans a filesystem, and indexes the documents in Solr.
 
 Release 1.0 is intended to be usable for small to medium-sized projects (tens of millions of documents or low hundreds of millions of documents with some patience).
 
