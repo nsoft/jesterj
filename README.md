@@ -21,6 +21,8 @@ Common problems are:
 - The code written to feed into such interfaces often needs to be repeated for several types of documents or various document formats. It can easily lead to duplication and cut-and-paste copying of common functionality.
 - No way to recover if indexing fails partway through reindexing.
 - If failure is related to the size of a growing corpus, failures become increasingly common, and the system eventually cannot be reindexed or upgraded at all.
+- Leveraging the power of modern multicore machines requires developers skilled at threading and concurrency, the resulting bugs can be very expensive to troubleshoot, fix and test.
+- Reliance on outdated, unmaintained or poorly maintained features such as the [Data Import Handler](https://solr.apache.org/guide/8_11/uploading-structured-data-store-data-with-the-data-import-handler.html). Such features are not used by any major companies (where committers often work), and consequently receive less attention and support.
 
 ## JesterJ's solution
 
@@ -40,27 +42,31 @@ The key aspects for achieving this are simplicity, robustness, flexibility, and 
 - Explicit and direct control of threading. Easy to ensure more threads working on heavy steps _(scalability)_
 - Single system handling multiple data sources _(flexability, scalability, simplicity)_
 - Pre-baked batching of documents for efficient transmission to the search engine _(scalability, simplicity)_
-- DAG capable processing model, and graphical visualization _(flexibility, simplicity)_
+- Directed acyclic graph (DAG) capable processing model, and graphical visualization _(flexibility, simplicity)_
 
 DAG-structured processing is a key feature that is not provided by other tools.
 Most other tools require a linear pipeline structure, which can become limiting. As time passes, features and enhancements often add complexity.
 Multiple data sources are also a common dimension for growth. With other systems, you wind up deploying a system per data source.
 JesterJ is designed to handle complex indexing scenarios.
+
 Consider the following hypothetical indexing workflow, where the system has evolved from a simple linear ingestion into a single index:
-- Data format changed from, effectively creating a new data source (old data may need reindexing)
+- The source data format changed from, effectively creating a new data source (old data may need reindexing)
 - An external system needed to know that the document was received
 - Product features required a faster, optimized line-item-only search index
 - New features were added to the product that required block-join indexing, but old features couldn't be migrated, so a new index was required.
-In other tools, this will mean six indexing processes (two sources times three sinks), all of which need to send messages, none of which are coordinated if one fails. In JesterJ, it is all one coherent system:
+- Two new systems also wanted to be notified
+
+In other tools, this will mean six indexing processes (two sources times three indexes), all of which need to send messages, none of which are coordinated if one fails. In JesterJ, it is all one coherent system:
+
 ![Complex Processing](https://raw.githubusercontent.com/nsoft/jesterj/79ed481c7c0b98469e3e41c96b92170837a26130/code/examples/routing/complex-routing.png)
 
-JesterJ handles such scenarios with a single centralized processing plan, and there is no need to deploy new indexing infrastructure. Furthermore, JesterJ will ensure that if the system is unplugged partway through indexing, you won't get a second message about an order received for everything it processed previously (fault tolerance). The default mode for JesterJ is to ensure delivery for steps that are not marked safe or idempotent at most once. Safe steps do not have external effects, and idempotent steps may be repeated en route to the final processing end point.
-
-See the [website](http://www.jesterj.org) and the [documentation](https://github.com/nsoft/jesterj/wiki/Documentation) for more info
+JesterJ handles such scenarios with a single centralized processing plan, and there is no need to deploy new indexing infrastructure.
+Furthermore, JesterJ will ensure that if the system is unplugged partway through indexing, you won't get a second message about an order received for everything it processed previously (fault tolerance).
+The default mode for JesterJ is to ensure at-most-once delivery for steps that are not marked safe or idempotent. Safe steps do not have external effects, and idempotent steps may be repeated en route to the final processing end point.
 
 # Getting Started
 
-Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki/Documentation)
+The best place to start learning more is the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki/Documentation)
 
 # Project Status
 
