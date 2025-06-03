@@ -92,6 +92,7 @@ public interface Step extends Active, BlockingQueue<Document>, Runnable, Deferre
   /**
    * The steps that are reachable from this step and lead to at least one destination valid for the document.
    *
+   * @param d The document that needs to move down the DAG.
    * @return A map of steps keyed by their names.
    */
   LinkedHashMap<String, Step> getEligibleNextSteps(Document d);

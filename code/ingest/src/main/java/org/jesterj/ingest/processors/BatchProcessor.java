@@ -16,7 +16,6 @@
 
 package org.jesterj.ingest.processors;
 
-import org.apache.cassandra.utils.ConcurrentBiMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -24,12 +23,17 @@ import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.impl.NamedBuilder;
+import org.jesterj.ingest.utils.SynchronizedLinkedBimap;
 
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 abstract class BatchProcessor<T> implements DocumentProcessor {
   private static final Logger log = LogManager.getLogger();
+  protected AtomicLong docsReceived = new AtomicLong(0);
+  protected AtomicLong docsSucceeded = new AtomicLong(0);
+  protected AtomicLong docsAttempted = new AtomicLong(0);
 
   private volatile ScheduledExecutorService sender;
   private int batchSize = 100;
@@ -39,13 +43,28 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
   private final Object batchLock = new Object();
   private final Object sendLock = new Object();
 
-  private ConcurrentBiMap<Document, T> batch;
+  // While order is not critical for proper functionality,
+  // it is useful for writing unit tests, if this proves to
+  // be a bottleneck later we can optimize it.
+  private SynchronizedLinkedBimap<Document, T> batch;
 
   {
     // lock on monitor to ensure initialization "happens before" any access.
     synchronized (batchLock) {
-      batch = new ConcurrentBiMap<>();
+      batch = new SynchronizedLinkedBimap<>();
     }
+  }
+
+  // these 3 are primarily for testing purposes
+  public long getDocsSucceeded() {
+    return docsSucceeded.get();
+  }
+
+  public long getDocsReceived() {
+    return docsReceived.get();
+  }
+  public long getDocsAttempted() {
+    return docsAttempted.get();
   }
 
   public Document[] processDocument(Document document) {
@@ -71,15 +90,17 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
       }
     }
     T doc = convertDoc(document);
-    ConcurrentBiMap<Document, T> oldBatch = null;
+    SynchronizedLinkedBimap<Document, T> oldBatch = null;
     synchronized (batchLock) {
       if (this.batch.size() >= batchSize) {
         oldBatch = takeBatch();
       }
+      docsReceived.incrementAndGet();
       this.batch.put(document, doc);
       document.setStatus(Status.BATCHED, "{} queued in position {} for sending to solr. " +
           "Will be sent within {} milliseconds.", document.getId(), this.batch.size(), sendPartialBatchAfterMs);
-      document.reportDocStatus();    }
+      document.reportDocStatus();
+    }
     if (oldBatch != null) {
       sendBatch(oldBatch);
     }
@@ -88,26 +109,28 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
     return new Document[0];
   }
 
-  private ConcurrentBiMap<Document, T> takeBatch() {
+  private SynchronizedLinkedBimap<Document, T> takeBatch() {
     synchronized (batchLock) {
-      ConcurrentBiMap<Document, T> oldBatch = this.batch;
-      this.batch = new ConcurrentBiMap<>();
+      SynchronizedLinkedBimap<Document, T> oldBatch = this.batch;
+      this.batch = new SynchronizedLinkedBimap();
       log.trace("took batch {} with size {}", oldBatch.toString(), oldBatch.size());
       return oldBatch;
     }
   }
 
-  private void sendBatch(ConcurrentBiMap<Document, T> oldBatch) {
+  private void sendBatch(SynchronizedLinkedBimap<Document, T> oldBatch) {
+    docsAttempted.addAndGet(oldBatch.size());
     // there's a small window where the same BiMap could be grabbed by a timer and a full batch causing a double
     // send. Thus, we have a lock to ensure that the oldBatch.clear() in the finally is called
     // before the second thread tries to send the same batch. We tolerate this because it means batches can fill up
     // while sending is in progress.
     synchronized (sendLock) {
       try {
-        if (oldBatch.size() == 0) {
+        if (oldBatch.isEmpty()) {
           return;
         }
         batchOperation(oldBatch);
+        docsSucceeded.addAndGet(oldBatch.size());
       } catch (InterruptedException e) {
         // no fall back if shutting down, and cassandra won't be avail so no failure marking either
         log.info("Send aborted due to system shutdown");
@@ -116,9 +139,12 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
         // we may have a single bad document...
         //noinspection ConstantConditions
         if (exceptionIndicatesDocumentIssue(e)) {
-          individualFallbackOperation(oldBatch, e);
+          docsSucceeded.addAndGet(
+              individualFallbackOperation(oldBatch, e)
+          );
         } else {
-          perDocumentFailure(oldBatch, e);
+          // in this case the entire batch failed (i/o error etc)
+          entireBatchFailure(oldBatch, e);
         }
       } finally {
         schedulePartialBatch();
@@ -138,11 +164,12 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
     }, sendPartialBatchAfterMs, TimeUnit.MILLISECONDS);
   }
 
-  protected void perDocumentFailure(ConcurrentBiMap<Document, ?> oldBatch, Exception e) {
+  protected void entireBatchFailure(SynchronizedLinkedBimap<Document, ?> oldBatch, Exception e) {
     // something's wrong with the network etc. all documents must be errored out:
     for (Document doc : oldBatch.keySet()) {
       perDocFailLogging(e, doc);
     }
+    log.error("Error communicating with solr!", e);
   }
 
   DocumentLoggingContext createDocContext(Document doc) {
@@ -157,10 +184,11 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
    * @param oldBatch The batch for which to handle failures. This will have been detached from this object and will
    *                 become eligible for garbage collection after this method returns, so do not add objects to it.
    * @param e        the exception reported with the failure
+   * @return the number of individual documents that succeeded
    */
-  protected abstract void individualFallbackOperation(ConcurrentBiMap<Document, T> oldBatch, Exception e);
+  protected abstract int individualFallbackOperation(SynchronizedLinkedBimap<Document, T> oldBatch, Exception e);
 
-  protected abstract void batchOperation(ConcurrentBiMap<Document, T> documentTConcurrentBiMap) throws Exception;
+  protected abstract void batchOperation(SynchronizedLinkedBimap<Document, T> documentTConcurrentLinkedHashMap) throws Exception;
 
   @SuppressWarnings("UnusedParameters")
   protected abstract boolean exceptionIndicatesDocumentIssue(Exception e);

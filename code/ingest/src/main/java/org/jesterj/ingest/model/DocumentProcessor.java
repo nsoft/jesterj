@@ -22,11 +22,12 @@ public interface DocumentProcessor extends Configurable {
 
   /**
    * Mutate, validate or transmit a document. Implementations must not throw any * {@link java.lang.Throwable}
-   * that is not a JVM {@link java.lang.Error} and should be written expecting the possibility that the code might
-   * be interrupted at any point. Practically this means Document processors should perform no more than one
-   * persistent or externally visible actions and that action should be transactional. Large complex processors that
-   * write to disk, DB, or elsewhere multiple times run the risk of partial completion. Similarly, since JesterJ is
-   * a long-running system it will often cease operation due to unexpected outages (power cord, etc.), so it is not a
+   * that is not a JVM {@link java.lang.Error}, or a {@link java.lang.RuntimeException} (see below) and should
+   * be written expecting the possibility that the code might be interrupted at any point. Practically this
+   * means Document processors should perform no more than one* persistent or externally visible action
+   * and that action should be transactional. Large complex processors that write to disk, DB, or
+   * elsewhere multiple times run the risk of partial completion. Similarly, since JesterJ is a
+   * long-running system it may cease operation due to unexpected outages (power cord, etc.), so it is not a
    * good idea to hold resources that require an explicit release or "return". "Check then write" is of course a
    * performance anti-pattern with respect to external networked or disk resources since network and disk io are
    * typically slow to access. Processors should feel free to set the status of a document and add a status message via

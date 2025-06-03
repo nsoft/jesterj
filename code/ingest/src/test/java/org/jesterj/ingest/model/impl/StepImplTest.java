@@ -148,7 +148,7 @@ public class StepImplTest {
   public void testSideEffectsLastStep() {
     replay();
     try {
-      testStep = new StepImpl.Builder().withProcessor(new SendToSolrCloudProcessor.Builder()
+      testStep = new StepImpl.Builder().withProcessor(new SendToSolrCloudZkProcessor.Builder()
           .named("foo")
           .withZookeeper("localhost:9983")).build();
       Set<Step> possibleSideEffects = testStep.getDownstreamOutputSteps();
@@ -227,7 +227,7 @@ public class StepImplTest {
     sendToSolrBuilder
         .named("solr_sender")
         .withProcessor(
-            new SendToSolrCloudProcessor.Builder()
+            new SendToSolrCloudZkProcessor.Builder()
                 .withZookeeper("localhost:9983")
                 .usingCollection("jjtest")
                 .placingTextContentIn("_text_")

@@ -16,37 +16,43 @@
 
 package org.jesterj.ingest.processors;
 
-import org.apache.cassandra.utils.ConcurrentBiMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.request.UpdateRequest;
+import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.util.NamedList;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
+import org.jesterj.ingest.utils.SynchronizedLinkedBimap;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> implements DocumentProcessor {
+public abstract class SendToSolrProcessor extends BatchProcessor<SolrInputDocument> implements DocumentProcessor {
   private static final Logger log = LogManager.getLogger();
+  protected String collection;
+  protected String textContentField = "content";
+  protected String fieldsField;
+  protected Map<String, String> params;
+  protected String name;
+  protected Function<String, Object> idTransformer;
 
-  private String collection;
-  private String textContentField = "content";
-  private String fieldsField;
-  private Map<String, String> params;
-
-  private CloudSolrClient solrClient;
-  private String name;
-
-  private Function<String, Object> idTransformer;
-
-  protected SendToSolrCloudProcessor() {
+  private static void markIndexing(Collection<Document> documents, int size) {
+    for (Document document : documents) {
+      document.setStatus(Status.INDEXING, "Indexing started for a batch of " + size + " documents");
+      document.reportDocStatus();
+    }
   }
 
   // in this class logging is important, so encapsulate it for tests.
@@ -58,7 +64,6 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
   protected void perDocFailLogging(Exception e, Document doc) {
     doc.setStatus(Status.ERROR, "{} could not be sent to solr because of {}", doc.getId(), e.getMessage());
     doc.reportDocStatus();
-    log().error("Error communicating with solr!", e);
   }
 
   @Override
@@ -67,60 +72,64 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
   }
 
   @Override
-  protected void individualFallbackOperation(ConcurrentBiMap<Document, SolrInputDocument> oldBatch, Exception e) {
+  protected int individualFallbackOperation(SynchronizedLinkedBimap<Document, SolrInputDocument> oldBatch, Exception e) {
+    AtomicInteger succeeded = new AtomicInteger();
     // TODO: send in bisected batches to avoid massive traffic due to one doc when batches are large
     for (Document document : oldBatch.keySet()) {
       createDocContext(document).run(() -> {
         try {
           SolrInputDocument doc = oldBatch.get(document);
           if (doc instanceof Delete) {
-            document.setStatus(Status.INDEXING,"{} is being deleted from solr", document.getId());
+            document.setStatus(Status.INDEXING, "{} is being deleted from solr", document.getId());
             document.reportDocStatus();
             getSolrClient().deleteById(oldBatch.inverse().get(doc).getId());
-            document.setStatus(Status.INDEXED,"{} deleted from solr successfully", document.getId());
+            document.setStatus(Status.INDEXED, "{} deleted from solr successfully", document.getId());
           } else {
-            document.setStatus(Status.INDEXING,"{} is being sent to solr", document.getId());
+            document.setStatus(Status.INDEXING, "{} is being sent to solr", document.getId());
             document.reportDocStatus();
             getSolrClient().add(doc);
-            document.setStatus(Status.INDEXED,"{} sent to solr successfully", document.getId());
+            // relying on add to throw if not successful
+            document.setStatus(Status.INDEXED, "{} sent to solr successfully", document.getId());
           }
+          docsSucceeded.incrementAndGet();
+          document.reportDocStatus();
         } catch (IOException | SolrServerException e1) {
-          document.setStatus(Status.ERROR,"{} could not be sent to solr because of {}", document.getId(), e1.getMessage());
-          log().error("Error sending to solr!", e1);
+          perDocFailLogging(e1,document); // contains reportstatus call
         }
-        document.reportDocStatus();
       });
     }
+    return succeeded.get();
   }
 
   @Override
-  protected void batchOperation(ConcurrentBiMap<Document, SolrInputDocument> oldBatch) throws SolrServerException, IOException {
+  protected void batchOperation(SynchronizedLinkedBimap<Document, SolrInputDocument> oldBatch) throws SolrServerException, IOException {
     List<Document> documentsToAdd = oldBatch.keySet().stream()
         .filter(doc -> doc.getOperation() != Document.Operation.DELETE).collect(Collectors.toList());
     List<SolrInputDocument> adds = documentsToAdd.stream()
         .map(oldBatch::get)
         .collect(Collectors.toList());
-    if (adds.size() > 0) {
+    if (!adds.isEmpty()) {
       Map<String, String> params = getParams();
       if (params == null) {
-        markIndexing(documentsToAdd, oldBatch.size()); // not factoring out to minimize delay before request to solr
+        SendToSolrProcessor.markIndexing(documentsToAdd, oldBatch.size()); // not factoring out to minimize delay before request to solr
         getSolrClient().add(adds);
       } else {
+        // todo: adjust getParams to return Map<String,String[]> to facilitate simpler req.setParams()
         UpdateRequest req = new UpdateRequest();
         req.add(adds);
         // always true right now, but pattern for additional global params...
         for (String s : params.keySet()) {
           req.setParam(s, params.get(s));
         }
-        markIndexing(documentsToAdd, oldBatch.size());
+        SendToSolrProcessor.markIndexing(documentsToAdd, oldBatch.size());
         getSolrClient().request(req);
       }
     }
     List<Document> documentsToDelete = oldBatch.keySet().stream()
         .filter(doc -> doc.getOperation() == Document.Operation.DELETE)
         .collect(Collectors.toList());
-    if (documentsToDelete.size() > 0) {
-      markIndexing(documentsToDelete, oldBatch.size());
+    if (!documentsToDelete.isEmpty()) {
+      SendToSolrProcessor.markIndexing(documentsToDelete, oldBatch.size());
       getSolrClient().deleteById(documentsToDelete.stream().map(Document::getId)
           .collect(Collectors.toList()));
     }
@@ -131,13 +140,6 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
       } else {
         document.setStatus(Status.INDEXED, "{} sent to solr successfully", document.getId());
       }
-      document.reportDocStatus();
-    }
-  }
-
-  private static void markIndexing(Collection<Document> documents, int size) {
-    for (Document document : documents) {
-      document.setStatus(Status.INDEXING, "Indexing started for a batch of " + size + " documents");
       document.reportDocStatus();
     }
   }
@@ -160,11 +162,7 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
     String fieldsField = getFieldsField();
     for (String field : document.keySet()) {
       List<String> values = document.get(field);
-      if (values.size() > 1) {
-        doc.addField(field, values);
-      } else {
-        doc.addField(field, document.getFirstValue(field));
-      }
+      doc.addField(field, values);
       // Note that raw data should be empty or have been converted to the bytes of a utf-8 string.
       if (fieldsField != null) {
         doc.addField(fieldsField, field);
@@ -180,7 +178,7 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
     if (idTransformer != null) {
       String idField = document.getIdField();
       doc.remove(idField);
-      doc.addField(idField,idTransformer.apply(document.getFirstValue(idField)));
+      doc.addField(idField, idTransformer.apply(document.getFirstValue(idField)));
     }
     return doc;
   }
@@ -199,13 +197,9 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
     this.params = updateChain;
   }
 
-  CloudSolrClient getSolrClient() {
-    return solrClient;
-  }
+  abstract SolrClient getSolrClient();
 
-  void setSolrClient(CloudSolrClient solrClient) {
-    this.solrClient = solrClient;
-  }
+  abstract void setSolrClient(SolrClient solrClient);
 
   // for testing
   Function<String, Object> getIdTransformer() {
@@ -220,9 +214,9 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
     return name;
   }
 
-  public static class Builder extends BatchProcessor.Builder<SolrInputDocument> {
+  public abstract static class Builder extends BatchProcessor.Builder<SolrInputDocument> {
 
-    SendToSolrCloudProcessor obj = new SendToSolrCloudProcessor();
+
     List<String> zkList = new ArrayList<>();
     String chroot;
 
@@ -236,32 +230,12 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
       return this;
     }
 
-    @SuppressWarnings("unused")
-    public Builder withRequestParameters(Map<String,String> params) {
+    @SuppressWarnings({"unused", "UnusedReturnValue"})
+    public Builder withRequestParameters(Map<String, String> params) {
       getObj().params = params;
       return this;
     }
 
-    /**
-     * Add a zookeeper host:port. If :port is omitted :2181 will be assumed
-     *
-     * @param zk a host name, and port specification
-     * @return This builder for further configuration;
-     */
-    @SuppressWarnings("ConstantConditions")
-    public Builder withZookeeper(String zk) {
-      if (zk.indexOf(":") < -1) {
-        zk += ":2181";
-      }
-      zkList.add(zk);
-      return this;
-    }
-
-    @SuppressWarnings("unused")
-    public Builder zkChroot(String chroot) {
-      this.chroot = chroot;
-      return this;
-    }
 
     public Builder withDocFieldsIn(String fieldsField) {
       getObj().fieldsField = fieldsField;
@@ -275,8 +249,8 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
      * @param transformer a function to replace the id
      * @return this builder for additional configuration
      */
-    @SuppressWarnings("unused")
-    public Builder transformIdsWith(Function<String,Object> transformer) {
+    @SuppressWarnings({"unused", "UnusedReturnValue"})
+    public Builder transformIdsWith(Function<String, Object> transformer) {
       getObj().idTransformer = transformer;
       return this;
     }
@@ -286,20 +260,8 @@ public class SendToSolrCloudProcessor extends BatchProcessor<SolrInputDocument> 
       return this;
     }
 
-    protected SendToSolrCloudProcessor getObj() {
-      return obj;
-    }
+    protected abstract SendToSolrProcessor getObj() ;
 
-    private void setObj(SendToSolrCloudProcessor obj) {
-      this.obj = obj;
-    }
-
-    public SendToSolrCloudProcessor build() {
-      SendToSolrCloudProcessor tmp = getObj();
-      setObj(new SendToSolrCloudProcessor());
-      tmp.setSolrClient(new CloudSolrClient.Builder(this.zkList,Optional.ofNullable(chroot)).build());
-      tmp.getSolrClient().setDefaultCollection(tmp.collection);
-      return tmp;
-    }
+    public abstract SendToSolrProcessor build() ;
   }
 }

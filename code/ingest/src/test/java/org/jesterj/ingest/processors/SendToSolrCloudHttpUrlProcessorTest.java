@@ -16,9 +16,27 @@
 
 package org.jesterj.ingest.processors;
 
+import static com.copyright.easiertest.EasierMocks.prepareMocks;
+import static com.copyright.easiertest.EasierMocks.replay;
+import static com.copyright.easiertest.EasierMocks.reset;
+import static com.copyright.easiertest.EasierMocks.verify;
+import static junit.framework.TestCase.assertTrue;
+import static org.easymock.EasyMock.capture;
+import static org.easymock.EasyMock.eq;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.newCapture;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.copyright.easiertest.Mock;
 import com.copyright.easiertest.ObjectUnderTest;
-import org.apache.cassandra.utils.ConcurrentBiMap;
 import org.apache.logging.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
@@ -31,21 +49,10 @@ import org.easymock.Capture;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.impl.DocumentImpl;
+import org.jesterj.ingest.utils.SynchronizedLinkedBimap;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.*;
-
-import static com.copyright.easiertest.EasierMocks.replay;
-import static com.copyright.easiertest.EasierMocks.reset;
-import static com.copyright.easiertest.EasierMocks.verify;
-import static com.copyright.easiertest.EasierMocks.*;
-import static junit.framework.TestCase.assertTrue;
-import static org.easymock.EasyMock.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 /*
  * Created with IntelliJ IDEA.
@@ -53,10 +60,10 @@ import static org.junit.Assert.assertFalse;
  * Date: 9/23/16
  */
 @SuppressWarnings("DataFlowIssue")
-public class SendToSolrCloudProcessorTest {
+public class SendToSolrCloudHttpUrlProcessorTest {
   @ObjectUnderTest
-  SendToSolrCloudProcessor proc;
-  @Mock private ConcurrentBiMap<Document, SolrInputDocument> batchMock;
+  SendToSolrCloudHttpUrlProcessor proc;
+  @Mock private SynchronizedLinkedBimap<Document, SolrInputDocument> batchMock;
   @Mock private DocumentImpl docMock;
   @Mock private Logger logMock;
   @Mock private SolrInputDocument inputDocMock;
@@ -70,7 +77,7 @@ public class SendToSolrCloudProcessorTest {
   @Mock private NamedList<Object> namedListMock;
   @Mock private DocumentLoggingContext docContextMock;
 
-  public SendToSolrCloudProcessorTest() {
+  public SendToSolrCloudHttpUrlProcessorTest() {
     prepareMocks(this);
   }
 
@@ -93,7 +100,7 @@ public class SendToSolrCloudProcessorTest {
     proc.perDocFailLogging(e, docMock);
 
     replay();
-    proc.perDocumentFailure(batchMock, e);
+    proc.entireBatchFailure(batchMock, e);
   }
 
   @Test
@@ -103,7 +110,6 @@ public class SendToSolrCloudProcessorTest {
     expect(docMock.getId()).andReturn("42");
     docMock.setStatus(Status.ERROR,  "{} could not be sent to solr because of {}", "42", "TEST EXCEPTION");
     docMock.reportDocStatus();
-    logMock.error("Error communicating with solr!", e);
     replay();
     proc.perDocFailLogging(e, docMock);
   }
@@ -114,7 +120,6 @@ public class SendToSolrCloudProcessorTest {
     expect(docMock.keySet()).andReturn(Set.of("id","myField"));
     expect(docMock.get("id")).andReturn(List.of("forty-two")).anyTimes();
     expect(docMock.get("myField")).andReturn(List.of("this","that"));
-    expect(docMock.getFirstValue("id")).andReturn("forty-two");
     expect(docMock.getRawData()).andReturn(null);
     expect(proc.getFieldsField()).andReturn(null);
     expect(proc.getIdTransformer()).andReturn(v -> 42);
@@ -130,7 +135,7 @@ public class SendToSolrCloudProcessorTest {
   }
   @Test
   public void testPerBatchOperation() throws IOException, SolrServerException {
-    ConcurrentBiMap<Document, SolrInputDocument> biMap = expect3Docs();
+    SynchronizedLinkedBimap<Document, SolrInputDocument> biMap = expect3Docs();
     expect(proc.getParams()).andReturn(null).anyTimes();
     expect(proc.getSolrClient()).andReturn(solrClientMock).anyTimes();
     Capture<List<SolrInputDocument>> addCap = newCapture();
@@ -160,7 +165,7 @@ public class SendToSolrCloudProcessorTest {
 
   @Test
   public void testPerBatchOperationWithChain() throws IOException, SolrServerException {
-    ConcurrentBiMap<Document, SolrInputDocument> biMap = expect3Docs();
+    SynchronizedLinkedBimap<Document, SolrInputDocument> biMap = expect3Docs();
 
     Map<String,String> params = new HashMap<>();
     params.put("update.chain", "myCustomChain");
@@ -198,8 +203,9 @@ public class SendToSolrCloudProcessorTest {
     assertEquals("myCustomChain", reqParams.get("update.chain"));
   }
 
-  private ConcurrentBiMap<Document, SolrInputDocument> expect3Docs() {
-    ConcurrentBiMap<Document, SolrInputDocument> biMap = new ConcurrentBiMap<>();
+  private SynchronizedLinkedBimap<Document, SolrInputDocument> expect3Docs() {
+    SynchronizedLinkedBimap<Document, SolrInputDocument> biMap =
+        new SynchronizedLinkedBimap<>();
     biMap.put(docMock, inputDocMock);
     biMap.put(docMock2, inputDocMock2);
     biMap.put(docMock3, inputDocMock3);
