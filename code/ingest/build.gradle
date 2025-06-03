@@ -106,7 +106,7 @@ dependencies {
   // https://github.com/apache/cassandra/blob/c378874a9fa123891d1d75177d99dba5c4d18f9b/.build/dependency-check-suppressions.xml
   // Note: there are (as of now) no netty import statements, so we're not using any vulnerable code either.
   //noinspection VulnerableLibrariesLocal
-  implementation ('org.apache.cassandra:cassandra-all:4.1.0') {
+  implementation ('org.apache.cassandra:cassandra-all:4.1.8') {
     exclude group:'ch.qos.logback'
   }
 
