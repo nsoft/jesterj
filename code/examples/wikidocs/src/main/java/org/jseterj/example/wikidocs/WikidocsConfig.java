@@ -6,7 +6,7 @@ import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
 import org.jesterj.ingest.processors.CopyField;
-import org.jesterj.ingest.processors.SendToSolrCloudProcessor;
+import org.jesterj.ingest.processors.SendToSolrCloudZkProcessor;
 import org.jesterj.ingest.processors.SimpleDateTimeReformatter;
 import org.jesterj.ingest.routers.RoundRobinRouter;
 import org.jesterj.ingest.scanners.SimpleFileScanner;
@@ -127,7 +127,7 @@ public class WikidocsConfig implements PlanProvider {
           .named("solr_sender")
           .batchSize(1000)
           .withProcessor(
-              new SendToSolrCloudProcessor.Builder()
+              new SendToSolrCloudZkProcessor.Builder()
                   .named("solr_processor")
                   .withZookeeper("localhost:2181")
                   .zkChroot("/solr__home_gus_projects_gus-asf_solr_testing_wikidoc2")
