@@ -6,7 +6,7 @@ import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
 import org.jesterj.ingest.processors.CopyField;
-import org.jesterj.ingest.processors.SendToSolrCloudProcessor;
+import org.jesterj.ingest.processors.SendToSolrCloudZkProcessor;
 import org.jesterj.ingest.processors.SimpleDateTimeReformatter;
 import org.jesterj.ingest.processors.TikaProcessor;
 import org.jesterj.ingest.scanners.SimpleFileScanner;
@@ -114,7 +114,7 @@ public class SolrRefguideConfig implements PlanProvider {
     sendToSolrBuilder
         .named("solr_sender")
         .withProcessor(
-            new SendToSolrCloudProcessor.Builder()
+            new SendToSolrCloudZkProcessor.Builder()
                 .named("solr_processor")
                 .withZookeeper("localhost:2181/solr__home_gus_projects_gus-asf_solr_fork_testing_2024-02-12")
                 .usingCollection("ref_guide")

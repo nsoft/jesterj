@@ -6,7 +6,7 @@ import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
 import org.jesterj.ingest.processors.CopyField;
-import org.jesterj.ingest.processors.SendToSolrCloudProcessor;
+import org.jesterj.ingest.processors.SendToSolrCloudZkProcessor;
 import org.jesterj.ingest.processors.SimpleDateTimeReformatter;
 import org.jesterj.ingest.processors.TikaProcessor;
 import org.jesterj.ingest.scanners.SimpleFileScanner;
@@ -114,7 +114,7 @@ public class ShakespeareConfig implements PlanProvider {
     sendToSolrBuilder
         .named("solr_sender")
         .withProcessor(
-            new SendToSolrCloudProcessor.Builder()
+            new SendToSolrCloudZkProcessor.Builder()
                 .named("solr_processor")
                 .withZookeeper("localhost:9983")
                 .usingCollection("jjtest")
