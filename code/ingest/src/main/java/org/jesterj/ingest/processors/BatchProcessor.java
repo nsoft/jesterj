@@ -171,7 +171,7 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
     for (Document doc : oldBatch.keySet()) {
       perDocFailLogging(e, doc);
     }
-    log.error("Error communicating with solr!", e);
+    log.error("Error communicating with destination!", e);
   }
 
   DocumentLoggingContext createDocContext(Document doc) {

@@ -301,19 +301,15 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
   public boolean docFound(Document doc) {
     ((DocumentImpl) doc).stepStarted(this);
     String scannerName = getName();
-    log.trace("{} found doc: {}", scannerName, doc.getId());
+    String oldId = doc.getId();
+    setDocId(doc);
+    log.trace("{} found doc:{} Transformed id is:{}", scannerName, oldId, doc.getId());
+
     doc.setStatus(PROCESSING, "{} found doc:{}", scannerName, doc.getId());
-    String id = doc.getId();
-    Function<String, String> idFunction = getIdFunction();
-    String result = idFunction.apply(id);
-    String idField = doc.getIdField();
-    doc.removeAll(idField);
-    doc.put(idField, result);
 
     boolean shouldIndex = doc.isForceReprocess();
 
     if (isRemembering() & !shouldIndex) {
-      id = doc.getId();
       CqlSession session = getCassandra().getSession();
       Set<String> outputDestinationNames = getOutputDestinationNames();
       List<String> downstreamOutputSteps = new ArrayList<>(outputDestinationNames);
@@ -327,9 +323,9 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
         // if we are hashing and the content has changed we always reindex.
         // if we are not hashing then we only index if we have never seen this doc
         if (isHashing()) {
-          shouldIndex = isFreshContent(doc, scannerName, id, session);
+          shouldIndex = isFreshContent(doc, scannerName, doc.getId(), session);
         } else {
-          shouldIndex = !seenPreviously(scannerName, id, session);
+          shouldIndex = !seenPreviously(scannerName, doc.getId(), session);
         }
       }
     } else {
@@ -341,7 +337,7 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
 
     log.trace("Memory complete");
     if (shouldIndex) {
-      log.trace("Need to index {}", id);
+      log.trace("Need to index {}", doc.getId());
       // if we get here and steps have not been previously determined, then we have
       // found a new version of a doc via a scan and all steps are eligible. This case
       // would be universally true if not remembering so short circuit that with a simple boolean check.
@@ -352,9 +348,18 @@ public abstract class ScannerImpl extends StepImpl implements Scanner {
       }
       sendToNext(doc);
     } else {
-      log.trace("Did not need to index {}", id);
+      log.trace("Did not need to index {}", doc.getId());
     }
     return shouldIndex;
+  }
+
+  private void setDocId(Document doc) {
+    String id = doc.getId();
+    Function<String, String> idFunction = getIdFunction();
+    String result = idFunction.apply(id);
+    String idField = doc.getIdField();
+    doc.removeAll(idField);
+    doc.put(idField, result);
   }
 
   boolean seenPreviously(String scannerName, String id, CqlSession session) {

@@ -5,13 +5,11 @@ import org.jesterj.ingest.PlanProvider;
 import org.jesterj.ingest.model.Plan;
 import org.jesterj.ingest.model.impl.PlanImpl;
 import org.jesterj.ingest.model.impl.StepImpl;
-import org.jesterj.ingest.processors.CopyField;
-import org.jesterj.ingest.processors.SendToSolrCloudZkProcessor;
-import org.jesterj.ingest.processors.SimpleDateTimeReformatter;
-import org.jesterj.ingest.processors.TikaProcessor;
+import org.jesterj.ingest.processors.*;
 import org.jesterj.ingest.scanners.SimpleFileScanner;
 
 import java.io.File;
+import java.net.MalformedURLException;
 
 @JavaPlanConfig
 public class ShakespeareConfig implements PlanProvider {
@@ -23,6 +21,7 @@ public class ShakespeareConfig implements PlanProvider {
   private static final String SIZE_TO_INT = "size_to_int_step";
   private static final String TIKA = "tika_step";
   private static final String SHAKESPEARE = "Shakespeare_scanner";
+  public static final String OPENSEARCH = "opensearch_step";
 
   public Plan getPlan() {
 
@@ -37,6 +36,7 @@ public class ShakespeareConfig implements PlanProvider {
     StepImpl.Builder renameFileSizeToInteger = new StepImpl.Builder();
     StepImpl.Builder tikaBuilder = new StepImpl.Builder();
     StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
+    StepImpl.Builder sendToOpenSearchBuilder = new StepImpl.Builder();
 
     // If you have things to declare/create that will be used in configuration get it out of the way
     // here to keep the config concise.
@@ -53,7 +53,7 @@ public class ShakespeareConfig implements PlanProvider {
         .withRoot(testDocs)
         .rememberScannedIds(true)
         .detectChangesViaHashing(true)
-        .scanFreqMS(1000);
+        .scanFreqMS(5000);
 
     // format the several dates produced by the scanner (to the default ISO output, solr wants)
     formatCreated
@@ -124,6 +124,22 @@ public class ShakespeareConfig implements PlanProvider {
                 .sendingPartialBatchesAfterMs(20_000)
         );
 
+    try {
+      sendToOpenSearchBuilder.named(OPENSEARCH)
+              .withProcessor(new SendToOpenSearchProcessor.Builder()
+                  .named("opensearch_processor")
+                  .sendingBatchesOf(10)
+                  .sendingPartialBatchesAfterMs(10_000)
+                  .openSearchAt("https://localhost:9200/")
+                  .indexNamed("shakespeare")
+                  .asUser("jesterj")
+                  .authenticatedBy("JJ42!!ester")
+                  .insecureTrustAllHttps() // obviously, don't do this in production
+              );
+    } catch (MalformedURLException e) {
+      throw new RuntimeException(e);
+    }
+
     //
     // Important part #2: Building the Directed Acyclic Graph
     //
@@ -141,7 +157,8 @@ public class ShakespeareConfig implements PlanProvider {
         .addStep(formatAccessed, MODIFIED)
         .addStep(renameFileSizeToInteger, ACCESSED)
         .addStep(tikaBuilder, SIZE_TO_INT)
-        .addStep(sendToSolrBuilder, TIKA);
+        //.addStep(sendToSolrBuilder, TIKA)
+        .addStep(sendToOpenSearchBuilder, TIKA);
     return planBuilder.build();
 
   }
