@@ -47,6 +47,7 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
   // it is useful for writing unit tests, if this proves to
   // be a bottleneck later we can optimize it.
   private SynchronizedLinkedBimap<Document, T> batch;
+  private String nonceField = "jjNonce";
 
   {
     // lock on monitor to ensure initialization "happens before" any access.
@@ -68,6 +69,7 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
   }
 
   public Document[] processDocument(Document document) {
+    document.addNonce(nonceField);
     if (this.sender == null) {
       synchronized (this) {
         if (this.sender == null) {
@@ -206,6 +208,11 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
 
     public Builder<T> sendingPartialBatchesAfterMs(int ms) {
       getObj().sendPartialBatchAfterMs = ms;
+      return this;
+    }
+
+    public Builder<T> storingNonceIn(String field) {
+      getObj().nonceField = field;
       return this;
     }
 

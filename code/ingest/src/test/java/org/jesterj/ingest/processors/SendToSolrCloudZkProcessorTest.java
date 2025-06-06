@@ -302,6 +302,7 @@ public class SendToSolrCloudZkProcessorTest {
 
   private void indexMock(Document documentMock, int batchSize, String id, boolean fail, boolean fallbackExpected) throws SolrServerException, IOException {
     // when batch is attempted
+    expect(documentMock.addNonce("jjNonce")).andReturn("42");
     documentMock.setStatus(INDEXING, "Indexing started for a batch of " + batchSize + " documents");
     documentMock.reportDocStatus();
     if (fallbackExpected) {

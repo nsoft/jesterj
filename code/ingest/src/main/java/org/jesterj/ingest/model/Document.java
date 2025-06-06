@@ -223,6 +223,17 @@ public interface Document extends  Serializable {
    */
   void removeAllOtherDestinationsQuietly(Set<String> outputDestinationNames);
 
+  /**
+   * There are points in batch processing where the infrastructure wants to build bidirectional maps to relate
+   * {code Document}s to their destination specific representation, and this can only be achieved if the destination
+   * specific representation is unique. In such cases (and in any other case where {code Document} uniqueness is
+   * important this method may be employed.
+   *
+   * @param fieldName the name of the field in which to store the nonce
+   * @return the nonce value that was added.
+   */
+  String addNonce(String fieldName);
+
   enum Operation implements Serializable {
     NEW,
     UPDATE, // Note: most cases want NEW not update since search indexes usually overwrite rather than update
