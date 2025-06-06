@@ -37,6 +37,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -65,6 +66,7 @@ public class DocumentImpl implements Document {
   public static final String CHILD_SEP = "⇛";
   public static final Pattern DEFAULT_TO_STRING = Pattern.compile("([A-Za-z_.0-9]+=\\[[^=]*[0-9_a-z.]+\\.[0-9_A-Za-z.]+@[0-9A-F]+)]}?,");
 
+  public static final AtomicLong NONCE_GENERATOR = new AtomicLong();
 
   // document id field.
   private final String idField;
@@ -560,5 +562,12 @@ public class DocumentImpl implements Document {
         incompleteOutputDestinations.remove(dest);
       }
     }
+  }
+
+  @Override
+  public String addNonce(String fieldName) {
+    String value = String.valueOf(NONCE_GENERATOR.getAndIncrement());
+    delegate.put(fieldName, value);
+    return value;
   }
 }
