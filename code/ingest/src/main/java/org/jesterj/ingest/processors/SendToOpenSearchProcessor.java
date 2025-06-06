@@ -59,7 +59,7 @@ public class SendToOpenSearchProcessor extends BatchProcessor<String> {
 
   @Override
   protected String convertDoc(Document document) {
-    log.error("Converting {}", document.getId());
+    log.debug("Converting {}", document.getId());
     ObjectNode root = mapper.createObjectNode();
     for (String key : document.keySet()) {
       List<String> value = document.get(key);
@@ -80,8 +80,8 @@ public class SendToOpenSearchProcessor extends BatchProcessor<String> {
         .POST(publisher)
         .build();
 
-    log.error(request);
-    log.error(request.headers());
+    log.trace(request);
+    log.trace(request.headers());
 
     // If I've done this right, the batch will be streamed, and we won't be building a huge string
     // of json to send all at once.
@@ -102,15 +102,15 @@ public class SendToOpenSearchProcessor extends BatchProcessor<String> {
             crazyBulkEnvelope.set("index", crazyBulk2LineFormat);
             writer.println(crazyBulkEnvelope);
             writer.println(entry.getValue()); // data next to envelope, rather than within it?
-            log.error(crazyBulkEnvelope.toString());
-            log.error(entry.getValue());
+            log.trace(crazyBulkEnvelope.toString());
+            log.trace(entry.getValue());
             break;
           case DELETE:
             doc.setStatus(Status.INDEXING, "{} is being deleted from opensearch in a batch of {} documents",
                 doc.getId(), batch.size());
             crazyBulkEnvelope.set("delete", crazyBulk2LineFormat);
             writer.println(crazyBulkEnvelope);
-            log.error(crazyBulkEnvelope.toString());
+            log.trace(crazyBulkEnvelope.toString());
             // no doc to send
             break;
           case NEW:
@@ -119,8 +119,8 @@ public class SendToOpenSearchProcessor extends BatchProcessor<String> {
             crazyBulkEnvelope.set("create", crazyBulk2LineFormat);
             writer.println(crazyBulkEnvelope);
             writer.println(entry.getValue()); // data next to envelope, rather than within it?
-            log.error(crazyBulkEnvelope.toString());
-            log.error(entry.getValue());
+            log.trace(crazyBulkEnvelope.toString());
+            log.trace(entry.getValue());
         }
         doc.reportDocStatus();
       }
@@ -130,11 +130,11 @@ public class SendToOpenSearchProcessor extends BatchProcessor<String> {
     HttpResponse<String> resp = responseAsync.get();
     Map<String, Object> respJson = responseAsMap(resp);
     if (respJson == null || resp.statusCode() != 200 || "true".equals(String.valueOf(respJson.get("errors")))) {
-      log.error("response Uri:" + resp.uri());
-      log.error("response Status:" + resp.statusCode());
-      log.error("response headers:" + resp.headers());
-      log.error("response body:\n" + resp.body());
-      log.error(respJson);
+      log.trace("response Uri:{}", resp.uri());
+      log.debug("response Status:{}", resp.statusCode());
+      log.trace("response headers:{}" , resp.headers());
+      log.trace("response body:\n{}" ,resp.body());
+      log.trace(respJson);
       throw new BatchFailureExceptionOpenSearch(
           "Opensearch batch contains failures. Status=" + resp.statusCode(), resp);
     } else {
@@ -207,9 +207,9 @@ public class SendToOpenSearchProcessor extends BatchProcessor<String> {
       }
     } else {
       int code = getResponse(ex).statusCode();
-      log.error("Error response from opensearch (status {})", code);
-      log.error("response headers:" + getResponse(ex).headers());
-      log.error("response body:\n" + getResponse(ex).body());
+      log.debug("Error response from opensearch (status {})", code);
+      log.trace("response headers:" + getResponse(ex).headers());
+      log.trace("response body:\n" + getResponse(ex).body());
       for (Document document : batch.keySet()) {
         perDocFailLogging(ex, document);
       }
@@ -343,7 +343,8 @@ public class SendToOpenSearchProcessor extends BatchProcessor<String> {
      * @return an http client willing to connect to that server only
      */
     protected HttpClient insecureClient(String trustedServerUrl) {
-      String message = "******* W A R N I N G ******* - connection to " + trustedServerUrl + " is implicitly trusted. This message should never be seen in a production system!";
+      String message = "******* W A R N I N G ******* - connection to " + trustedServerUrl + " is implicitly trusted." +
+          " This message should never be seen in a production system!";
       log.error(message);
       System.out.println(message);
       System.err.println(message);
