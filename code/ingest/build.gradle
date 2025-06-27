@@ -111,8 +111,8 @@ dependencies {
   }
 
   // until https://issues.apache.org/jira/browse/CASSANDRA-17966 easy and likely safe way to make CVE-2022-42004 go away
-  api 'com.fasterxml.jackson.core:jackson-core:2.13.4'
-  api 'com.fasterxml.jackson.core:jackson-databind:2.13.4.2'
+  api 'com.fasterxml.jackson.core:jackson-core:2.15.0'
+  api 'com.fasterxml.jackson.core:jackson-databind:2.15.0.2'
 
   // CVE-2021-24823 --> waiting for 4.15 to release.
   //noinspection VulnerableLibrariesLocal
