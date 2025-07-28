@@ -24,7 +24,11 @@ import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
 import org.jesterj.ingest.model.impl.NamedBuilder;
 import org.jesterj.ingest.utils.SynchronizedLinkedBimap;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -42,6 +46,8 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
 
   private final Object batchLock = new Object();
   private final Object sendLock = new Object();
+
+  private final List<BatchSendListener> sendListeners = Collections.synchronizedList(new ArrayList<>());
 
   // While order is not critical for proper functionality,
   // it is useful for writing unit tests, if this proves to
@@ -69,6 +75,7 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
   }
 
   public Document[] processDocument(Document document) {
+    log.debug("Document {} received by batch processor {}", document.getId(), getName());
     document.addNonce(nonceField);
     if (this.sender == null) {
       synchronized (this) {
@@ -88,19 +95,21 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
             }
           });
           schedulePartialBatch();
+          log.debug("Batch send thread started for {}", getName());
         }
       }
     }
-    T doc = convertDoc(document);
+    T searchEngineDocument = convertDoc(document);
     SynchronizedLinkedBimap<Document, T> oldBatch = null;
     synchronized (batchLock) {
       if (this.batch.size() >= batchSize) {
         oldBatch = takeBatch();
       }
       docsReceived.incrementAndGet();
-      this.batch.put(document, doc);
-      document.setStatus(Status.BATCHED, "{} queued in position {} for sending to solr. " +
-          "Will be sent within {} milliseconds.", document.getId(), this.batch.size(), sendPartialBatchAfterMs);
+      log.trace("adding {}", document.getId() );
+      this.batch.put(document, searchEngineDocument);
+      document.setStatus(Status.BATCHED, "{} queued in position {} by {}. " +
+          "Will send within {} milliseconds.", document.getId(), this.batch.size() - 1,getName(), sendPartialBatchAfterMs);
       document.reportDocStatus();
     }
     if (oldBatch != null) {
@@ -114,7 +123,7 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
   private SynchronizedLinkedBimap<Document, T> takeBatch() {
     synchronized (batchLock) {
       SynchronizedLinkedBimap<Document, T> oldBatch = this.batch;
-      this.batch = new SynchronizedLinkedBimap();
+      this.batch = new SynchronizedLinkedBimap<>();
       log.trace("took batch {} with size {}", oldBatch.toString(), oldBatch.size());
       return oldBatch;
     }
@@ -136,30 +145,59 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
       } catch (InterruptedException e) {
         // no fall back if shutting down, and cassandra won't be avail so no failure marking either
         log.info("Send aborted due to system shutdown");
-      } catch (Exception e) {
-        log.info("Batch Send failed", e);
+      } catch (Throwable e) {
+        Exception ex = handleAssertionErrorsForTests(e); // other Errors rethrown
+        log.info("Batch Send failed", ex);
         // we may have a single bad document...
         //noinspection ConstantConditions
-        if (exceptionIndicatesDocumentIssue(e)) {
+        if (exceptionIndicatesDocumentIssue(ex)) {
           docsSucceeded.addAndGet(
-              individualFallbackOperation(oldBatch, e)
+              individualFallbackOperation(oldBatch, ex)
           );
         } else {
           // in this case the entire batch failed (i/o error etc)
-          entireBatchFailure(oldBatch, e);
+          entireBatchFailure(oldBatch, ex);
         }
       } finally {
         schedulePartialBatch();
+        for (BatchSendListener sendListener : sendListeners) {
+          // inspect doc statuses to determine disposition
+          sendListener.batchSent(new ArrayList<>(oldBatch.keySet()));
+        }
         oldBatch.clear();
       }
     }
   }
 
+  private static @NotNull Exception handleAssertionErrorsForTests(Throwable e) {
+    Exception ex;
+    if (e instanceof AssertionError) {
+      // unit test... if we don't do this assertion failures are hidden
+      ex = new Exception(e);
+    } else if (e instanceof Exception) {
+      ex = (Exception) e;
+    } else {
+      throw (Error) e;
+    }
+    return ex;
+  }
+
   private void schedulePartialBatch() {
     log.trace("Scheduling partial batch");
     if (scheduledSend != null) {
-      scheduledSend.cancel(false);
+      if (!scheduledSend.cancel(false)){
+        log.warn("Double cancel in {} (this is only a problem if it starts happening more frequently then the batch timeout)",getName());
+      }
     }
+    // small but unimportant race condition here. If another thread passes us at this point
+    // we will cancel their task, but at worst this is a <2x inflation of send time, and
+    // that case is only likely with exceptionally broken thread scheduling, or very short
+    // settings for sendPartialBatchAfterMs. It is only possible to send later, not to
+    // fail to send (except system shut down which is what fault tolerance handles)
+    // in theory its possible to imagine repeated stall resume at exactly this point creating
+    // infinite delay, but I can think of no logic by which such a thing would happen consistently.
+    // The above double cancel log message showing up frequently would indicate this has become
+    // a possibility.
     scheduledSend = sender.schedule(() -> {
       log.trace("Scheduled Send Activated");
       sendBatch(takeBatch());
@@ -182,6 +220,7 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
 
   /**
    * If the bulk request fails it might be just one document that's causing a problem, try each document individually
+   * or handle information returned about which documents succeeded if available
    *
    * @param oldBatch The batch for which to handle failures. This will have been detached from this object and will
    *                 become eligible for garbage collection after this method returns, so do not add objects to it.
@@ -213,6 +252,12 @@ abstract class BatchProcessor<T> implements DocumentProcessor {
 
     public Builder<T> storingNonceIn(String field) {
       getObj().nonceField = field;
+      return this;
+    }
+
+    @SuppressWarnings("UnusedReturnValue")
+    public Builder<T> withSendListener(BatchSendListener listener) {
+      getObj().sendListeners.add(listener);
       return this;
     }
 
