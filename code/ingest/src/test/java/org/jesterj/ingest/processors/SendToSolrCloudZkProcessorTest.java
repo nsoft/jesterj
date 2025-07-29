@@ -55,7 +55,6 @@ import static org.junit.Assert.assertFalse;
  * User: gus
  * Date: 9/23/16
  */
-@SuppressWarnings("DataFlowIssue")
 public class SendToSolrCloudZkProcessorTest {
   public static final int BATCH_TIMEOUT = 1000;
   @ObjectUnderTest
@@ -131,8 +130,9 @@ public class SendToSolrCloudZkProcessorTest {
   public void testPerDocumentFailLogging() {
     RuntimeException e = new RuntimeException("TEST EXCEPTION");
     expect(proc.log()).andReturn(logMock).anyTimes();
+    expect(proc.getName()).andReturn("test_per_doc");
     expect(docMock.getId()).andReturn("42");
-    docMock.setStatus(Status.ERROR, "{} could not be sent to solr because of {}", "42", "TEST EXCEPTION");
+    docMock.setStatus(Status.ERROR, "{} could not be sent by {} because of {}", "42", "test_per_doc","TEST EXCEPTION");
     docMock.reportDocStatus();
     replay();
     proc.perDocFailLogging(e, docMock);
@@ -163,6 +163,7 @@ public class SendToSolrCloudZkProcessorTest {
     SynchronizedLinkedBimap<Document, SolrInputDocument> biMap = expect3Docs();
     expect(proc.getParams()).andReturn(null).anyTimes();
     expect(proc.getSolrClient()).andReturn(solrClientMock).anyTimes();
+    expect(proc.getName()).andReturn("test_per_batch").anyTimes();
     Capture<List<SolrInputDocument>> addCap = newCapture();
     Capture<List<String>> delCap = newCapture();
     expect(solrClientMock.add(capture(addCap))).andReturn(updateResponseMock);
@@ -173,11 +174,11 @@ public class SendToSolrCloudZkProcessorTest {
       document.reportDocStatus();
     }
 
-    docMock.setStatus(INDEXED, "{} sent to solr successfully", "41");
+    docMock.setStatus(INDEXED, "{} sent by {} successfully", "41", "test_per_batch");
     docMock.reportDocStatus();
-    docMock2.setStatus(INDEXED, "{} deleted from solr successfully", "42");
+    docMock2.setStatus(INDEXED, "{} deleted by {} successfully", "42", "test_per_batch");
     docMock2.reportDocStatus();
-    docMock3.setStatus(INDEXED, "{} sent to solr successfully", "43");
+    docMock3.setStatus(INDEXED, "{} sent by {} successfully", "43", "test_per_batch");
     docMock3.reportDocStatus();
 
     replay();
@@ -197,6 +198,7 @@ public class SendToSolrCloudZkProcessorTest {
 
     expect(proc.getParams()).andReturn(params).anyTimes();
     expect(proc.getSolrClient()).andReturn(solrClientMock).anyTimes();
+    expect(proc.getName()).andReturn("test_per_batch_chain").anyTimes();
     Capture<UpdateRequest> addCap = newCapture();
     Capture<List<String>> delCap = newCapture();
     //noinspection ConstantConditions
@@ -208,11 +210,11 @@ public class SendToSolrCloudZkProcessorTest {
       document.reportDocStatus();
     }
 
-    docMock.setStatus(INDEXED, "{} sent to solr successfully", "41");
+    docMock.setStatus(INDEXED, "{} sent by {} successfully", "41", "test_per_batch_chain");
     docMock.reportDocStatus();
-    docMock2.setStatus(INDEXED, "{} deleted from solr successfully", "42");
+    docMock2.setStatus(INDEXED, "{} deleted by {} successfully", "42", "test_per_batch_chain");
     docMock2.reportDocStatus();
-    docMock3.setStatus(INDEXED, "{} sent to solr successfully", "43");
+    docMock3.setStatus(INDEXED, "{} sent by {} successfully", "43", "test_per_batch_chain");
     docMock3.reportDocStatus();
 
     replay();
@@ -256,7 +258,7 @@ public class SendToSolrCloudZkProcessorTest {
     proc.setSolrClient(solrClientMock);
 
     // expectations for mock
-    setupDocsForBuilder(docMock,  1);
+    setupDocsForBuilder(docMock, 1);
     setupDocsForBuilder(docMock2, 2);
     setupDocsForBuilder(docMock3, 3);
     setupDocsForBuilder(docMock4, 4);
@@ -272,6 +274,7 @@ public class SendToSolrCloudZkProcessorTest {
     indexMock(docMock4, 4, "idTest4", true, true);
     indexMock(docMock5, 1, "idTest1", false, false);
 
+    // next batch success
     expect(solrClientMock.request(isA(UpdateRequest.class), isNull())).andReturn(namedListMock);
 
     replay();
@@ -308,18 +311,19 @@ public class SendToSolrCloudZkProcessorTest {
     if (fallbackExpected) {
       expect(documentMock.getStatusChange()).andReturn(statusChangeMock).anyTimes();
       expect(statusChangeMock.getStatus()).andReturn(INDEXING).times(2); // once per changing destination
-      documentMock.setStatus(Status.INDEXING, "{} is being sent to solr", id);
+      documentMock.setStatus(Status.INDEXING, "{} is sending {}","test_zk_builder", id);
       documentMock.reportDocStatus();
       if (fail) {
         expect(solrClientMock.add(isA(SolrInputDocument.class))).andThrow(new SolrServerException("doc 4 bad doc (test)"));
-        documentMock.setStatus(ERROR, "{} could not be sent to solr because of {}", id, "doc 4 bad doc (test)");
+        documentMock.setStatus(ERROR, "{} could not be sent by {} because of {}", id, "test_zk_builder",
+            "doc 4 bad doc (test)");
       } else {
         expect(solrClientMock.add(isA(SolrInputDocument.class))).andReturn(updateResponseMock);
-        documentMock.setStatus(INDEXED, "{} sent to solr successfully", id);
+        documentMock.setStatus(INDEXED, "{} sent by {} successfully", id, "test_zk_builder");
       }
       documentMock.reportDocStatus();
-    }  else { // else it's sent in a successful batch, no call to add
-      documentMock.setStatus(INDEXED, "{} sent to solr successfully", id);
+    } else { // else it's sent in a successful batch, no call to add
+      documentMock.setStatus(INDEXED, "{} sent by {} successfully",  id, "test_zk_builder");
       documentMock.reportDocStatus();
     }
 
@@ -342,8 +346,8 @@ public class SendToSolrCloudZkProcessorTest {
     expect(documentMock.getId()).andReturn("idTest" + i).anyTimes();
 
     // this message verifies the setting of .sendingPartialBatchesAfter
-    documentMock.setStatus(Status.BATCHED, "{} queued in position {} for sending to solr. Will be sent within " +
-        "{} milliseconds.", "idTest" + i, i, BATCH_TIMEOUT);
+    documentMock.setStatus(Status.BATCHED, "{} queued in position {} by {}. Will send within {} milliseconds.",
+        "idTest" + i, i - 1, "test_zk_builder", BATCH_TIMEOUT);
 
     documentMock.reportDocStatus();
 

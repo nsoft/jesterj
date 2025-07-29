@@ -21,9 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.request.UpdateRequest;
-import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.common.util.NamedList;
 import org.jesterj.ingest.model.Document;
 import org.jesterj.ingest.model.DocumentProcessor;
 import org.jesterj.ingest.model.Status;
@@ -31,7 +29,6 @@ import org.jesterj.ingest.utils.SynchronizedLinkedBimap;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -62,7 +59,7 @@ public abstract class SendToSolrProcessor extends BatchProcessor<SolrInputDocume
 
   @Override
   protected void perDocFailLogging(Exception e, Document doc) {
-    doc.setStatus(Status.ERROR, "{} could not be sent to solr because of {}", doc.getId(), e.getMessage());
+    doc.setStatus(Status.ERROR, "{} could not be sent by {} because of {}", doc.getId(), getName(), e.getMessage());
     doc.reportDocStatus();
   }
 
@@ -80,16 +77,16 @@ public abstract class SendToSolrProcessor extends BatchProcessor<SolrInputDocume
         try {
           SolrInputDocument doc = oldBatch.get(document);
           if (doc instanceof Delete) {
-            document.setStatus(Status.INDEXING, "{} is being deleted from solr", document.getId());
+            document.setStatus(Status.INDEXING, "{} processing delete for {}", getName(), document.getId());
             document.reportDocStatus();
             getSolrClient().deleteById(oldBatch.inverse().get(doc).getId());
-            document.setStatus(Status.INDEXED, "{} deleted from solr successfully", document.getId());
+            document.setStatus(Status.INDEXED, "{} deleted {} successfully", getName(), document.getId());
           } else {
-            document.setStatus(Status.INDEXING, "{} is being sent to solr", document.getId());
+            document.setStatus(Status.INDEXING, "{} is sending {}", getName(), document.getId());
             document.reportDocStatus();
             getSolrClient().add(doc);
             // relying on add to throw if not successful
-            document.setStatus(Status.INDEXED, "{} sent to solr successfully", document.getId());
+            document.setStatus(Status.INDEXED, "{} sent by {} successfully", document.getId(), getName());
           }
           docsSucceeded.incrementAndGet();
           document.reportDocStatus();
@@ -136,9 +133,9 @@ public abstract class SendToSolrProcessor extends BatchProcessor<SolrInputDocume
     for (Document document : oldBatch.keySet()) {
       // Note this runnable is being executed immediately in THIS thread.
       if (document.getOperation() == Document.Operation.DELETE) {
-        document.setStatus(Status.INDEXED, "{} deleted from solr successfully", document.getId());
+        document.setStatus(Status.INDEXED, "{} deleted by {} successfully", document.getId(), getName());
       } else {
-        document.setStatus(Status.INDEXED, "{} sent to solr successfully", document.getId());
+        document.setStatus(Status.INDEXED, "{} sent by {} successfully", document.getId(), getName());
       }
       document.reportDocStatus();
     }
@@ -215,10 +212,6 @@ public abstract class SendToSolrProcessor extends BatchProcessor<SolrInputDocume
   }
 
   public abstract static class Builder extends BatchProcessor.Builder<SolrInputDocument> {
-
-
-    List<String> zkList = new ArrayList<>();
-    String chroot;
 
     public Builder placingTextContentIn(String field) {
       getObj().textContentField = field;

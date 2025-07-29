@@ -66,7 +66,7 @@ public class DocumentImpl implements Document {
   public static final String CHILD_SEP = "⇛";
   public static final Pattern DEFAULT_TO_STRING = Pattern.compile("([A-Za-z_.0-9]+=\\[[^=]*[0-9_a-z.]+\\.[0-9_A-Za-z.]+@[0-9A-F]+)]}?,");
 
-  public static final AtomicLong NONCE_GENERATOR = new AtomicLong();
+  private static final AtomicLong NONCE_GENERATOR = new AtomicLong();
 
   // document id field.
   private final String idField;
@@ -174,17 +174,17 @@ public class DocumentImpl implements Document {
   }
 
   @Override
-  public boolean containsEntry(@Nullable java.lang.Object key, @Nullable java.lang.Object value) {
+  public boolean containsEntry(@Nullable String key, @Nullable String value) {
     return delegate.containsEntry(key, value);
   }
 
   @Override
-  public boolean remove(@Nullable java.lang.Object key, @Nullable java.lang.Object value) {
+  public boolean remove(@Nullable String key, @Nullable String value) {
     return delegate.remove(key, value);
   }
 
   @Override
-  public boolean containsValue(@Nullable java.lang.Object value) {
+  public boolean containsValue(@Nullable String value) {
     return delegate.containsValue(value);
   }
 
@@ -216,7 +216,7 @@ public class DocumentImpl implements Document {
   }
 
   @Override
-  public boolean containsKey(@Nullable java.lang.Object key) {
+  public boolean containsKey(@Nullable String key) {
     return delegate.containsKey(key);
   }
 
@@ -231,7 +231,7 @@ public class DocumentImpl implements Document {
   }
 
   @Override
-  public List<String> removeAll(@Nullable java.lang.Object key) {
+  public List<String> removeAll(@Nullable String key) {
     return delegate.removeAll(key);
   }
 
@@ -319,7 +319,7 @@ public class DocumentImpl implements Document {
       docHash = new String(Hex.encodeHex(md.digest(), false));
       return docHash;
     } catch (NoSuchAlgorithmException e) {
-      e.printStackTrace();
+      log.debug(e);
       throw new RuntimeException(e);
     }
   }
@@ -346,7 +346,7 @@ public class DocumentImpl implements Document {
   @Override
   public String getFirstValue(String fieldName) {
     List<String> values = get(fieldName);
-    return values == null || values.size() == 0 ? null : values.get(0);
+    return values == null || values.isEmpty() ? null : values.get(0);
   }
 
   @Override
@@ -448,7 +448,7 @@ public class DocumentImpl implements Document {
           .filter(v -> !statusChange.getStatus().isStepSpecific() ||
               (statusChange.getStatus().isStepSpecific() && step.isOutputDestinationThisStep(v.getOutputDestination())))
           .filter(v -> statusChange.getSpecificDestinations() == null ||
-              statusChange.getSpecificDestinations().size() == 0 ||
+              statusChange.getSpecificDestinations().isEmpty() ||
               statusChange.getSpecificDestinations().contains(v.getOutputDestination()))
           .map(v -> new DocDestinationStatus(
               statusChange.getStatus(),
@@ -487,7 +487,7 @@ public class DocumentImpl implements Document {
 
   @Override
   public boolean alreadyHasIncompleteStepList() {
-    return this.incompleteOutputDestinations.size() > 0;
+    return !this.incompleteOutputDestinations.isEmpty();
   }
 
   @Override

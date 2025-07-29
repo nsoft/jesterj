@@ -17,7 +17,6 @@
 package org.jesterj.ingest.model;
 
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Multimap;
 
 import javax.annotation.Nullable;
 import java.io.Serializable;
@@ -42,11 +41,11 @@ public interface Document extends  Serializable {
 
   Set<String> keySet();
 
-  boolean containsEntry(@Nullable Object key, @Nullable Object value);
+  boolean containsEntry(@Nullable String key, @Nullable String value);
 
-  boolean remove(@Nullable Object key, @Nullable Object value);
+  boolean remove(@Nullable String key, @Nullable String value);
 
-  boolean containsValue(@Nullable Object value);
+  boolean containsValue(@Nullable String value);
 
   Collection<Map.Entry<String, String>> entries();
 
@@ -58,13 +57,13 @@ public interface Document extends  Serializable {
 
   Collection<String> values();
 
-  boolean containsKey(@Nullable Object key);
+  boolean containsKey(@Nullable String key);
 
   List<String> get(@Nullable String key);
 
   int size();
 
-  List<String> removeAll(@Nullable Object key);
+  List<String> removeAll(@Nullable String key);
 
   boolean putAll(@Nullable String key, Iterable<? extends String> values);
 
