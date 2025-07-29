@@ -53438,6 +53438,11 @@ This Apache 2.0 licensed file:
 ./zookeeper-contrib/zookeeper-contrib-zooinspector/src/main/java/com/nitido/utils/toaster/Toaster.java
 
 -------------------------------------------------------------------------------
+       NOTICE for sslcontext-kickstart-9.1.0
+-------------------------------------------------------------------------------
+No notice file is included with this version of sslcontext-kickstart
+
+-------------------------------------------------------------------------------
        NOTICE for core-1.0.2
 -------------------------------------------------------------------------------
 This Software is heavily based on One-JAR by Simon Tuffs. Many portions of this code

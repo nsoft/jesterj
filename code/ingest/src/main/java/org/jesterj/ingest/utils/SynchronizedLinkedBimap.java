@@ -27,10 +27,12 @@ import java.util.*;
  * <p>
  * Iteration is still vulnerable to concurrent modification exceptions, but JesterJ only iterates this object
  * in cases where it's been sequestered (and replaced) so we should never have changes to the map
- * where
+ * when another thread is iterating it anyway. There isn't a lot of opportunity for concurrent multi-threaded
+ * access in the code, but it's super critical that happens-before memory model relationships are always consistent
+ * for this collection, and future features may introduce more threads.
  *
- * @param <K>
- * @param <V>
+ * @param <K> the type for keys
+ * @param <V> the type for values
  */
 public class SynchronizedLinkedBimap<K, V> implements Map<K, V>
 {
@@ -42,6 +44,14 @@ public class SynchronizedLinkedBimap<K, V> implements Map<K, V>
     this(Collections.synchronizedMap(new LinkedHashMap<>()), Collections.synchronizedMap(new LinkedHashMap<>()));
   }
 
+  /**
+   * Instantiate a new instance with specific maps. Supplied maps MUST be thread safe
+   *
+   * @param forwardMap a thread safe implementation of Map with keys that are values in reverseMap
+   *                   and values that are keys in reverseMap
+   * @param reverseMap a thread safe implementation of Map with keys that are values in forwardMap
+   *                   and values that are keys in forwardMap
+   */
   protected SynchronizedLinkedBimap(Map<K, V> forwardMap, Map<V, K> reverseMap)
   {
     this.forwardMap = forwardMap;
@@ -66,6 +76,7 @@ public class SynchronizedLinkedBimap<K, V> implements Map<K, V>
 
   public synchronized boolean containsValue(Object value)
   {
+    //noinspection SuspiciousMethodCalls
     return reverseMap.containsKey(value);
   }
 

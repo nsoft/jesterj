@@ -149,6 +149,8 @@ dependencies {
   testImplementation (group: 'org.jacoco', name:'org.jacoco.report', version:'0.7.7.201606060606')
   testImplementation (group: 'org.jacoco', name:'org.jacoco.core', version:'0.7.7.201606060606')
   testImplementation 'org.apache.solr:solr-test-framework:9.1.0'
+  implementation 'io.github.hakky54:sslcontext-kickstart:9.1.0'
+  implementation 'com.github.mizosoft.methanol:methanol:1.8.2'
 }
 
 import com.github.jk1.license.filter.*

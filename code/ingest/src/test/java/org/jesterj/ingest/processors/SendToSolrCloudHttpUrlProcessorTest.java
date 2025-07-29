@@ -59,7 +59,6 @@ import org.junit.Test;
  * User: gus
  * Date: 9/23/16
  */
-@SuppressWarnings("DataFlowIssue")
 public class SendToSolrCloudHttpUrlProcessorTest {
   @ObjectUnderTest
   SendToSolrCloudHttpUrlProcessor proc;
@@ -108,7 +107,8 @@ public class SendToSolrCloudHttpUrlProcessorTest {
     RuntimeException e = new RuntimeException("TEST EXCEPTION");
     expect(proc.log()).andReturn(logMock).anyTimes();
     expect(docMock.getId()).andReturn("42");
-    docMock.setStatus(Status.ERROR,  "{} could not be sent to solr because of {}", "42", "TEST EXCEPTION");
+    expect(proc.getName()).andReturn("testProc");
+    docMock.setStatus(Status.ERROR,  "{} could not be sent by {} because of {}", "42", "testProc", "TEST EXCEPTION");
     docMock.reportDocStatus();
     replay();
     proc.perDocFailLogging(e, docMock);
@@ -138,6 +138,7 @@ public class SendToSolrCloudHttpUrlProcessorTest {
     SynchronizedLinkedBimap<Document, SolrInputDocument> biMap = expect3Docs();
     expect(proc.getParams()).andReturn(null).anyTimes();
     expect(proc.getSolrClient()).andReturn(solrClientMock).anyTimes();
+    expect(proc.getName()).andReturn("test_per_batch").anyTimes();
     Capture<List<SolrInputDocument>> addCap = newCapture();
     Capture<List<String>> delCap = newCapture();
     expect(solrClientMock.add(capture(addCap))).andReturn(updateResponseMock);
@@ -148,11 +149,11 @@ public class SendToSolrCloudHttpUrlProcessorTest {
       document.reportDocStatus();
     }
 
-    docMock.setStatus(Status.INDEXED, "{} sent to solr successfully", "41");
+    docMock.setStatus(Status.INDEXED, "{} sent by {} successfully", "41", "test_per_batch");
     docMock.reportDocStatus();
-    docMock2.setStatus(Status.INDEXED, "{} deleted from solr successfully", "42");
+    docMock2.setStatus(Status.INDEXED, "{} deleted by {} successfully", "42", "test_per_batch");
     docMock2.reportDocStatus();
-    docMock3.setStatus(Status.INDEXED, "{} sent to solr successfully", "43");
+    docMock3.setStatus(Status.INDEXED, "{} sent by {} successfully", "43", "test_per_batch");
     docMock3.reportDocStatus();
 
     replay();
@@ -172,6 +173,7 @@ public class SendToSolrCloudHttpUrlProcessorTest {
 
     expect(proc.getParams()).andReturn(params).anyTimes();
     expect(proc.getSolrClient()).andReturn(solrClientMock).anyTimes();
+    expect(proc.getName()).andReturn("test_per_batch_chain").anyTimes();
     Capture<UpdateRequest> addCap = newCapture();
     Capture<List<String>> delCap = newCapture();
     //noinspection ConstantConditions
@@ -183,11 +185,11 @@ public class SendToSolrCloudHttpUrlProcessorTest {
       document.reportDocStatus();
     }
 
-    docMock.setStatus(Status.INDEXED, "{} sent to solr successfully", "41");
+    docMock.setStatus(Status.INDEXED, "{} sent by {} successfully", "41", "test_per_batch_chain");
     docMock.reportDocStatus();
-    docMock2.setStatus(Status.INDEXED, "{} deleted from solr successfully", "42");
+    docMock2.setStatus(Status.INDEXED, "{} deleted by {} successfully", "42",  "test_per_batch_chain");
     docMock2.reportDocStatus();
-    docMock3.setStatus(Status.INDEXED, "{} sent to solr successfully", "43");
+    docMock3.setStatus(Status.INDEXED, "{} sent by {} successfully", "43", "test_per_batch_chain");
     docMock3.reportDocStatus();
 
     replay();
