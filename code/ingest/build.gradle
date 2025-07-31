@@ -346,18 +346,20 @@ tasks.register("verifyLicenseDirs") {
 }
 
 tasks.register("validateLicenseLinks") {
-  def licDir = new File("$projectDir/licenses")
-  def count = new AtomicInteger(0)
-  def manualChecks = []
-  licDir.eachDir {
-    it.listFiles().each {
-      checkFileUrls(it, count, manualChecks)
+  doLast {
+    def licDir = new File("$projectDir/licenses")
+    def count = new AtomicInteger(0)
+    def manualChecks = []
+    licDir.eachDir {
+      it.listFiles().each {
+        checkFileUrls(it, count, manualChecks)
+      }
     }
-  }
-  println "Processed " + count.get() + " links"
-  println "The following links prevent automated verification, please check them manually"
-  manualChecks.each {
-    println it
+    println "Processed " + count.get() + " links"
+    println "The following links prevent automated verification, please check them manually"
+    manualChecks.each {
+      println it
+    }
   }
 
 }
