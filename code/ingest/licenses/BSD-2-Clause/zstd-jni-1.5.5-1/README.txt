@@ -5,7 +5,7 @@ Copyright (c) 2015-present, Luben Karavelov/ All rights reserved.
 
 The above notice was found here:
 
-https://github.com/luben/zstd-jni/blob/v1.5.0-4/LICENSE
+https://github.com/luben/zstd-jni/blob/v1.5.5-1/LICENSE
 
 Copy of License
 ---------------

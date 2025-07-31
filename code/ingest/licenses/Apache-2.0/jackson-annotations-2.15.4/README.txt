@@ -6,8 +6,8 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of jackson-datatype-jsr310
+There is no Notice file for this version of jackson-annotations
 
 This was verified at:
 
-https://github.com/FasterXML/jackson-modules-java8/tree/2.13
+https://github.com/FasterXML/jackson-annotations/tree/jackson-annotations-2.15.4

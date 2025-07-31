@@ -6,8 +6,8 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of jackson-dataformat-smile
+There is no Notice file for this version of jackson-databind
 
 This was verified at:
 
-https://github.com/FasterXML/jackson-dataformats-binary/tree/jackson-dataformats-binary-2.13.4
+https://github.com/FasterXML/jackson-databind/tree/jackson-databind-2.15.4
