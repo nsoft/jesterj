@@ -6,8 +6,8 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of jackson-databind
+There is no Notice file for this version of jackson-datatype-jsr310
 
 This was verified at:
 
-https://github.com/FasterXML/jackson-databind/tree/jackson-databind-2.13.4.2
+https://github.com/FasterXML/jackson-modules-java8/tree/2.15

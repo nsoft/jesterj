@@ -10,4 +10,4 @@ There is no Notice file for this version of jackson-core
 
 This was verified at:
 
-https://github.com/FasterXML/jackson-core/tree/jackson-core-2.13.4
+https://github.com/FasterXML/jackson-core/tree/jackson-core-2.15.4

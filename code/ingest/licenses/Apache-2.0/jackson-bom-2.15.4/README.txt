@@ -6,8 +6,8 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of jackson-annotations
+There is no Notice file for this version of jackson-bom
 
 This was verified at:
 
-https://github.com/FasterXML/jackson-annotations/tree/jackson-annotations-2.13.4
+https://github.com/FasterXML/jackson-bom/tree/jackson-bom-2.15.4

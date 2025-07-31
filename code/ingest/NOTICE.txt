@@ -209,20 +209,6 @@ The Apache Software Foundation (http://www.apache.org/).
 
 
 -------------------------------------------------------------------------------
-       NOTICE for cassandra-all-4.1.0
--------------------------------------------------------------------------------
-Apache Cassandra
-Copyright 2009-2022 The Apache Software Foundation
-
-This product includes software developed by The Apache Software
-Foundation (http://www.apache.org/).
-
-Android Code
-Copyright 2005-2008 The Android Open Source Project
-This product includes software developed as part of
-The Android Open Source Project (http://source.android.com).
-
--------------------------------------------------------------------------------
        NOTICE for java-driver-core-4.14.1
 -------------------------------------------------------------------------------
 No notice file is included with this version of java-driver-core
@@ -394,11 +380,6 @@ http://www.apache.org/licenses/LICENSE-2.0.
        NOTICE for jackcess-encrypt-4.0.1
 -------------------------------------------------------------------------------
 No notice file is included with this version of jackcsess-encrypt
-
--------------------------------------------------------------------------------
-       NOTICE for jackson-core-2.13.4
--------------------------------------------------------------------------------
-No notice file is included with this version of jackson-core
 
 -------------------------------------------------------------------------------
        NOTICE for jamm-0.3.2
@@ -4851,26 +4832,6 @@ No notice file is included with this version of rome-utils
        NOTICE for snakeyaml-1.33
 -------------------------------------------------------------------------------
 No notice file is included with this version of snakeyaml
-
--------------------------------------------------------------------------------
-       NOTICE for snappy-java-1.1.8.4
--------------------------------------------------------------------------------
-This product includes software developed by Google
- Snappy: http://code.google.com/p/snappy/ (New BSD License)
-
-This product includes software developed by Apache
- PureJavaCrc32C from apache-hadoop-common http://hadoop.apache.org/
- (Apache 2.0 license)
-
-This library containd statically linked libstdc++. This inclusion is allowed by 
-"GCC RUntime Library Exception" 
-http://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
-
-== Contributors ==
-  * Tatu Saloranta  
-    * Providing benchmark suite
-  * Alec Wysoker
-    * Performance and memory usage improvement
 
 -------------------------------------------------------------------------------
        NOTICE for solr-solrj-9.1.0
@@ -10899,31 +10860,6 @@ No notice file is included with this version of ipaddress
        NOTICE for j2objc-annotations-1.3
 -------------------------------------------------------------------------------
 No notice file is included with this version of j2objc-annotations
-
--------------------------------------------------------------------------------
-       NOTICE for jackson-annotations-2.13.4
--------------------------------------------------------------------------------
-No notice file is included with this version of jackson-annotations
-
--------------------------------------------------------------------------------
-       NOTICE for jackson-bom-2.13.4
--------------------------------------------------------------------------------
-No notice file is included with this version of jackson-bom
-
--------------------------------------------------------------------------------
-       NOTICE for jackson-databind-2.13.4.2
--------------------------------------------------------------------------------
-No notice file is included with this version of jackson-databind
-
--------------------------------------------------------------------------------
-       NOTICE for jackson-dataformat-smile-2.13.4
--------------------------------------------------------------------------------
-No notice file is included with this version of jackson-dataformat-smile
-
--------------------------------------------------------------------------------
-       NOTICE for jackson-datatype-jsr310-2.13.4
--------------------------------------------------------------------------------
-No notice file is included with this version of jackson-datatype-jsr310
 
 -------------------------------------------------------------------------------
        NOTICE for java-driver-shaded-guava-25.1-jre-graal-sub-1
@@ -53441,6 +53377,76 @@ This Apache 2.0 licensed file:
        NOTICE for sslcontext-kickstart-9.1.0
 -------------------------------------------------------------------------------
 No notice file is included with this version of sslcontext-kickstart
+
+-------------------------------------------------------------------------------
+       NOTICE for cassandra-all-4.1.8
+-------------------------------------------------------------------------------
+Apache Cassandra
+Copyright 2009-2022 The Apache Software Foundation
+
+This product includes software developed by The Apache Software
+Foundation (http://www.apache.org/).
+
+Android Code
+Copyright 2005-2008 The Android Open Source Project
+This product includes software developed as part of
+The Android Open Source Project (http://source.android.com).
+
+-------------------------------------------------------------------------------
+       NOTICE for jackson-core-2.15.4
+-------------------------------------------------------------------------------
+No notice file is included with this version of jackson-core
+
+-------------------------------------------------------------------------------
+       NOTICE for jackson-databind-2.15.4
+-------------------------------------------------------------------------------
+No notice file is included with this version of jackson-databind
+
+-------------------------------------------------------------------------------
+       NOTICE for jackson-dataformat-smile-2.15.4
+-------------------------------------------------------------------------------
+No notice file is included with this version of jackson-dataformat-smile
+
+-------------------------------------------------------------------------------
+       NOTICE for jackson-bom-2.15.4
+-------------------------------------------------------------------------------
+No notice file is included with this version of jackson-bom
+
+-------------------------------------------------------------------------------
+       NOTICE for jackson-datatype-jsr310-2.15.4
+-------------------------------------------------------------------------------
+No notice file is included with this version of jackson-datatype-jsr310
+
+-------------------------------------------------------------------------------
+       NOTICE for jackson-annotations-2.15.4
+-------------------------------------------------------------------------------
+No notice file is included with this version of jackson-annotations
+
+-------------------------------------------------------------------------------
+       NOTICE for snappy-java-1.1.10.4
+-------------------------------------------------------------------------------
+This product includes software developed by Google
+ Snappy: http://code.google.com/p/snappy/ (New BSD License)
+
+This product includes software developed by Apache
+ PureJavaCrc32C from apache-hadoop-common http://hadoop.apache.org/
+ (Apache 2.0 license)
+
+This library contains statically linked libstdc++. This inclusion is allowed by
+"GCC Runtime Library Exception"
+http://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
+
+== Contributors ==
+  * Tatu Saloranta
+    * Providing benchmark suite
+  * Alec Wysoker
+    * Performance and memory usage improvement
+
+Third-Party Notices and Licenses:
+
+- Hadoop: Apache Hadoop is used as a dependency
+  License: Apache License 2.0
+  Source/Reference: https://github.com/apache/hadoop/blob/trunk/NOTICE.txt
 
 -------------------------------------------------------------------------------
        NOTICE for core-1.0.2

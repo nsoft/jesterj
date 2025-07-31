@@ -6,7 +6,7 @@ All rights reserved.
 
 The above notice was found at:
 
-https://github.com/qos-ch/slf4j/blob/v_1.7.36/slf4j-api/LICENSE.txt
+https://github.com/qos-ch/slf4j/blob/v_2.0.17/slf4j-api/LICENSE.txt
 
 
 Copy of License

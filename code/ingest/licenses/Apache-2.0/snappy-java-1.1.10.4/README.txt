@@ -6,8 +6,8 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of jackson-bom
+Can be found in this directory (near this file)
 
-This was verified at:
+This file was originally found at:
 
-https://github.com/FasterXML/jackson-bom/tree/jackson-bom-2.13.4
+https://github.com/xerial/snappy-java/blob/v1.1.10.4/NOTICE
