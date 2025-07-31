@@ -10,4 +10,4 @@ Can be found in this directory (near this file)
 
 This file was originally found at:
 
-https://github.com/apache/cassandra/blob/cassandra-4.1.0/NOTICE.txt
+https://github.com/apache/cassandra/tree/cassandra-4.1.8
