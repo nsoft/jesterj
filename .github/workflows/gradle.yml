@@ -6,6 +6,8 @@ name: Java CI with Gradle
 on:
   push:
     branches: [ master, branch_1x ]
+    paths-ignore:
+      - '**/README.md'
   pull_request:
     branches: [ master, branch_1x ]
   schedule:
