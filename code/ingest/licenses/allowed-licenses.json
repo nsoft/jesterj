@@ -86,8 +86,7 @@
     },
     {
       "moduleLicense": "ISC",
-      "moduleVersion": "0.4",
-      "moduleName": "org.mindrot:jbcrypt"
+      "moduleName": ".*"
     }
   ]
 }

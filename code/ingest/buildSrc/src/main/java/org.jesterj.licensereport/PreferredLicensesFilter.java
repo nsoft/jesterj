@@ -33,42 +33,63 @@ public class PreferredLicensesFilter implements DependencyFilter {
       for (ModuleData module : modules) {
         final License[] preferred = {null};
 
-        for (ManifestData manifest : module.getManifests()) {
-          String license = manifest.getLicense();
-          if (license != null) {
-            observedLicenses.add(license);
-            if (preferenceOrder.contains(license) && (preferred[0] == null ||
-                (preferenceOrder.indexOf(license) < preferenceOrder.indexOf(preferred[0].getName())))) {
-              preferred[0] = new License(license, manifest.getLicenseUrl());
-            }
-          }
-        }
         module.getLicenseFiles().stream().flatMap(it -> it.getFileDetails().stream()).forEach(details -> {
           String license = details.getLicense();
-          if (license != null) {
+          // NOTICE file is not a valid source of licenses for the project itself!!
+          // https://github.com/jk1/Gradle-License-Report/issues/335
+          if (license != null && (details.getFile() == null || !details.getFile().contains("NOTICE"))) {
             observedLicenses.add(license);
             if (preferenceOrder.contains(license) && (preferred[0] == null ||
                 (preferenceOrder.indexOf(license) < preferenceOrder.indexOf(preferred[0].getName())))) {
+              System.out.println("Preferring " + license + " from license file "+details.getFile()+" over " + preferred[0] + " for " + module.getName());
               preferred[0] = new License(license, details.getLicenseUrl());
+            } else {
+              System.out.println("Ignoring " + license+ " from license file "+details.getFile()+ " because " + (preferred[0] != null ? preferred[0].getName() : null) + " is better for " + module.getName());
             }
           }
         });
 
-        for (PomData pom : module.getPoms()) {
-          Set<License> licenses = pom.getLicenses();
-          if (licenses != null) {
-            observedLicenses.addAll(licenses.stream().map(License::getName).collect(Collectors.toList()));
-            for (License license : licenses) {
-              if (preferenceOrder.contains(license.getName()) && (preferred[0] == null ||
-                  (preferenceOrder.indexOf(license.getName()) < preferenceOrder.indexOf(preferred[0].getName())))) {
-                preferred[0] = license;
+        // Manifest is more distant than license file so only consult it if we don't have an answer yet
+        // see https://issues.apache.org/jira/browse/LEGAL-640
+        if (preferred[0] == null) {
+          for (ManifestData manifest : module.getManifests()) {
+            String license = manifest.getLicense();
+            if (license != null) {
+              observedLicenses.add(license);
+              if (preferenceOrder.contains(license) && (preferred[0] == null ||
+                  (preferenceOrder.indexOf(license) < preferenceOrder.indexOf(preferred[0].getName())))) {
+                System.out.println("Preferring " + license + " from manifest over " + (preferred[0] != null ? preferred[0].getName() : null) + " for " + module.getName());
+                preferred[0] = new License(license, manifest.getLicenseUrl());
+              } else {
+                System.out.println("Ignoring " + license + " from manifest file because " + (preferred[0] != null ? preferred[0].getName() : null) + " is better for " + module.getName());
               }
             }
           }
-
         }
 
-        //noinspection StatementWithEmptyBody
+        // We consider pom more distant than license file or manifest so only consult it if we don't have an answer yet
+        // see https://issues.apache.org/jira/browse/LEGAL-640
+        if (preferred[0] == null) {
+          for (PomData pom : module.getPoms()) {
+            Set<License> licenses = pom.getLicenses();
+            if (licenses != null) {
+              observedLicenses.addAll(licenses.stream().map(License::getName).collect(Collectors.toList()));
+              for (License license : licenses) {
+                if (preferenceOrder.contains(license.getName()) && (preferred[0] == null ||
+                    (preferenceOrder.indexOf(license.getName()) < preferenceOrder.indexOf(preferred[0].getName())))) {
+                  System.out.println("Preferring " + license.getName() + " from pom over " + (preferred[0] != null ? preferred[0].getName() : null) + " for " + module.getName());
+                  preferred[0] = license;
+                } else {
+                  System.out.println("Ignoring " + license.getName() + " from pom because " + (preferred[0] != null ? preferred[0].getName() : null) + " is better for " + module.getName());
+                }
+              }
+            }
+          }
+        }
+
+        // Having sorted through the licenses and found our favorite, we now need to ensure that that license
+        // is the only one represented for the dependency (by overwriting/replacing what we were originally given)
+
         if (preferred[0] != null) {
           preferred[0].setName(preferred[0].getName());
           PomData pom = module.getPoms().stream().findFirst().orElse(null);
@@ -95,7 +116,7 @@ public class PreferredLicensesFilter implements DependencyFilter {
             System.out.println("No place to store preferred license??? " + module );
           }
         } else {
-          //System.out.println("No preferred license for " + module.getName() + "(" + observedLicenses + ")");
+          System.out.println("No preferred license for " + module.getName() + "(" + observedLicenses + ")");
         }
 
       }

@@ -66,7 +66,7 @@ public class PreAnalyzeFieldsTest extends SolrCloudTestCase {
   public void doBefore() throws Exception {
     log.info("STARTUP BEGINS");
     configureCluster(2).addConfig(CONFIG, configset(CONFIG)).configure();
-    solrClient = getCloudSolrClient(cluster);
+    solrClient = cluster.getSolrClient();
     //log this to help debug potential causes of problems
     log.info("SolrClient: {}", solrClient);
     log.info("ClusterStateProvider {}", solrClient.getClusterStateProvider());

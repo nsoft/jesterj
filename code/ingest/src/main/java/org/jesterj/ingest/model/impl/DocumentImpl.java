@@ -75,7 +75,7 @@ public class DocumentImpl implements Document {
 
   // sync so we have no issues with happens before among steps... possibly over conservative, but was fighting
   // concurrency bugs, optimize it out later.
-  private final ListMultimap<String, String> delegate = Multimaps.synchronizedListMultimap(ArrayListMultimap.create());
+  private final ListMultimap<String, String> delegate = Multimaps.synchronizedListMultimap(LinkedListMultimap.create());
   private byte[] rawData;
 
   private final Operation operation;

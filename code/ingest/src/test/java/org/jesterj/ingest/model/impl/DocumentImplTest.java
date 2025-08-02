@@ -18,7 +18,6 @@ package org.jesterj.ingest.model.impl;
 
 import com.copyright.easiertest.Mock;
 import com.copyright.easiertest.ObjectUnderTest;
-import com.google.common.collect.ArrayListMultimap;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.jesterj.ingest.model.DocDestinationStatus;
 import org.jesterj.ingest.model.Document;
@@ -34,18 +33,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.copyright.easiertest.EasierMocks.prepareMocks;
-import static com.copyright.easiertest.EasierMocks.replay;
-import static com.copyright.easiertest.EasierMocks.reset;
-import static com.copyright.easiertest.EasierMocks.verify;
+import static com.copyright.easiertest.EasierMocks.*;
 import static org.easymock.EasyMock.expect;
 import static org.jesterj.ingest.model.Status.*;
 import static org.jesterj.ingest.model.impl.ScannerImpl.SCAN_ORIGIN;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 
 public class DocumentImplTest {
@@ -123,6 +115,7 @@ public class DocumentImplTest {
     impl.put("foo","bar");
     impl.put("foo","baz");
     impl.put("fizz","buzz");
+    //noinspection DataFlowIssue
     impl.put("nullthing", null);
 
 
@@ -176,11 +169,11 @@ public class DocumentImplTest {
         "DocumentImpl{" +
           "id=fooId, " +
           "delegate={" +
+            "id=[fooId], " +
             "doc_raw_size=[2], " +
             "foo=[baz], " +
             "fizz=[buzz], " +
-            "nullthing=[null], " +
-            "id=[fooId]" +
+            "nullthing=[null]" +
           "}, " +
           "status={" +
             "destination1=DocDestinationStatus{" +

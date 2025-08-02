@@ -1,7 +1,7 @@
 Availability of Source Code
 ---------------------------
 
-The original sourcce code for jnr-posix-3.0.27 can be found at
+The original source code for jnr-posix-3.0.27 can be found at
 
 https://github.com/jnr/jnr-posix/tree/jnr-posix-3.1.15
 

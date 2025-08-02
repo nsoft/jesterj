@@ -28,5 +28,4 @@ import org.apache.logging.log4j.MarkerManager;
 public class Markers {
   public static final Marker FTI_MARKER = MarkerManager.getMarker("JJ_FTI");
   public static final Marker LOG_MARKER = MarkerManager.getMarker("JJ_REG");
-
 }
