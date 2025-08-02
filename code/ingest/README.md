@@ -21,21 +21,23 @@ However without an implementation of a PlanProvider, we can't do much useful, so
 
 # Developing
 
-If you wish to customize JesterJ you are of course generally free to do so, keeping in mind the requirements of our license.
+If you wish to customize JesterJ you are, of course, generally free to do so, keeping in mind the requirements of our license.
 We would be happy to hear about, and help with customizations.
 Please use the github discussions feature to let us know what you are doing.
 We are also very happy to consider pull requests if you think your customizations might be generally useful or fix bugs.
 
 ## Building
 
-We use gradle wrapper for building this section of JesterJ as noted above, here are some tips on tasks and their intended usage
+We use gradle wrapper for building this section of JesterJ as noted above. Here are some tips on tasks and their intended usage:
 
 * **quickTest** - ~3 min - runs everything but the fault tolerance integration tests, does include some integration tests. _Intended for use during normal development_
 * **test** - ~15 min - runs all unit tests, including the much longer fault tolerance tests. _Intended for use in initial exploration of library upgrades, or development of fault tolerance features_
 * **check** - ~16 min - depends on test, also runs license checks **_RUN THIS BEFORE PUSH/PR_**
 * **packageUnoJar** - ~18 min - depends on check, creates artifacts, including packaging the executable node jar (using [uno-jar](https://github.com/nsoft/uno-jar)). _Intended for use when creating an executable distribution_
-* **jacocoTestReport** - ~17min - depends on check, and is run by continuous integration to publish code coverage metrics to CodeCov. IDE based code coverage is recommended for dat to day development.
+* **jacocoTestReport** - ~17min - depends on check, and is run by continuous integration to publish code coverage metrics to CodeCov. IDE based code coverage is recommended for day to day development.
 * **build** - ~20 min - depends on check, creates artifacts, and also verifies that there are no dead links in the license documentation files (makes outgoing http requests and checks the returned status codes). _Intended for use before checking in library/dependency upgrades and before publishing releases_
+
+Please use GitHub's fork and pull request features for submitting enhancements and bugfixes.
 
 # System Requirements
  - Posix Operating system (Linux, BSD, Mac OS X, Windows is **not** supported)
