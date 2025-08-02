@@ -31,7 +31,7 @@ We are also very happy to consider pull requests if you think your customization
 We use gradle wrapper for building this section of JesterJ as noted above, here are some tips on tasks and their intended usage
 
 * **quickTest** - ~3 min - runs everything but the fault tolerance integration tests, does include some integration tests. _Intended for use during normal development_
-* **test** - ~15 min - runs all unit tests, including the much longer fault tolerance tests takes 15 minutes. _Intended for use in initial exploration of library upgrades, or development of fault tolerance features_
+* **test** - ~15 min - runs all unit tests, including the much longer fault tolerance tests. _Intended for use in initial exploration of library upgrades, or development of fault tolerance features_
 * **check** - ~16 min - depends on test, also runs license checks **_RUN THIS BEFORE PUSH/PR_**
 * **packageUnoJar** - ~18 min - depends on check, creates artifacts, including packaging the executable node jar (using [uno-jar](https://github.com/nsoft/uno-jar)). _Intended for use when creating an executable distribution_
 * **jacocoTestReport** - ~17min - depends on check, and is run by continuous integration to publish code coverage metrics to CodeCov. IDE based code coverage is recommended for dat to day development.
