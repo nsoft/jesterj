@@ -352,8 +352,8 @@ tasks.register('generateNotices') {
 
 // NOTE: do not make classes depend on checkForStrandedLicenseDirs so that it's possible to compile to check if
 // a library is actually required, but do require it if the build or check target is being run
-build.dependsOn checkForStrandedLicenseDirs
-check.dependsOn validateLicenseLinks
+check.dependsOn checkForStrandedLicenseDirs
+build.dependsOn validateLicenseLinks
 classes.mustRunAfter checkForStrandedLicenseDirs // dont compile until lbs are copacetic
 
 classes.dependsOn verifyLicenseDirs
