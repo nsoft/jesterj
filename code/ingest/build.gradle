@@ -40,6 +40,7 @@ plugins {
   id 'com.github.jk1.dependency-license-report' //version '2.9'  // version determined in buildSrc
   id "com.github.onslip.gradle-one-jar" version "1.0.5"
   id 'com.needhamsoftware.unojar' version '1.1.0'
+  id 'com.dorongold.task-tree' version '4.0.1'
 }
 
 
@@ -271,7 +272,7 @@ packageUnoJar.doLast {
     }
   }
 
-jacocoTestReport.dependsOn test
+jacocoTestReport.dependsOn check
 
 tasks.register('sourcesJar', Jar) {
   dependsOn classes
