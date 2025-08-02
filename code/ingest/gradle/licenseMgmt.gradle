@@ -356,9 +356,10 @@ check.dependsOn checkForStrandedLicenseDirs
 build.dependsOn validateLicenseLinks
 classes.mustRunAfter checkForStrandedLicenseDirs // dont compile until lbs are copacetic
 
-classes.dependsOn verifyLicenseDirs
+check.dependsOn verifyLicenseDirs
 packageUnoJar.dependsOn generateNotices
 jar.dependsOn generateNotices
+checkForStrandedLicenseDirs.dependsOn verifyLicenseDirs
 validateLicenseLinks.dependsOn checkForStrandedLicenseDirs
 
 
