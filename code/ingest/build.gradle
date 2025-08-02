@@ -259,7 +259,7 @@ unojar {
 }
 
 def nodeFile = file("$buildDir/libs/" + tasks.getByName("packageUnoJar").getArchiveFileName())
-packageUnoJar.dependsOn build
+packageUnoJar.dependsOn check
 packageUnoJar.doLast {
   def licDir = file('licenses').parent
 
@@ -358,7 +358,7 @@ static def getJdk() {
   "${System.getProperty('java.version')} (${System.getProperty('java.vm.vendor')} ${System.getProperty('java.vm.version')})"
 }
 
-apply from:  file('./gradle/publishing/licenseMgmt.gradle')
-apply from:  file('./gradle/publishing/publishing.gradle')
+apply from:  file('./gradle/licenseMgmt.gradle')
+apply from:  file('./gradle/publishing.gradle')
 
 generateMetadataFileForMavenJavaPublication.dependsOn(packageUnoJar)
