@@ -1,0 +1,11 @@
+ACKNOWLEDGEMENT
+===============
+
+HPPC borrowed code, ideas or both from:
+
+ * Apache Lucene, https://lucene.apache.org/
+   (Apache license)
+ * Fastutil, https://fastutil.di.unimi.it/
+   (Apache license)
+ * Koloboke, https://github.com/leventov/Koloboke
+   (Apache license)

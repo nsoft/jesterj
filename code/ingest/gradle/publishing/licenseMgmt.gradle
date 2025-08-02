@@ -1,0 +1,370 @@
+import groovy.json.JsonSlurper
+import org.jesterj.licensereport.PreferredLicensesFilter
+import java.util.concurrent.atomic.AtomicInteger
+import com.github.jk1.license.filter.*
+import com.github.jk1.license.render.*
+
+licenseReport {
+//  unionParentPomLicenses = false
+  configurations = ['unoJarPack']
+  renderers = [new InventoryHtmlReportRenderer(), new JsonReportRenderer("index.json", false)]
+  allowedLicensesFile = new File("$projectDir/licenses/allowed-licenses.json")
+  unionParentPomLicenses = false
+  def normalizer = new LicenseBundleNormalizer(
+      bundlePath: "$projectDir/licenses/license-normalizer-bundle.json",
+      createDefaultTransformationRules: false)
+
+  def preferences = new PreferredLicensesFilter([
+      "Apache-2.0",
+      "Apache-1.0-no-acknowledge",
+      "CC0-1.0",
+      "MIT",
+      "MIT-OneJar",
+      "BSD-2-Clause",
+      "BSD-3-Clause",
+      "BSD-3-Clause-Nuclear",
+      "Eclipse-Distribution-1.0",
+      "Bouncy-Castle",
+      "ISC",
+      "Public-Domain",
+      "Eclipse-Public-1.0",
+      "Eclipse-Public-2.0",
+      "Mozilla-1.1",
+      "CDDL-1.0",
+      "UnRar"
+  ])
+  filters = [normalizer, preferences]
+}
+
+tasks.register("verifyLicenseDirs") {
+  // This task ensures that if we add a library and update the permitted licenses to add a new license type
+  // we don't forget to add a directory for it under /licenses
+  doLast {
+
+    // This requires a not-yet-released bugfix for gradle-license-report
+    // (see https://github.com/jk1/Gradle-License-Report/issues/264)
+
+    def jsonReport = new File("$projectDir/build/reports/dependency-license/index.json").text
+    def jsonSlurper = new JsonSlurper()
+    def obj = jsonSlurper.parseText(jsonReport)
+    def numberOfDependencies = obj["dependencies"].size()
+    println "Found " + numberOfDependencies + " dependencies"
+    def licenseTypes = new HashSet()
+    def licenseDirs = new HashSet()
+    obj["dependencies"].each {
+      def licenses = it["moduleLicenses"]
+      def modLic = licenses?[0]?["moduleLicense"]
+      if (modLic == null) {
+        ant.fail("New, unknown (null) license for dependency:" + it)
+      } else {
+        licenseTypes.add(modLic)
+      }
+    }
+    //println licenseTypes
+    def licDir = new File("$projectDir/licenses")
+    licDir.eachDir {
+      licenseDirs.add(it.getName())
+    }
+    //println licenseDirs
+    def fail = false
+    def possibleDisallowed = new HashSet()
+    licenseTypes.each {
+      if (licenseDirs.contains(it)) {
+        //println it + " OK (License Dir found)"
+      } else {
+        possibleDisallowed.add(it)
+      }
+    }
+    // The dependencyCheck target is used to flag libraries that ONLY have a disallowed license, so
+    // now we need to verify that none of the licenses that remain are listed as permitted since
+    // that would indicate a gap in our documentation (we don't have to document disallowed licenses we haven't
+    // elected to use)
+    def allowedLicFile = new File("$projectDir/licenses/allowed-licenses.json").text
+    def allowedLic = jsonSlurper.parseText(allowedLicFile)
+
+    def allowedNames = allowedLic["allowedLicenses"].collect() {
+      return it["moduleLicense"]
+    }
+    possibleDisallowed.each {
+      if (allowedNames.contains(it)) {
+        fail = true
+        println "FAIL:" + it + " (No directory, but listed as allowed)"
+      }
+    }
+    if(fail) {
+      ant.fail("One or more permitted license types do not have a directory in licenses (or are not recognized by the normalizer)")
+    }
+    def missingCount = 0
+    obj["dependencies"].each {
+      def licenses = it["moduleLicenses"]
+      def modLic = licenses?[0]?["moduleLicense"]
+      if(possibleDisallowed.contains(modLic)) {
+        return
+      }
+
+      if (!modLic) {
+        ant.fail("New, unknown (null) license for dependency:" + it)
+      }
+
+      def readme1 = "$projectDir/licenses/" + modLic + "/README.txt"
+      def license = "$projectDir/licenses/" + modLic + "/" + modLic + ".txt"
+      def artifact = it["moduleName"].contains(":") ? it["moduleName"].split(":")[1] : it["moduleName"]
+      def version = it["moduleVersion"]
+      def readme2 = "$projectDir/licenses/" + modLic + "/" + artifact + "-" + version + "/README.txt"
+      def notice = "$projectDir/licenses/" + modLic + "/" + artifact + "-" + version + "/NOTICE.txt"
+      def notice_md = "$projectDir/licenses/" + modLic + "/" + artifact + "-" + version + "/NOTICE.md"
+
+      def readmeFile1 = file(readme1)
+      if (!readmeFile1.exists()) {
+        fail = true
+        missingCount++
+        println "FAIL: license level README.txt not found at " + readme1
+      }
+
+      def licenseFile = file(license)
+      if (!licenseFile.exists()) {
+        if ("Public-Domain" == modLic) {
+          def pubDomLic = license.replace("Public-Domain.txt", "Apache-JJ-2.0.txt" )
+          def pubDomLicFile = file(pubDomLic)
+          if (!pubDomLicFile.exists()) {
+            fail = true
+            missingCount++
+            println "FAIL: special license file for public domain not found at " + pubDomLic
+          }
+        } else {
+          fail = true
+          missingCount++
+          println "FAIL: license file not found at " + license
+        }
+      }
+
+      def readmeFile2 = file(readme2)
+      if (!readmeFile2.exists()) {
+        fail = true
+        missingCount++
+        println "FAIL: library level README.txt not found at " + readme2
+      }
+
+      def noticeFile = file(notice)
+      def noticeMdFile = file(notice_md)
+      if ("Apache-2.0" == modLic) {
+        if (!noticeFile.exists() && !noticeMdFile.exists()) {
+          fail = true
+          missingCount++
+          println "FAIL: library level NOTICE.txt not found at " + notice
+        }
+      }
+    }
+
+    if(fail) {
+      ant.fail(missingCount + " license documentation errors were found. See above output for details")
+    }
+
+    def licsByDep = [:]
+    for (Object dir : licenseDirs) {
+      def ld = new File("$projectDir/licenses/$dir")
+      ld.eachDir {
+        def deps = licsByDep.get(it.name, [])
+        deps.add(ld.name)
+        if (deps.size() > 1) {
+          fail = true
+          println "FAIL: " + it.name + " exists in multiple license directories: " + deps
+        }
+      }
+    }
+
+    if(fail) {
+      ant.fail("Some dependencies have been listed in more than one license dir see output above for details")
+    }
+
+  }
+}
+
+tasks.register("checkForStrandedLicenseDirs") {
+  // This task ensures that if we have a license dir we are actually using that library
+  // this is the opposite of verifyLicenseDirs
+  doLast {
+
+    // This requires a not-yet-released bugfix for gradle-license-report
+    // (see https://github.com/jk1/Gradle-License-Report/issues/264)
+
+    def jsonReport = new File("$projectDir/build/reports/dependency-license/index.json").text
+    def jsonSlurper = new JsonSlurper()
+    def obj = jsonSlurper.parseText(jsonReport)
+    def numberOfDependencies = obj["dependencies"].size()
+    println "Found " + numberOfDependencies + " dependencies"
+    def licenseTypes = new HashSet()
+    obj["dependencies"].each {
+      def licenses = it["moduleLicenses"]
+      def modLic = licenses?[0]?["moduleLicense"]
+      if (modLic == null) {
+        ant.fail("New, unknown (null) license for dependency:" + it)
+      } else {
+        licenseTypes.add(modLic)
+      }
+    }
+    //println licenseTypes
+    def licDir = new File("$projectDir/licenses")
+
+    //println licenseDirs
+    def stranded = new ArrayList()
+    licDir.eachDir { licTypeDir ->
+      licTypeDir.eachDir { moduleVersionDir ->
+
+        // parsing these directory names is complicated by the fact that we
+        // are using - to separate version and module name, and either
+        // of those may also contain a '-' character. So we are
+        // hoping that we don't have any cases of module names that contain
+        // a portion that starts with a digit, or versions that start with a
+        // letter. If we do run into that it will be necessary to modify all
+        // directory names to use _ instead of - to separate module and version.
+        def split = moduleVersionDir.getName().split('-')
+        def versionIndex=0
+        for (String part : split) {
+          if (!(part.find(/^\d.*/))) {
+            versionIndex += 1
+          } else {
+            break
+          }
+        }
+        def moduleName = ""
+        def version = ""
+        for (int i = 0; i < versionIndex; i++) {
+          if (moduleName.length() > 0) {
+            moduleName += "-"
+          }
+          moduleName += split[i]
+        }
+        for (int i = versionIndex; i < split.length; i++) {
+          if (version.length() > 0) {
+            version += "-"
+          }
+          version += split[i]
+        }
+        def found = false
+        obj["dependencies"].each {
+          if (it["moduleName"].contains(moduleName ) && it["moduleVersion"].equals(version)) {
+            found = true
+          }
+        }
+        if (!found) {
+          stranded.add(licTypeDir.getName()+"/"+moduleName + "-" + version)
+        }
+      }
+    }
+    if (stranded.size() > 0) {
+      for (String badDir : stranded) {
+        println "FAIL: " + badDir + " has a library directory but is not a (current) dependency"
+      }
+      ant.fail(stranded.size() + " licenses are documented for libraries that are not used (anymore)")
+    }
+  }
+}
+
+tasks.checkForStrandedLicenseDirs.group "license"
+tasks.checkForStrandedLicenseDirs.dependsOn checkLicense
+
+
+tasks.register("validateLicenseLinks") {
+  doLast {
+    def licDir = new File("$projectDir/licenses")
+    def count = new AtomicInteger(0)
+    def manualChecks = []
+    licDir.eachDir {
+      it.listFiles().each {
+        checkFileUrls(it, count, manualChecks)
+      }
+    }
+    println "Processed " + count.get() + " links"
+    println "The following links prevent automated verification, please check them manually"
+    manualChecks.each {
+      println it
+    }
+  }
+}
+tasks.validateLicenseLinks.group "license"
+
+private void checkFileUrls(File f, AtomicInteger count, List manualChecks) {
+  if (f.isDirectory()) {
+    f.listFiles().each {
+      checkFileUrls(it, count, manualChecks)
+    }
+  } else {
+    if (f.getName().contains("README")) {
+      f.readLines().each {
+        def match = (it =~ /^\s*(https?:\/\/[^,<>)\s]+[^.,<>)\s]).*/)
+        if (match.find()) {
+          def url = match.group(1)
+          checkLink(url,f, manualChecks)
+          count.incrementAndGet()
+        }
+      }
+    }
+  }
+}
+
+void checkLink(String s, File f, List manualChecks) {
+  sleep(1000) // important to avoid spamming github and getting banned
+
+  def url = new URL(s)
+  def get = url.openConnection()
+  get.setRequestProperty("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/112.0")
+  get.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+  get.setRequestProperty("Accept-Encoding", "gzip, deflate, br")
+  get.setRequestProperty("Accept-Language", "en-US,en;q=0.5")
+  get.setRequestProperty("Host",url.getHost())
+  def respCode = get.getResponseCode()
+  def status = "Got response of " + respCode + " from " + s + " in " + f
+  if (respCode.equals(403)) {
+    // mvnrepository for example sends 403 to us even when browser is fine.
+    manualChecks.add(s)
+  } else if (!respCode.equals(200)) {
+    println get.headerFields
+    println get.getContent()
+    ant.fail(status)
+  } else {
+    println status
+  }
+}
+
+verifyLicenseDirs.dependsOn generateLicenseReport
+
+tasks.register('generateNotices') {
+  doLast {
+    def toConcatenate = fileTree(file('licenses')) {
+      include '**/NOTICE.txt'
+      include '**/NOTICE.md'
+    }
+    def header = new File("notice-header.txt")
+    def output = new File("NOTICE.txt")
+    output.write('') // truncate file
+    output << header.text
+    toConcatenate.each { f ->
+      output << "\n\n-------------------------------------------------------------------------------\n"
+      output << "       NOTICE for " + (file(f.parent).name)
+      output << "\n-------------------------------------------------------------------------------\n"
+
+      output << f.text
+    }
+  }
+}
+
+
+// NOTE: do not make classes depend on checkForStrandedLicenseDirs so that it's possible to compile to check if
+// a library is actually required, but do require it if the build or check target is being run
+build.dependsOn checkForStrandedLicenseDirs
+check.dependsOn validateLicenseLinks
+classes.mustRunAfter checkForStrandedLicenseDirs // dont compile until lbs are copacetic
+
+classes.dependsOn verifyLicenseDirs
+packageUnoJar.dependsOn generateNotices
+jar.dependsOn generateNotices
+validateLicenseLinks.dependsOn checkForStrandedLicenseDirs
+
+
+// fix grouping of tasks in ide
+checkLicense.group = "license"
+checkLicensePreparation.group = "license"
+verifyLicenseDirs.group = "license"
+generateNotices.group = "license"
+generateLicenseReport.group = "license"
