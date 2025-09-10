@@ -6,8 +6,8 @@ relative to this file.
 
 Copy of Notice File
 -------------------
-There is no Notice file for this version of sslcontext-kickstart
+There is no Notice file for this version of ayza
 
 This was verified at:
 
-https://github.com/Hakky54/sslcontext-kickstart/tree/v9.1.0
+https://github.com/Hakky54/ayza/tree/v10.0.0
