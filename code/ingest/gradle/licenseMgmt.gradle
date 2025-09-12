@@ -366,6 +366,7 @@ validateLicenseLinks.dependsOn checkForStrandedLicenseDirs
 // fix grouping of tasks in ide
 checkLicense.group = "license"
 checkLicensePreparation.group = "license"
+checkLicensePreparation.dependsOn("dependencies") // for debugging CI oddities
 verifyLicenseDirs.group = "license"
 generateNotices.group = "license"
 generateLicenseReport.group = "license"
