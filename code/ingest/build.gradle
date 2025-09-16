@@ -38,7 +38,6 @@ plugins {
   id 'maven-publish'
   id 'com.palantir.git-version'
   id 'com.github.jk1.dependency-license-report' //version '2.9'  // version determined in buildSrc
-  id "com.github.onslip.gradle-one-jar" version "1.0.5"
   id 'com.needhamsoftware.unojar' version '1.1.0'
   id 'com.dorongold.task-tree' version '4.0.1'
 }
@@ -68,6 +67,7 @@ configurations {
   unoJarPack.exclude group: 'com.github.spotbugs'
   unoJarPack.exclude group: 'com.google.code.findbugs', module: 'annotations' // N.B. findbugs jsr305 is ok, thus module
   unoJarPack.exclude group: 'c3p0', module: 'c3p0'
+  unoJarPack.exclude group: 'com.google.j2objc' // inconsistent dependency! mac vs linux
   unoJarPack.extendsFrom implementation
 }
 
@@ -89,7 +89,7 @@ ext.archiveName = 'jesterj-ingest'
 
 
 dependencies {
-  implementation 'com.needhamsoftware.unojar:core:1.0.2'
+  implementation 'com.needhamsoftware.unojar:core:1.1.0'
   implementation 'io.github.classgraph:classgraph:4.8.147'
   api 'org.apache.tika:tika-core:2.4.1'
   implementation 'org.apache.tika:tika-parsers-standard-package:2.4.1'
