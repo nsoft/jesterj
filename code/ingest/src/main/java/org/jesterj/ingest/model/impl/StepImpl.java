@@ -235,7 +235,7 @@ public class StepImpl implements Step {
 
   @Override
   public NextSteps getNextSteps(Document doc) {
-    if (nextSteps.size() == 0) {
+    if (nextSteps.isEmpty()) {
       log.trace("No next steps for {} from {}", doc.getId(), getName());
       return null;
     }
@@ -361,7 +361,7 @@ public class StepImpl implements Step {
 
     pathElements.add(currentStep.getName());
     List<Step> priors = currentStep.getPriorSteps();
-    if (priors == null || priors.size() == 0) {
+    if (priors == null || priors.isEmpty()) {
       // we are at a scanner,
       if (pathElements.contains(referenceStep.getName())) {
         // this recursion from the destination up to the scanner passed through our reference step.
@@ -393,7 +393,7 @@ public class StepImpl implements Step {
               outputSteps = new HashSet<>();
               outputSteps.add(this);
             } else {
-              throw new RuntimeException("Detected terminal step that does not produce an output!. " +
+              throw new RuntimeException("Detected terminal step that does not produce an output!("+processor.getName()+"). " +
                   "Final step on any path must be potent or idempotent");
             }
           } else {
@@ -466,7 +466,7 @@ public class StepImpl implements Step {
         log.trace("Status was DROPPED for {}", id);
         droppedDestinations = statusChange.getSpecificDestinations();
         // else allDrop remains true
-        if (droppedDestinations != null && droppedDestinations.size() != 0) {
+        if (droppedDestinations != null && !droppedDestinations.isEmpty()) {
           log.trace("Had dropped destinations: {} for {}", droppedDestinations, id);
           // we have been routed, check for non-drop statuses (likely true)
           for (String dest : document.getIncompleteOutputDestinations()) {
@@ -574,7 +574,7 @@ public class StepImpl implements Step {
       pushToStep(remaining.get(0), true);
     } else {
       // This loop allows us to push to any steps that are ready, and come back to the ones that are blocked.
-      while (remaining.size() > 0) {
+      while (!remaining.isEmpty()) {
         for (Map.Entry<Step, NextSteps.StepStatusHolder> stepStatusEntry : next.remaining()) {
           Step destinationStep = stepStatusEntry.getKey();
           if (stepStatusEntry.getValue().getException() != null) {
@@ -656,7 +656,6 @@ public class StepImpl implements Step {
         }
       }
     } catch (Throwable t) {
-      t.printStackTrace();
       log.error("Throwable:",t);
       String message = "Thread for " + getName() + " died. This should not happen and is always a bug in JesterJ " +
           "unless you killed the process with Ctrl-C or similar. This plan is Shutting down for safety. If the " +
