@@ -140,9 +140,10 @@ public class SendToSolrCloudZkProcessor extends SendToSolrProcessor {
     public SendToSolrCloudZkProcessor build() {
       SendToSolrCloudZkProcessor tmp = getObj();
       setObj(new SendToSolrCloudZkProcessor());
-      CloudSolrClient built = new CloudSolrClient.Builder(this.zkList, Optional.ofNullable(chroot)).build();
+      CloudSolrClient built = new CloudSolrClient.Builder(this.zkList, Optional.ofNullable(chroot))
+          .withDefaultCollection(tmp.collection)
+          .build();
       tmp.setSolrClient(built);
-      built.setDefaultCollection(tmp.collection);
       return tmp;
     }
   }
