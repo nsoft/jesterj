@@ -4,6 +4,7 @@
     { "bundleName" : "bsd3cnd", "licenseName" : "BSD-3-Clause-Nuclear" },
     { "bundleName" : "bsd3c", "licenseName" : "BSD-3-Clause" },
     { "bundleName" : "bsd2c", "licenseName" : "BSD-2-Clause" },
+    { "bundleName" : "bsd0c", "licenseName" : "BSD-0-Clause" },
     { "bundleName" : "bc", "licenseName" : "Bouncy-Castle" },
     { "bundleName" : "cc0-1", "licenseName" : "CC0-1.0" },
     { "bundleName" : "cddl-1", "licenseName" : "CDDL-1.0" },
@@ -39,6 +40,7 @@
     { "bundleName" : "bsd2c", "licenseUrlPattern" : "https?://www.opensource.org/licenses/bsd-license.html" },
     { "bundleName" : "bsd2c", "licenseUrlPattern" : "https?://www.opensource.org/licenses/bsd-license.php" },
     { "bundleName" : "bsd3c", "licenseUrlPattern" : "https?://www.linfo.org/bsdlicense.html" },
+    { "bundleName" : "bsd0c", "licenseNamePattern" : ".*0BSD.*" },
     { "bundleName" : "bc", "licenseNamePattern" : ".*Bouncy.*" },
     { "bundleName" : "cc0-1", "licenseNamePattern" : ".*CC0.*" },
     { "bundleName" : "cddl-1", "licenseNamePattern" : ".*CDDL.*" },
@@ -55,7 +57,7 @@
     { "bundleName" : "unrar", "licenseNamePattern" : "UnRar License" },
     { "bundleName" : "asl1na", "licenseNamePattern" : ".*Similar to Apache License.*acknowledgment clause removed.*" },
     { "bundleName" : "pd", "licenseNamePattern" : ".*Public\\s+Domain.*" },
-    { "bundleName" : "moz11", "licenseNamePattern" : ".*Mozilla Public License 1.1.*" }
+    { "bundleName" : "moz11", "licenseNamePattern" : ".*Mozilla Public License (Version)?\\s*1.1.*" }
 
   ]
 }
