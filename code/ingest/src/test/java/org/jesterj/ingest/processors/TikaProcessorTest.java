@@ -82,9 +82,9 @@ public class TikaProcessorTest {
     expect(mockDocument.put("X_TIKA_Parsed_By_tk", "org.apache.tika.parser.DefaultParser")).andReturn(true);
     expect(mockDocument.put("X_TIKA_Parsed_By_Full_Set_tk", "org.apache.tika.parser.DefaultParser")).andReturn(true);
     expect(mockDocument.put("dc_title_tk", "The title")).andReturn(true);
+    expect(mockDocument.put("X_TIKA_detectedEncoding_tk", "ISO-8859-1")).andReturn(true);
+    expect(mockDocument.put("X_TIKA_encodingDetector_tk", "UniversalEncodingDetector")).andReturn(true);
     expect(mockDocument.put("Content_Encoding_tk", "ISO-8859-1")).andReturn(true);
-    // Apparently newer versions of Tika don't produce this. However, we still get other metadata.
-    // expect(mockDocument.put("title_tk", "The title")).andReturn(true);
     expect(mockDocument.put("Content_Type_tk", "text/html; charset=ISO-8859-1")).andReturn(true);
 
     replay();

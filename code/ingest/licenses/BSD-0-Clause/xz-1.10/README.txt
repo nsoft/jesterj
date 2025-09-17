@@ -1,0 +1,1 @@
+There are no further conditions required by BSD-0-clause license.

@@ -91,8 +91,8 @@ ext.archiveName = 'jesterj-ingest'
 dependencies {
   implementation 'com.needhamsoftware.unojar:core:1.1.0'
   implementation 'io.github.classgraph:classgraph:4.8.147'
-  api 'org.apache.tika:tika-core:2.4.1'
-  implementation 'org.apache.tika:tika-parsers-standard-package:2.4.1'
+  api 'org.apache.tika:tika-core:3.2.2'
+  implementation 'org.apache.tika:tika-parsers-standard-package:3.2.2'
 
   api 'org.apache.solr:solr-core:9.8.1'
 
@@ -127,7 +127,7 @@ dependencies {
   implementation 'org.yaml:snakeyaml:1.33'
   api 'org.apache.velocity:velocity-engine-core:2.3'
 
-  api 'org.apache.logging.log4j:log4j-core:2.21.0'
+  api 'org.apache.logging.log4j:log4j-core:2.24.3'
 
   implementation('com.needhamsoftware:easier-mock:2.0') {
     exclude group:'org.easymock'
