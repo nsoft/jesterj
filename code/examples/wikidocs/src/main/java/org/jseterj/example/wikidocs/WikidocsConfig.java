@@ -12,6 +12,8 @@ import org.jesterj.ingest.routers.RoundRobinRouter;
 import org.jesterj.ingest.scanners.SimpleFileScanner;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 @SuppressWarnings("unused")
@@ -26,6 +28,7 @@ public class WikidocsConfig implements PlanProvider {
   private static final String WIKIDOCS_SCANNER = "Wikidocs_scanner";
 
   public static final String WIKI_DOC_PARSER = "WikidocParser";
+  public static final int SOLR_SENDERS = 4;
   private final AtomicLong idSerial = new AtomicLong(0);
 
   public Plan getPlan() {
@@ -40,7 +43,7 @@ public class WikidocsConfig implements PlanProvider {
     StepImpl.Builder formatAccessed = new StepImpl.Builder();
     StepImpl.Builder renameFileSizeToInteger = new StepImpl.Builder();
     StepImpl.Builder wikidocParser = new StepImpl.Builder();
-    StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
+    List<StepImpl.Builder> sendToSolrBuilders = new ArrayList<>();
 
 
     // This shold point to the data directory created on first run of https://github.com/mikemccand/luceneutil
@@ -122,9 +125,10 @@ public class WikidocsConfig implements PlanProvider {
         );
 
 
-
+    for (int i = 0; i < SOLR_SENDERS; i++) {
+      StepImpl.Builder sendToSolrBuilder = new StepImpl.Builder();
       sendToSolrBuilder
-          .named("solr_sender")
+          .named("solr_sender" + i)
           .batchSize(1000)
           .withProcessor(
               new SendToSolrCloudZkProcessor.Builder()
@@ -137,6 +141,8 @@ public class WikidocsConfig implements PlanProvider {
                   .sendingPartialBatchesAfterMs(20_000)
 
           );
+      sendToSolrBuilders.add(sendToSolrBuilder);
+    }
 
 
 
@@ -157,7 +163,9 @@ public class WikidocsConfig implements PlanProvider {
         .addStep(formatAccessed, MODIFIED)
         .addStep(renameFileSizeToInteger, ACCESSED)
         .addStep(wikidocParser, SIZE_TO_INT);
-    planBuilder.addStep(sendToSolrBuilder, WIKI_DOC_PARSER);
+    for (StepImpl.Builder sendToSolrBuilder : sendToSolrBuilders) {
+      planBuilder.addStep(sendToSolrBuilder, WIKI_DOC_PARSER);
+    }
 
     return planBuilder.build();
 
