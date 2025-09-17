@@ -339,9 +339,14 @@ tasks.register('generateNotices') {
     def output = new File("NOTICE.txt")
     output.write('') // truncate file
     output << header.text
-    toConcatenate.each { f ->
+    def noticeInfo = []
+    toConcatenate.each {
+      noticeInfo += [name:file(it.parent).name, text:it.text]
+    }
+    noticeInfo.sort {a,b-> a.name <=> b.name }
+    noticeInfo.each { f ->
       output << "\n\n-------------------------------------------------------------------------------\n"
-      output << "       NOTICE for " + (file(f.parent).name)
+      output << "       NOTICE for " + (f.name)
       output << "\n-------------------------------------------------------------------------------\n"
 
       output << f.text
