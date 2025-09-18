@@ -355,16 +355,6 @@ public class SimpleFileScanner extends ScannerImpl implements FileScanner {
       return this;
     }
 
-    public SimpleFileScanner.Builder acceptOnly(FileFilter filter) {
-      getObj().includes = filter;
-      return this;
-    }
-
-    public SimpleFileScanner.Builder docPerLineIfMatches(FileFilter filter) {
-      getObj().docPerLine = filter;
-      return this;
-    }
-
     @Override
     public ScannerImpl build() {
       SimpleFileScanner tmp = obj;
