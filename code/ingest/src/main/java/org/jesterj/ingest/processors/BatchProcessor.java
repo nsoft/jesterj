@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-abstract class BatchProcessor<T> implements DocumentProcessor {
+public abstract class BatchProcessor<T> implements DocumentProcessor {
   private static final Logger log = LogManager.getLogger();
   protected AtomicLong docsReceived = new AtomicLong(0);
   protected AtomicLong docsSucceeded = new AtomicLong(0);
