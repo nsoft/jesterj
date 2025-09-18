@@ -5,7 +5,7 @@ Copyright (c) 2000-2023 The Legion of the Bouncy Castle Inc. (https://www.bouncy
 
 The above notice was found here:
 
-https://github.com/bcgit/bc-java/blob/r1v81/LICENSE.html
+https://github.com/bcgit/bc-java/blob/r1rv81/LICENSE.html
 
 Copy of License
 ---------------
