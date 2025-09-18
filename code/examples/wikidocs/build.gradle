@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'org.jesterj'
-version '1.1-SNAPSHOT'
+version '1.1.0-SNAPSHOT'
 sourceCompatibility = 1.11
 
 repositories {
@@ -22,7 +22,7 @@ solr {
 }
 
 dependencies {
-  implementation('org.jesterj:jesterj-ingest:1.1-SNAPSHOT') {
+  implementation('org.jesterj:jesterj-ingest:1.1.0-SNAPSHOT') {
     exclude group: 'ch.qos.logback'
   }
 }
