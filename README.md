@@ -41,9 +41,9 @@ The key aspects for achieving this are simplicity, robustness, flexibility, and 
 - Built in embedded Cassandra for performant persistent storage _(simplicity)_
 - Optional auto-detection of changes to documents _(flexibility, simplicity)_
 - Automatic fault-tolerant restart skipping previously seen documents _(robustness, scalability)_
-- Multi-threaded processing to leverage modern machines with large numbers of cores. _(scalability)_
+- Multithreaded processing to leverage modern machines with large numbers of cores. _(scalability)_
 - Explicit and direct control of threading. Easy to ensure more threads working on heavy steps _(scalability)_
-- Single system handling multiple data sources _(flexability, scalability, simplicity)_
+- Single system handling multiple data sources _(flexibility, scalability, simplicity)_
 - Pre-baked batching of documents for efficient transmission to the search engine _(scalability, simplicity)_
 - Directed acyclic graph (DAG) capable processing model, and graphical visualization _(flexibility, simplicity)_
 
@@ -73,7 +73,7 @@ The best place to start learning more is the [documentation in the wiki](https:/
 
 # Project Status
 
-**Current release**: 1.0.0 (reccomended)
+**Current release**: 1.0.0 (recommended)
 
 **Next Release:** 1.1.0
 
@@ -88,7 +88,7 @@ Building with the latest uno-jar version may be sufficient, but this is not yet 
 
 # Discord Server
 
-Discuss features, ask questions, etc, on Discord. https://discord.gg/RmdTYvpXr9
+Discuss features, ask questions, etc., on Discord. https://discord.gg/RmdTYvpXr9
 
 ## Features:
 
