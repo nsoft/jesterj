@@ -73,11 +73,10 @@ The best place to start learning more is the [documentation in the wiki](https:/
 
 # Project Status
 
-**Current release**: 1.0. This is the best version to use, and should be fully functional.
+**Current release**: 1.0.0 (reccomended)
 
-NOTE: The current release targets any design and load a single machine can service.
-JesterJ is explicitly designed to take advantage of machines with many processors in future releases.
-You can design your plan with duplicates of your slowest step to alleviate bottlenecks. In future versions, the load will be spread across machines. Currently, each duplicate implies an additional thread working on that step.
+**Next Release:** 1.1.0
+
 
 # JDK versions
 
@@ -86,43 +85,11 @@ Unit tests have passed on JDK 17, but the initial system startup and custom clas
 Any Distribution of JDK 11 should work.
 Support for Java 17 and future LTS versions is among our highest priorities for future releases.
 Building with the latest uno-jar version may be sufficient, but this is not yet certified. https://github.com/nsoft/uno-jar/issues/37
+
 # Discord Server
 
 Discuss features, ask questions, etc, on Discord. https://discord.gg/RmdTYvpXr9
 
 ## Features:
 
-In this release, we have the following features.
-
-* Ability to visualize the structure of your plan (.dot or .png format: [example from unit tests here](https://tinyurl.com/22k7tu74) )
-* Simple filesystem scanner for locally mounted drives (replacement for post.jar)
-* JDBC scanner (replacement for Data Import Handler!)
-* Scanners can remember what documents they've seen (or not, boolean flag)
-* Scanners can recognize updated content (or not, boolean flag)
-* Send to Solr processor with tunable batch sizes
-* Tika processor to extract content from Word/PDF/XML/HTML, etc (Replacement for SolrCell!)
-* Stax extract processor for dissecting XML documents directly.
-* Copy field processor to rename source fields to the desired index field
-* Regexp replace processor to edit field content, or drop fields that don't match
-* Split field processor to split delimited values for multi-value fields
-* Drop field processor to get rid of annoying excess fields.
-* Field template processor for composing field content using a Velocity template
-* URL encode processor to encode the value of a field and make it safe for use in URLs
-* Fetch URL processor for acquiring or enhancing content by contacting other systems
-* Log and drop processor for when you identify an invalid document* Date Reformat processor, because dates, formatting... always. (*sigh*)* Human Readable File Size processor
-* Solr sender to send documents to Solr in batches.
-* Pre-Analyze processor to move Solr analysis workload out of Solr (just give it your schema.xml!)
-* Embedded Cassandra server (no need to install Cassandra yourself!)
-* Cassandra config and data location configurable, defaults to `~/.jj/cassandra`
-* Support for fault tolerance, writing status change events to the embedded Cassandra server
-* Support for user-written document processors. (see [documentation](https://github.com/nsoft/jesterj/wiki/Documentation))
-* 70% test coverage (jacoco)
-* Simple, single Java file to configure everything, non-Java programmers need only follow a simple example (for use cases not requiring custom code)
-* If you DO need custom code, that code can be packaged as an [uno-jar](https://github.com/nsoft/uno-jar) to provide all required dependencies and escape from any library versions that JesterJ uses! You only have to deal with your OWN jar hell, not ours! Of course, you can also rely on whatever we already provide. The classloaders for custom code prefer your uno-jar and then default to whatever JesterJ has available on its classpath.
-* Runnable example to [execute a plan](https://github.com/nsoft/jesterj/blob/master/code/examples/shakespeare/README.md) that scans a filesystem, and indexes the documents in Solr.
-
-Release 1.0 is intended to be usable for small to medium-sized projects (tens of millions of documents or low hundreds of millions of documents with some patience).
-
-## Road Map
-
-The best guess at any time of what will be in future releases is given by the milestones filters [on our issues page](https://github.com/nsoft/jesterj/issues)
+Please see the [RELEASE_NOTES.adoc](https://github.com/nsoft/jesterj/blob/master/RELEASE_NOTES.adoc) file for full details on features for each available version.

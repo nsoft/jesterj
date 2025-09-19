@@ -1,0 +1,70 @@
+:toc:
+
+== Release 1.0.0
+
+In JesterJ 1.0 we have the following initial features
+
+* Ability to visualize the structure of your plan (.dot or .png format: [example from unit tests here](https://tinyurl.com/22k7tu74) )
+* Simple filesystem scanner for locally mounted drives (replacement for post.jar)
+* JDBC scanner (replacement for Data Import Handler!)
+* Scanners can remember what documents they've seen (or not, boolean flag)
+* Scanners can recognize updated content (or not, boolean flag)
+* Send to Solr processor with tunable batch sizes
+* Tika processor to extract content from Word/PDF/xml/html, etc (Replacement for SolrCell!)
+* Stax extract processor for dissecting xml documents directly.
+* Copy field processor to rename source fields to desired index field
+* Regexp replace processor to edit field content, or drop fields that don't match
+* Split field processor to split delimited values for multi-value fields
+* Drop field processor to get rid of annoying excess fields.
+* Field template processor for composing field content using a velocity template
+* URL encode processor to encode the value of a field and make it safe for use in URLs
+* Fetch URL processor for acquiring or enhancing content by contacting other systems
+* Log and drop processor for when you identify an invalid docuemnt
+* Date Reformat processor, because dates, formatting... always. (*sigh*)
+* Human Readable File Size processor
+* Solr sender to send documents to solr in batches.
+* Pre-Analyze processor to move Solr analysis workload out of Solr (just give it your schema.xml!)
+* Embedded Cassandra server (no need to install cassandra yourself!)
+* Cassandra config and data location configurable, defaults to `~/.jj/cassandra`
+* Support for fault tolerance writing status change events to the embedded cassandra server
+* Initial API/process for user written document processors. (see https://github.com/nsoft/jesterj/wiki/Documentation[documentation])
+* Simple, single java file to configure everything, non-java programmers need only follow a simple example (for use cases not requiring custom code)
+* If you DO need custom code that code can be packaged as an https://github.com/nsoft/uno-jar[uno-jar] to provide all required dependencies and escape from any library versions that JesterJ uses! You only have to deal with your OWN jar hell, not ours! Of course, you can also just rely on whatever we already provide too. The classloaders for custom code prefer your uno-jar and then default back to whatever JesterJ has available on it's classpath.
+* Runnable example to https://github.com/nsoft/jesterj/wiki/A-Quick-Example[execute a plan] that scans a filesystem, and indexes the documents in solr.
+
+== Release 1.1.0
+
+The full list of issues addressed in 1.1.0 can be seen at https://github.com/nsoft/jesterj/milestone/6?closed=1
+
+Key changes include:
+
+=== Features
+* https://github.com/nsoft/jesterj/issues/78[Issue #78] SimpleFileScanner can now filter docs with a regular expression
+* https://github.com/nsoft/jesterj/issues/37[Issue #37] SimpleFileScanner can now emit a document per line for files that have a name matching a regular expression. (Useful for CSV and JSON lines etc.)
+* https://github.com/nsoft/jesterj/issues/190[Issue #190] It is now possible to transform the document ID just before it is sent to Solr.
+* https://github.com/nsoft/jesterj/issues/201[Issue #201] Sending documents to OpenSearch (via bulk API) is now supported.
+* https://github.com/nsoft/jesterj/issues/203[Issue #203] We now support both http and zookeeper based access to solr cloud.
+
+
+=== Bugs
+
+* https://github.com/nsoft/jesterj/issues/206[Issue #206] Duplicate doc in batch causes IllegalArgumentException
+* https://github.com/nsoft/jesterj/issues/217[issue #217] IllegalAccessException possible with BatchProcessor subclasses
+
+=== Security
+
+46 security notices (via dependabot) have been addressed, and three remain pending upgrades to dependent libraries. The state of the main branch can be seen https://github.com/nsoft/jesterj/security/dependabot?q=sort%3Anewest+is%3Aopen[in GitHub], but unfortunately there is no good way to filter by release or date (currently).
+
+==== Open Reports
+* Netty's decoders vulnerable to DoS via zip bomb style attack Moderate
+#65 opened 2 weeks ago • Detected in io.netty:netty-codec (Maven) • code/ingest/build.gradle
+* SslHandler doesn't correctly validate packets which can lead to native crash when using native SSLEngine High
+#60 opened last month • Detected in io.netty:netty-handler (Maven) • code/ingest/build.gradle
+* Eclipse Jetty's ThreadLimitHandler.getRemote() vulnerable to remote DoS attacks Moderate
+#47 opened 3 months ago • Detected in org.eclipse.jetty:jetty-server (Maven) • code/ingest/build.gradle
+
+==== Critical Security Reports Resolved
+
+* https://github.com/nsoft/jesterj/security/dependabot/64[CVE-2025-54988] Apache Tika XXE Vulnerability via Crafted XFA File Inside a PDF
+* https://github.com/nsoft/jesterj/security/dependabot/28[CVE-2023-44981] Authorization Bypass Through User-Controlled Key vulnerability in Apache ZooKeeper
+* https://github.com/nsoft/jesterj/security/dependabot/8[CVE-2022-42889] Arbitrary code execution in Apache Commons Text
