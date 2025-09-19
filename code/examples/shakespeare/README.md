@@ -13,7 +13,7 @@ Start JesterJ
 1. Clone https://github.com/nsoft/jesterj.git
 1. In /jesterj/code/ingest run `./gradlew  publishToMavenLocal` (to publish 1.0-SNAPSHOT required by this example)
 1. In /jesterj/code/example/shakespeare run `./gradlew build`
-1. In /jesterj/code/example/shakespeare run `$JAVA_HOME/bin/java -jar ../../ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar build/libs/example-shakespeare-1.0-SNAPSHOT.jar shakespeare mysecret`
+1. In /jesterj/code/example/shakespeare run `$JAVA_HOME/bin/java -jar ../../ingest/build/libs/jesterj-ingest-1.1.0-SNAPSHOT-node.jar build/libs/shakespeare-1.1.0-SNAPSHOT.jar shakespeare mysecret`
 
 Once JesterJ goes throug it's startup, your search engine(s) should have indexed shakespeare's plays within a minute or so.
 Note that the example is set up for batches of 20 and partial batch sending every 20 seconds so for a brief moment you may see 40 documents, but in 20 seconds or less from that you should see all 44 documents in your index
