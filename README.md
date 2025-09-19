@@ -92,4 +92,4 @@ Discuss features, ask questions, etc, on Discord. https://discord.gg/RmdTYvpXr9
 
 ## Features:
 
-Please see the [RELEASE_NOTES.adoc](https://github.com/nsoft/jesterj/blob/master/RELEASE_NOTES.adoc) file for full details on features for each available version.
+Please see the [RELEASE_NOTES.adoc](https://github.com/nsoft/jesterj/blob/master/code/ingest/RELEASE_NOTES.adoc) file for full details on features for each available version.
