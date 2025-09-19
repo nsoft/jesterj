@@ -47,72 +47,19 @@ Please see the [documentation in the wiki](https://github.com/nsoft/jesterj/wiki
 
 # Project Status
 
-**Current release**: 1.0-beta2. (Very stale, very buggy, not reccomended)
+**Current release**: 1.1.0 (reccomended)
 
-**Reccomended:** Build from `master` branch (Only waiting on documentation for release)
+**Next Release:** 1.2.0
 
- - `cd /code/ingest; ./gradlew packageUnoJar`
- - use /code/ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar
- - ask [on discord](https://discord.com/invite/RmdTYvpXr9) if you have issues with the build
-
-**Next Release:** 1.0-beta3
-
-This next release will be a true feature locked beta suitable for use with all the latest features.
-
-NOTE: The current code and the upcoming 1.0 release expect to support any design and load that can be serviced by a single machine.
-Scaling across many machines is a priority for future releases, but not yet available.
-JesterJ is explicitly designed to take advantage of machines with many processors.
-Automatic scaling of threads/step based on load will be in 1.1 (current estimate), but in 1.0 you can design your plan with duplicates of your slowest step to alleviate bottlenecks.
-This is better than linear pipeline based systems which just have to choke on whatever is slowest, and for which the only way to speed up is to duplicate everything, which makes fault tolerance extremely difficult to manage.
 
 # JDK versions
 
-Presently only JDK 11 has been tested regularly. Any Distribution of JDK 11 should work. Support for Java 17 and future LTS versions is planned for future releases.
+Presently only JDK 11 has been tested regularly. Any Distribution of JDK 11 should work. Support for Java 17 and future LTS versions is planned for future releases, but currently inhibited by our classloader shenanigans that try to keep dependency management simple for you.
 
 # Discord Server
 
-Discuss features, ask questions etc on Discord: https://discord.gg/RmdTYvpXr9
+Discuss features, ask questions etc. on Discord: https://discord.gg/RmdTYvpXr9
 
 ## Features:
 
-In this release we have the following features
-
-* Ability to visualize the structure of your plan (.dot or .png format: [example from unit tests here](https://tinyurl.com/22k7tu74) )
-* Simple filesystem scanner for locally mounted drives (replacement for post.jar)
-* JDBC scanner (replacement for Data Import Handler!)
-* Scanners can remember what documents they've seen (or not, boolean flag)
-* Scanners can recognize updated content (or not, boolean flag)
-* Send to Solr processor with tunable batch sizes
-* Tika processor to extract content from Word/PDF/xml/html, etc (Replacement for SolrCell!)
-* Stax extract processor for dissecting xml documents directly.
-* Copy field processor to rename source fields to desired index field
-* Regexp replace processor to edit field content, or drop fields that don't match
-* Split field processor to split delimited values for multi-value fields
-* Drop field processor to get rid of annoying excess fields.
-* Field template processor for composing field content using a velocity template
-* URL encode processor to encode the value of a field and make it safe for use in URLs
-* Fetch URL processor for acquiring or enhancing content by contacting other systems
-* Log and drop processor for when you identify an invalid docuemnt
-* Date Reformat processor, because dates, formatting... always. (*sigh*)
-* Human Readable File Size processor
-* Solr sender to send documents to solr in batches.
-* Pre-Analyze processor to move Solr analysis workload out of Solr (just give it your schema.xml!)
-* Embedded Cassandra server (no need to install cassandra yourself!)
-* Cassandra config and data location configurable, defaults to `~/.jj/cassandra`
-* Support for fault tolerance writing status change events to the embedded cassandra server
-* Initial API/process for user written document processors. (see [documentation](https://github.com/nsoft/jesterj/wiki/Documentation))
-* 60% test coverage (jacoco)
-* Simple, single java file to configure everything, non-java programmers need only follow a simple example (for use cases not requiring custom code)
-* If you DO need custom code that code can be packaged as an [uno-jar](https://github.com/nsoft/uno-jar) to provide all required dependencies and escape from any library versions that JesterJ uses! You only have to deal with your OWN jar hell, not ours! Of course, you can also just rely on whatever we already provide too. The classloaders for custom code prefer your uno-jar and then default back to whatever JesterJ has available on it's classpath.
-* Runnable example to [execute a plan](https://github.com/nsoft/jesterj/blob/master/code/ingest/README.md) that scans a filesystem, and indexes the documents in solr.
-
-
-## TODO for 1.0 final release
- * [Remaining issues](https://github.com/nsoft/jesterj/issues?q=is%3Aopen+is%3Aissue+milestone%3A1.0)
- * Beta release, testing.
-
-Release 1.0 is intended to be the usable for single node systems, and therefore suitable for use on small to medium-sized projects (tens of millions or maybe low hundreds of million of documents).
-
-## Road Map
-
-The best guess at any time of what will be in future releases is given by the milestones filters [on our issues page](https://github.com/nsoft/jesterj/issues)
+Please see the [RELEASE_NOTES.adoc](https://github.com/nsoft/jesterj/blob/master/RELEASE_NOTES.adoc) file for full details on features for each available version.

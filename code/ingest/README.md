@@ -12,7 +12,7 @@ The primary things that set the current release of Jesterj appart from tradditio
 # Running
 
 1. Checkout and build the head revision from the repository to produce a "node" jar (much better than last release now) The command to build a jar is `./gradlew packageUnoJar`
-2. java -jar jesterj-node-1.0-beta2.jar
+2. java -jar jesterj-node-1.1.0.jar
 
 This will print usage info. This jar contains all dependencies, and thus can be copied to any machine and run
 without any additional setup. It will create &lt;user_home_dir&gt;/.jj and place logs and files needed for it's embedded cassandra database there. These directories can be relocated via symlinks if desired after they have been created.
