@@ -2,7 +2,7 @@ To see JesterJ in action, you can run this example. (Java 11 required)
 
 **PLEASE DO use this project to bootstrap your own!**
 
-## Setup Solr
+Setup Solr
 1. Set up a local Solr Cloud node with zookeeper on 9983  (or edit ShakespeareConfig.java to match your ports[^1])
 1. Create a collection named jjtest using the _default configset
 
@@ -11,7 +11,7 @@ To see JesterJ in action, you can run this example. (Java 11 required)
 
 ## Build or Download JesterJ
 
-### Download: 
+### Download:
 - https://github.com/nsoft/jesterj/releases
 
 ### Build:
@@ -20,7 +20,7 @@ To see JesterJ in action, you can run this example. (Java 11 required)
 1. In /jesterj/code/example/shakespeare run `./gradlew build`
 
 ## Run JesterJ
-1. In /jesterj/code/example/shakespeare run `$JAVA_HOME/bin/java -jar ../../ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar build/libs/example-shakespeare-1.0-SNAPSHOT.jar shakespeare mysecret`
+1. In /jesterj/code/example/shakespeare run `$JAVA_HOME/bin/java -jar ../../ingest/build/libs/jesterj-ingest-1.0-SNAPSHOT-node.jar build/libs/shakespeare-2.0.0-SNAPSHOT.jar shakespeare mysecret`
 
 Once JesterJ goes throug it's startup, your search engine(s) should have indexed shakespeare's plays within a minute or so.
 Note that the example is set up for batches of 20 and partial batch sending every 20 seconds so for a brief moment you may see 40 documents, but in 20 seconds or less from that you should see all 44 documents in your index
