@@ -304,17 +304,15 @@ public class Main {
     } else {
       System.out.println("Loading from " + file + " which is a " + (finalIsUnoJar ? "Uno-Jar" : "Standard Jar") + " file");
     }
-    JesterJLoader jesterJLoader;
 
-    File jarfile = new File(javaConfig);
     URL planConfigJarURL;
     try {
-      planConfigJarURL = jarfile.toURI().toURL();
+      planConfigJarURL = file.toURI().toURL();
     } catch (MalformedURLException e) {
       throw new RuntimeException(e); // boom
     }
 
-    jesterJLoader = (JesterJLoader) ClassLoader.getSystemClassLoader();
+    JesterJLoader jesterJLoader = (JesterJLoader) ClassLoader.getSystemClassLoader();
 
     ClassLoader loader;
     if (isUnoJar) {
