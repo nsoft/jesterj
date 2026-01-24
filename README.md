@@ -1,7 +1,7 @@
 
-JesterJ
+JesterJ <img src="img/Jester-J.jpg" align="right" height="260" alt="JesterJ logo showing a jester juggling documents, folders, databases and a search bar"/>
 =======
-<img src="img/Jester-J.jpg" align="right" height="260" alt="JesterJ logo showing a jester juggling documents, folders, databases and a search bar"/>
+
 A highly flexible, scalable, fault-tolerant document ingestion system designed for search.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-B70E23.svg?style=plastic)](http://www.opensource.org/licenses/Apache-2.0)
