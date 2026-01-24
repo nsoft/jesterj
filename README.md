@@ -1,4 +1,4 @@
-## Document Ingestion for Search  <img src="img/Jester-J-crop.jpg" align="left" height="275" alt="JesterJ logo showing a jester juggling documents, folders, databases and a search bar"/>
+## Document Ingestion for Search  <img src="img/Jester-J-crop.jpg" align="left" height="240" alt="JesterJ logo showing a jester juggling documents, folders, databases and a search bar"/>
 
 A highly flexible, scalable, fault-tolerant document ingestion system designed for search.
 
@@ -9,7 +9,6 @@ Builds are run on infrastructure kindly donated by [<img align="top" src="https:
 
 &nbsp;
 
-&nbsp;
 
 ## The problem
 Frequently, search projects start by feeding a few documents manually to a search engine, often via the "just for testing" built-in processing features of Solr such as [SolrCell](https://solr.apache.org/guide/6_6/uploading-data-with-solr-cell-using-apache-tika.html) or [post.jar](https://solr.apache.org/guide/6_6/post-tool.html#simpleposttool).
