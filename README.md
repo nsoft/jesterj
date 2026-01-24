@@ -1,4 +1,4 @@
-Document Ingestion for Search  <img src="img/Jester-J.jpg" align="left" height="275" alt="JesterJ logo showing a jester juggling documents, folders, databases and a search bar"/>
+Document Ingestion for Search  <img src="img/Jester-J-crop.jpg" align="left" height="275" alt="JesterJ logo showing a jester juggling documents, folders, databases and a search bar"/>
 =======
 
 A highly flexible, scalable, fault-tolerant document ingestion system designed for search.
