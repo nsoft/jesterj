@@ -1,3 +1,5 @@
+<img src="img/Jester-J.jpg" style="float:right" height="260" alt="JesterJ logo showing a jester juggling documents, folders, databases and a search bar"/>
+
 JesterJ
 =======
 A highly flexible, scalable, fault-tolerant document ingestion system designed for search.
