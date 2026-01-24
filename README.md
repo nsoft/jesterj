@@ -1,5 +1,4 @@
-
-JesterJ <img src="img/Jester-J.jpg" align="right" height="260" alt="JesterJ logo showing a jester juggling documents, folders, databases and a search bar"/>
+Document Ingestion for Search  <img src="img/Jester-J.jpg" align="left" height="275" alt="JesterJ logo showing a jester juggling documents, folders, databases and a search bar"/>
 =======
 
 A highly flexible, scalable, fault-tolerant document ingestion system designed for search.
@@ -8,6 +7,10 @@ A highly flexible, scalable, fault-tolerant document ingestion system designed f
 [![Build Status](https://github.com/nsoft/jesterj/actions/workflows/gradle.yml/badge.svg)](https://github.com/nsoft/jesterj/actions)
 
 Builds are run on infrastructure kindly donated by [<img align="top" src="https://crave.io/wp-content/uploads/2022/09/Crave_logo_black_bg-e1663023213710.png" alt="" width="100px" height="26px">](https://crave.io/)
+
+&nbsp;
+
+&nbsp;
 
 ## The problem
 Frequently, search projects start by feeding a few documents manually to a search engine, often via the "just for testing" built-in processing features of Solr such as [SolrCell](https://solr.apache.org/guide/6_6/uploading-data-with-solr-cell-using-apache-tika.html) or [post.jar](https://solr.apache.org/guide/6_6/post-tool.html#simpleposttool).
