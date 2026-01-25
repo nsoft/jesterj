@@ -75,10 +75,10 @@ publishing {
       }
       from components.java
       artifact sourcesJar {
-        classifier "sources"
+        archiveClassifier = "sources"
       }
       artifact javadocJar {
-        classifier "javadoc"
+        archiveClassifier = "javadoc"
       }
       repositories {
         maven {

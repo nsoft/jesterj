@@ -224,7 +224,7 @@ quickTest.description = 'Run all tests except the FTI tests and other full integ
 
 jacocoTestReport {
   reports {
-    xml.enabled true
+    xml.required = true
   }
 }
 
@@ -243,6 +243,7 @@ jar {
 }
 
 unojar {
+  embedConfiguration = configurations.named('unoJarPack')
   archivesBaseName = archiveName
   archiveClassifier = "node"
   mainClass = 'org.jesterj.ingest.Main'
