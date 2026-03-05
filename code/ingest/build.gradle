@@ -117,8 +117,8 @@ dependencies {
   // Cassandra slow to upgrade this. 4.1.8 still on 2.13,
   // see https://github.com/apache/cassandra/blob/cassandra-4.1.8/build.xml#L594
   // overriding to keep dependabot happy.
-  api 'com.fasterxml.jackson.core:jackson-core:2.15.4'
-  api 'com.fasterxml.jackson.core:jackson-databind:2.15.4'
+  api 'com.fasterxml.jackson.core:jackson-core:2.18.6'
+  api 'com.fasterxml.jackson.core:jackson-databind:2.18.6'
   api 'com.fasterxml.jackson.dataformat:jackson-dataformat-smile:2.15.4'
 
   // CVE-2021-24823 --> waiting for 4.15 to release.
