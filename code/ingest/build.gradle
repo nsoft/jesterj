@@ -94,7 +94,7 @@ dependencies {
   api 'org.apache.tika:tika-core:3.2.2'
   implementation 'org.apache.tika:tika-parsers-standard-package:3.2.2'
 
-  api 'org.apache.solr:solr-core:9.8.1'
+  api 'org.apache.solr:solr-core:9.10.1'
 
   // until SOLR 9.1.1 (should be safe see https://issues.apache.org/jira/browse/SOLR-16568)
   api 'com.fasterxml.woodstox:woodstox-core:6.4.0'
